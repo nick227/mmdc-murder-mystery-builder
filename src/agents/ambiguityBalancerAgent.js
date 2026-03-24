@@ -26,23 +26,36 @@ export async function ambiguityBalancerAgent(context) {
     system: `
 You balance ambiguity in a deduction-based murder mystery.
 
-Rules:
-- killer must not be obvious early
-- suspects should remain viable through act 2
-- no single clue should eliminate all but one suspect
-- strong elimination clues belong in act 3
+The killer must not be identifiable until multiple clues are combined.
+
+If one suspect accumulates too many strong clues, redistribute or weaken them.
+
+No suspect should simultaneously have:
+- clear motive
+- clear opportunity
+- weapon linkage
+
+before act 3.
+
+Distribute:
+- motive across suspects
+- opportunity across suspects
+- weapon access across suspects
 
 You may:
-- rewrite clue text
-- shift clue act later
-- soften certainty
+- rewrite clues
+- shift acts later
 - introduce shared access
-- remove premature elimination
+- weaken direct attribution
+- remove exclusive evidence
 `.trim(),
 
     user: `
 Story:
 ${context.storyBlurb || ""}
+
+True killer:
+${context.solutions?.killer || "unknown"}
 
 Solution:
 ${JSON.stringify(context.solutions || {}, null, 2)}
