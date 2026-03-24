@@ -1,0 +1,16 @@
+{
+  "name": "murder-mystery-node-poc-v3",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Wired OpenAI-based breadcrumb-driven murder mystery generator",
+  "scripts": {
+    "start": "node src/cli.js start \"Whimsical conservatory murder with a missing fortune\" 4",
+    "status": "node src/cli.js status",
+    "resume": "node src/cli.js resume",
+    "reset": "node src/cli.js reset"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
