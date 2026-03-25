@@ -1,22 +1,24 @@
-import { callJson } from "../llm/client.js";
-import { buildHostSpeechPrompt } from "../prompts/hostSpeechPrompt.js";
-import { actedSimpleCardsSchema } from "../schemas/simpleCardsSchema.js";
-import { pushCards } from "../utils/cards.js";
-import { buildSealedNarrativeContext } from "../utils/contextSeal.js";
+import { callJson } from '../llm/client.js';
+import { buildHostSpeechPrompt } from '../prompts/hostSpeechPrompt.js';
+import { simpleCardsSchema } from '../schemas/simpleCardsSchema.js';
+import { pushCards } from '../utils/cards.js';
 
 export async function hostSpeechAgent(context) {
-  const sealed = buildSealedNarrativeContext(context);
-
   const prompt = buildHostSpeechPrompt({
-    storyBlurb: sealed.storyBlurb,
-    narratives: sealed.narratives
+    storyBlurb: context.story_blurb,
+    narratives: context.narratives
   });
 
   const result = await callJson({
     ...prompt,
-    schemaName: "host_speech",
-    schema: actedSimpleCardsSchema
+    schemaName: 'host_speech',
+    schema: simpleCardsSchema
   });
 
-  return pushCards(context, "host_speech", result.cards);
+  const cards = (result.cards || []).map((c, i) => ({
+    ...c,
+    act: c.act ?? (i % 3) + 1
+  }));
+
+  return pushCards(context, 'host_speech', cards);
 }

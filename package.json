@@ -5,12 +5,19 @@
   "type": "module",
   "description": "Wired OpenAI-based breadcrumb-driven murder mystery generator",
   "scripts": {
-    "start": "node src/cli.js start \"Whimsical conservatory murder with a missing fortune\" 4",
     "status": "node src/cli.js status",
     "resume": "node src/cli.js resume",
-    "reset": "node src/cli.js reset"
+    "reset": "node src/cli.js reset",
+    "smoke": "node src/tests/pipelineSmokeTest.js",
+    "smoke-run": "set SMOKE_MODE=true && node src/cli.js start \"Smoke test\" 4",
+    "start": "set SMOKE_MODE= && node src/cli.js start",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "eslint": "^10.1.0"
   }
 }

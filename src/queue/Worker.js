@@ -1,21 +1,23 @@
 
-import { steps } from "../pipeline/steps/index.js";
-import { writeOutput } from "../storage/output.js";
-import { saveJobs } from "../storage/store.js";
-import { section } from "../cli/logger.js";
-import { setActiveLlmRunContext, clearActiveLlmRunContext } from "../llm/costLedger.js";
-import { validateContext } from "../pipeline/validate.js";
+import { steps } from '../pipeline/steps/index.js';
+import { writeOutput } from '../storage/output.js';
+import { saveJobs } from '../storage/store.js';
+import { section } from '../cli/logger.js';
+import { setActiveLlmRunContext, clearActiveLlmRunContext } from '../llm/costLedger.js';
+import { validateContext } from '../pipeline/validate.js';
 
 function ensureJobContext(job) {
-  if (job.context) return job.context;
+  if (!job.context) {
+    job.context = {
+      runId: job.runId ?? job.id ?? null,
+      runDir: job.runDir ?? null,
+      userPrompt: job.userPrompt ?? '',
+      playerCount: 4,
+      cards: []
+    };
+  }
 
-  job.context = {
-    runId: job.runId ?? job.id ?? null,
-    runDir: job.runDir ?? null,
-    userPrompt: job.userPrompt ?? "",
-    playerCount: job.playerCount ?? 4,
-    cards: []
-  };
+  job.context.playerCount = Number(job.context.playerCount ?? 4);
 
   return job.context;
 }
@@ -28,8 +30,12 @@ function ensureJobContext(job) {
 function isRetryable(error) {
   const msg = String(error);
   // OpenAI/Azure rate limits and server errors are worth retrying.
-  if (/429|rate.?limit|too many requests/i.test(msg)) return true;
-  if (/5\d\d|server error|service unavailable|timeout/i.test(msg)) return true;
+  if (/429|rate.?limit|too many requests/i.test(msg)) {
+    return true;
+  }
+  if (/5\d\d|server error|service unavailable|timeout/i.test(msg)) {
+    return true;
+  }
   return false;
 }
 
@@ -47,9 +53,13 @@ async function runWithRetry(fn, retries = 2) {
       lastError = error;
 
       // Surface non-retryable errors immediately.
-      if (!isRetryable(error)) throw error;
+      if (!isRetryable(error)) {
+        throw error;
+      }
 
-      if (attempt === retries) break;
+      if (attempt === retries) {
+        break;
+      }
 
       // Exponential backoff: 1s, 2s, 4s … with ±20 % jitter.
       const base = 1000 * Math.pow(2, attempt);
@@ -65,12 +75,14 @@ export async function runWorker(queue, hooks = {}) {
 
   while (true) {
     const job = queue.next();
-    if (!job) break;
+    if (!job) {
+      break;
+    }
 
     ensureJobContext(job);
     validateContext(job.context, { allowPartial: true });
 
-    job.status = "running";
+    job.status = 'running';
     saveJobs(queue.jobs);
 
     try {
@@ -86,7 +98,14 @@ export async function runWorker(queue, hooks = {}) {
 
         hooks.onStepStart?.({ stepName: step.name, index: job.stepIndex, total: steps.length, job });
 
-        job.context = await runWithRetry(() => step.run(job.context), 2);
+        const next = await runWithRetry(() => step.run(job.context), 2);
+
+        if (!next) {
+          throw new Error(`${step.name} returned undefined`);
+        }
+
+        job.context = next;
+
         validateContext(job.context, { allowPartial: true });
 
         hooks.onStepDone?.({ stepName: step.name, index: job.stepIndex, total: steps.length, job });
@@ -97,16 +116,16 @@ export async function runWorker(queue, hooks = {}) {
 
       clearActiveLlmRunContext();
 
-      job.status = "done";
+      job.status = 'done';
       saveJobs(queue.jobs);
       writeOutput(job.context.runDir, job.context);
 
     } catch (error) {
       clearActiveLlmRunContext();
-      job.status = "error";
+      job.status = 'error';
       job.error = String(error);
       saveJobs(queue.jobs);
-      hooks.onStepError?.({ stepName: steps[job.stepIndex]?.name ?? "unknown_step", error, index: job.stepIndex, total: steps.length, job });
+      hooks.onStepError?.({ stepName: steps[job.stepIndex]?.name ?? 'unknown_step', error, index: job.stepIndex, total: steps.length, job });
       throw error;
     }
   }

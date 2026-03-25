@@ -1,22 +1,20 @@
 export const solutionSchema = {
-  type: "object",
+  type: 'object',
   additionalProperties: false,
   required: [
-    "killer",
-    "murderMethod",
-    "realSequence",
-    "fortuneLocation",
-    "misleadingAssumption"
+    'killer',
+    'murder_location',
+    'murder_method',
+    'fortune_object',
+    'fortune_location',
+    'misleading_assumption'
   ],
   properties: {
-    killer: { type: "string" },
-    murderMethod: { type: "string" },
-    realSequence: {
-      type: "array",
-      minItems: 4,
-      items: { type: "string" }
-    },
-    fortuneLocation: { type: "string" },
-    misleadingAssumption: { type: "string" }
+    killer: { type: 'string' },
+    murder_location: { type: 'string' },
+    murder_method: { type: 'string' },
+    fortune_object: { type: 'string' },
+    fortune_location: { type: 'string' },
+    misleading_assumption: { type: 'string' }
   }
 };

@@ -1,18 +1,25 @@
-
-function dedupe(clues) {
-  const seen = new Set()
-  return clues.filter(c => {
-    const key = (c.title + c.information).toLowerCase()
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-}
+import { callJson } from '../llm/client.js';
+import { buildFinalEditorPrompt } from '../prompts/finalEditorPrompt.js';
+import { finalCardsSchema } from '../schemas/finalCardsSchema.js';
 
 export async function finalEditorAgent(context) {
-  if (context.clues) {
-    context.clues = dedupe(context.clues)
+  const prompt = buildFinalEditorPrompt(context);
+
+  const result = await callJson({
+    ...prompt,
+    schemaName: 'final_cards',
+    schema: finalCardsSchema
+  });
+
+  if (Array.isArray(result.cards)) {
+    context.cards = result.cards.map((c, i) => ({
+      ...c,
+      act:
+        c.act === 1 || c.act === 2 || c.act === 3
+          ? c.act
+          : ((i % 3) + 1)
+    }));
   }
 
-  return context
+  return context;
 }

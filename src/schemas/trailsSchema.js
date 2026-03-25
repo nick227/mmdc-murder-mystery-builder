@@ -1,31 +1,31 @@
 
 export const trailsSchema = {
-  type: "object",
+  type: 'object',
   additionalProperties: false,
-  required: ["trails"],
+  required: ['trails'],
   properties: {
     trails: {
-      type: "array",
+      type: 'array',
       minItems: 3,
       maxItems: 3,
       items: {
-        type: "object",
+        type: 'object',
         additionalProperties: false,
-        required: ["title", "goal", "beats"],
+        required: ['title', 'goal', 'beats'],
         properties: {
-          title: { type: "string" },
-          goal: { type: "string" },
+          title: { type: 'string' },
+          goal: { type: 'string' },
           beats: {
-            type: "array",
+            type: 'array',
             minItems: 3,
             maxItems: 4,
             items: {
-              type: "object",
+              type: 'object',
               additionalProperties: false,
-              required: ["information", "game"],
+              required: ['information', 'game'],
               properties: {
-                information: { type: "string" },
-                game: { type: "string" }
+                information: { type: 'string' },
+                game: { type: 'string' }
               }
             }
           }

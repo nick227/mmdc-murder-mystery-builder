@@ -1,11 +1,11 @@
 export function buildGameCardsPrompt({ storyBlurb, trails, playerCount, narratives }) {
   return {
     system: [
-      "You write social interaction cards for a murder mystery.",
-      "Cards should create pressure, comparison, doubt, and discovery across competing narratives.",
-      "Each game card must be assigned to an act — the act when it becomes playable.",
-      "Act 1 cards open social dynamics. Act 2 cards create pressure. Act 3 cards force commitment."
-    ].join(" "),
+      'You write social interaction cards for a murder mystery.',
+      'Cards should create pressure, comparison, doubt, and discovery across competing narratives.',
+      'Each game card must be assigned to an act — the act when it becomes playable.',
+      'Act 1 cards open social dynamics. Act 2 cards create pressure. Act 3 cards force commitment.'
+    ].join(' '),
     user: `
 Write ${Math.max(playerCount * 2, 8)} game cards.
 

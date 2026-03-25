@@ -1,28 +1,23 @@
+export function buildStoryBlurbPrompt({ userPrompt, storyStyle }) {
+  return {
+    system: `    
+You create strong murder mystery premises for social deduction games.
 
-export function buildStoryBlurbPrompt({ userPrompt, playerCount }){
-return {
-system: `You create high quality murder mystery story premises.
-Avoid generic phrasing.
-Every sentence must add concrete information.
-No filler.`,
-user: `Create a murder mystery game summary.
+This is core of our story the heart of the game.
+
+The story should be engaging and have enough complexity to support a multi-stage game.`,
+    user: `
+    
+Craft a one-paragraph murder mystery premise.
 
 About: ${userPrompt}
+Style: ${storyStyle}
 
 Requirements:
-- ${playerCount} named characters
-- one murder
-- missing fortune
-- clear physical location
-- concrete murder method
-- hidden truth location
-
-Rules:
-- no vague language
-- no generic phrases
-- no gameplay talk
-- no instructions
-- no lists
+- one thematic murder
+- a missing valuable treasure
+- creative setting
+- tone and theme
 - one paragraph only`
-};
+  };
 }

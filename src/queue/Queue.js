@@ -1,6 +1,6 @@
 
-import crypto from "node:crypto";
-import { loadJobs, saveJobs } from "../storage/store.js";
+import crypto from 'node:crypto';
+import { loadJobs, saveJobs } from '../storage/store.js';
 
 export class Queue {
   constructor() {
@@ -11,24 +11,32 @@ export class Queue {
     // than picking it up as a half-finished in-progress job.
     let dirty = false;
     for (const job of jobs) {
-      if (job.status === "running") {
-        job.status = "pending";
+      if (job.status === 'running') {
+        job.status = 'pending';
         dirty = true;
       }
     }
-    if (dirty) saveJobs(jobs);
+    if (dirty) {
+      saveJobs(jobs);
+    }
 
     this.jobs = jobs;
   }
 
   createJob(context) {
+    const playerCount = Number(context.playerCount ?? 4);
+
     const job = {
       id: crypto.randomUUID(),
       stepIndex: 0,
-      status: "pending",
+      status: 'pending',
       error: null,
-      context
+      context: {
+        ...context,
+        playerCount: Number.isFinite(playerCount) ? playerCount : 4
+      }
     };
+
     this.jobs.push(job);
     saveJobs(this.jobs);
     return job;
@@ -38,7 +46,7 @@ export class Queue {
     // FIX: only return "pending" jobs. The old version also matched "running",
     // which meant a crashed job would be picked up and its current step would
     // be executed a second time, billing the LLM twice.
-    return this.jobs.find(job => job.status === "pending");
+    return this.jobs.find(job => job.status === 'pending');
   }
 
   list() {

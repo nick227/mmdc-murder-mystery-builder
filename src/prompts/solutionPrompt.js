@@ -1,23 +1,32 @@
-export function buildSolutionPrompt({ storyBlurb }) {
+export function buildSolutionPrompt({ storyBlurb, murder, fortune, world }) {
   return {
-    system: [
-      "You extract and complete the hidden truth behind a murder mystery.",
-      "Return only structured JSON that can guide downstream generation."
-    ].join(" "),
-    user: `
-Given this public murder mystery blurb, define the private hidden truth.
+    system: `
+You unify murder truth and fortune truth into one coherent solution.
 
-Blurb:
+Rules:
+- exactly one killer
+- killer must physically commit the murder
+- murder method must be concrete
+- fortune must be hidden after murder
+- misleading assumption must plausibly implicate someone else
+- do not invent new suspects
+- use names already present
+`.trim(),
+
+    user: `
+Story:
 ${storyBlurb}
 
-Return:
-- killer
-- murderMethod
-- realSequence (4 to 7 ordered steps)
-- fortuneLocation
-- misleadingAssumption
+World:
+${world}
 
-Make the truth cohesive and logically consistent with the blurb.
+Murder truth:
+${murder}
+
+Fortune truth:
+${fortune}
+
+Return the final unified solution.
 `.trim()
   };
 }

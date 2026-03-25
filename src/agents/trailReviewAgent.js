@@ -1,24 +1,25 @@
-import { callJson } from "../llm/client.js";
-import { trailsSchema } from "../schemas/trailsSchema.js";
-import { buildTrailReviewPrompt } from "../prompts/trailReviewPrompt.js";
+import { callJson } from '../llm/client.js';
+import { buildTrailReviewPrompt } from '../prompts/trailReviewPrompt.js';
+import { trailsSchema } from '../schemas/trailsSchema.js';
 
 export async function trailReviewAgent(context) {
   if (!context.trails?.length) {
-    throw new Error("No trails to review");
+    throw new Error('No trails to review');
   }
 
   const prompt = buildTrailReviewPrompt({
-    storyBlurb: context.storyBlurb,
-    solutions: context.solutions,
+    storyBlurb: context.story_blurb,
+    murder_truth: context.murder_truth,
+    fortune_truth: context.fortune_truth,
     trails: context.trails
   });
 
   const result = await callJson({
     ...prompt,
-    schemaName: "reviewed_trails",
+    schemaName: 'reviewed_trails',
     schema: trailsSchema
   });
 
-  context.trails = result.trails;
+  context.trails = result.trails || context.trails;
   return context;
 }

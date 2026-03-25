@@ -1,11 +1,24 @@
 
 export async function cardQualityAgent(context) {
-  const clues = context.clues || []
+  const cards = Array.isArray(context.cards) ? context.cards : [];
 
-  // remove empty clues
-  context.clues = clues.filter(
-    c => c && c.title && c.information
-  )
+  // Remove structurally invalid cards (missing required fields).
+  const valid = cards.filter(
+    (c) => c && c.card_type && c.card_title?.trim() && c.card_contents?.trim()
+  );
 
-  return context
+  // Deduplicate by title+contents key (case-insensitive).
+  // Runs after ambiguityBalancerAgent may have rewritten text, so catches
+  // any rewrites that converged on identical content.
+  const seen = new Set();
+  context.cards = valid.filter((c) => {
+    const key = `${c.card_type}::${c.card_title}::${c.card_contents}`.toLowerCase().trim();
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+
+  return context;
 }

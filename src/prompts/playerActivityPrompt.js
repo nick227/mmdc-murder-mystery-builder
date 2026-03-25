@@ -1,10 +1,10 @@
 export function buildPlayerActivityPrompt({ storyBlurb, trails, playerCount, narratives }) {
   return {
     system: [
-      "You create player activity cards that force interaction and move the mystery forward.",
-      "Activities should make players compare competing narratives and resolve contradictions.",
-      "Avoid generic placeholder-style prompts."
-    ].join(" "),
+      'You create player activity cards that force interaction and move the mystery forward.',
+      'Activities should make players compare competing narratives and resolve contradictions.',
+      'Avoid generic placeholder-style prompts.'
+    ].join(' '),
     user: `
 Create exactly ${playerCount * 3} player activity cards.
 

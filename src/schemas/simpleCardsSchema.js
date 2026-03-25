@@ -1,18 +1,18 @@
 // Unacted schema — for character profiles only (always act 1, no field needed)
 export const simpleCardsSchema = {
-  type: "object",
+  type: 'object',
   additionalProperties: false,
-  required: ["cards"],
+  required: ['cards'],
   properties: {
     cards: {
-      type: "array",
+      type: 'array',
       items: {
-        type: "object",
+        type: 'object',
         additionalProperties: false,
-        required: ["card_title", "card_contents"],
+        required: ['card_title', 'card_contents'],
         properties: {
-          card_title: { type: "string" },
-          card_contents: { type: "string" }
+          card_title: { type: 'string' },
+          card_contents: { type: 'string' }
         }
       }
     }
@@ -21,20 +21,20 @@ export const simpleCardsSchema = {
 
 // Acted schema — for host speeches and story acts (act is always known at generation time)
 export const actedSimpleCardsSchema = {
-  type: "object",
+  type: 'object',
   additionalProperties: false,
-  required: ["cards"],
+  required: ['cards'],
   properties: {
     cards: {
-      type: "array",
+      type: 'array',
       items: {
-        type: "object",
+        type: 'object',
         additionalProperties: false,
-        required: ["card_title", "card_contents", "act"],
+        required: ['card_title', 'card_contents', 'act'],
         properties: {
-          card_title: { type: "string" },
-          card_contents: { type: "string" },
-          act: { type: "integer", enum: [1, 2, 3] }
+          card_title: { type: 'string' },
+          card_contents: { type: 'string' },
+          act: { type: 'integer', enum: [1, 2, 3] }
         }
       }
     }

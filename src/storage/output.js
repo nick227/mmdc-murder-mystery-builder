@@ -1,6 +1,6 @@
-import fs from "fs";
-import path from "path";
-import { getCostSummary } from "../llm/costLedger.js";
+import fs from 'fs';
+import path from 'path';
+import { getCostSummary } from '../llm/costLedger.js';
 
 export function writeOutput(runDir, context) {
   fs.mkdirSync(runDir, { recursive: true });
@@ -14,7 +14,7 @@ export function writeOutput(runDir, context) {
   };
 
   fs.writeFileSync(
-    path.join(runDir, "result.json"),
+    path.join(runDir, 'result.json'),
     JSON.stringify(enrichedContext, null, 2)
   );
 }

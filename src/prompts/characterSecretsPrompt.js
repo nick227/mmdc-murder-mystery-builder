@@ -1,32 +1,38 @@
-export function buildCharacterSecretsPrompt({ storyBlurb, trails, playerCount, narratives }) {
+export function buildCharacterSecretsPrompt({ storyBlurb, character }) {
   return {
-    system: [
-      "You write hidden character secret cards for a murder mystery.",
-      "Secrets must support or destabilize specific suspect narratives rather than float generically.",
-      "Each secret should create leverage, contradiction, or withheld context.",
-      "Do not let one secret solve the case."
-    ].join(" "),
-    user: `
-Write exactly ${playerCount} character secret cards.
-
-Story blurb:
-${storyBlurb}
-
-Breadcrumbs:
-${JSON.stringify(trails, null, 2)}
-
-Suspect narratives:
-${JSON.stringify(narratives, null, 2)}
+    system: `
+You generate hidden secrets for a murder mystery character.
 
 Rules:
-- each secret must connect to the case
-- each secret must primarily support or complicate one specific suspect narrative
-- across the full set, distribute secrets across the narratives rather than clustering them around one suspect
-- each secret must create suspicion, tension, leverage, contradiction, or withheld context
-- no secret may fully explain the solution
-- make secrets feel character-owned, not generic evidence notes
+- secrets must create suspicion
+- secrets must not prove guilt
+- secrets must be socially damaging or suspicious
+- no murder mechanics
+- no assigning killer
+- keep concise
+- secrets must relate to the character profile
+`.trim(),
 
-Return cards only.
-`.trim()
+    user: `
+Story:
+${storyBlurb}
+
+Character:
+${character.card_title}
+
+Profile:
+${character.card_contents}
+
+Return JSON only:
+
+{
+  "cards":[
+    {
+      "card_title":"Secret",
+      "card_contents":"Hidden information creating suspicion"
+    }
+  ]
+}
+`
   };
 }

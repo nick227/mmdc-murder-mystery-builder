@@ -1,12 +1,12 @@
 export function buildHostSpeechPrompt({ storyBlurb, narratives }) {
   return {
     system: [
-      "You write host speech cards for a live murder mystery game.",
-      "The host introduces the scenario and punctuates act transitions.",
-      "Speeches must be dramatic and engaging without giving away the answer.",
-      "You do not know who the killer is. Work only from the competing narratives.",
-      "Each speech card must be tagged with its act number."
-    ].join(" "),
+      'You write host speech cards for a live murder mystery game.',
+      'The host introduces the scenario and punctuates act transitions.',
+      'Speeches must be dramatic and engaging without giving away the answer.',
+      'You do not know who the killer is. Work only from the competing narratives.',
+      'Each speech card must be tagged with its act number.'
+    ].join(' '),
     user: `
 Write exactly 3 host speech cards: an opening speech, an Act 2 transition, and an Act 3 final call.
 

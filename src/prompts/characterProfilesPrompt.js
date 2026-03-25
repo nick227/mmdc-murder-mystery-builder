@@ -1,15 +1,27 @@
-export function buildCharacterProfilesPrompt({ storyBlurb, trails, playerCount, narratives }) {
-  // Each character profile is biased toward one narrative to create divergence.
-  // The true_narrative is not exposed — all three are presented as equally plausible.
+export function buildCharacterProfilesPrompt({
+  storyBlurb,
+  trails,
+  playerCount,
+  narratives
+}) {
+  const count = playerCount ?? 4;
+
   const narrativeEntries = [
-    { key: "a", narrative: narratives?.a },
-    { key: "b", narrative: narratives?.b },
-    { key: "c", narrative: narratives?.c }
-  ].filter((n) => n.narrative);
+    { key: 'a', narrative: narratives?.a },
+    { key: 'b', narrative: narratives?.b },
+    { key: 'c', narrative: narratives?.c }
+  ].filter(n => n?.narrative);
+
+  if (!narrativeEntries.length) {
+    return {
+      system: 'Write character profiles',
+      user: `Story:\n${storyBlurb}`
+    };
+  }
 
   const assignments = [];
 
-  for (let i = 0; i < playerCount; i++) {
+  for (let i = 0; i < count; i++) {
     const entry = narrativeEntries[i % narrativeEntries.length];
 
     assignments.push({
@@ -22,19 +34,19 @@ export function buildCharacterProfilesPrompt({ storyBlurb, trails, playerCount, 
 
   return {
     system: [
-      "You write concise, vivid, playable murder mystery character profile cards.",
-      "Every character must feel distinct, deeply involved, and plausibly suspect.",
-      "Use the competing suspect narratives to preserve ambiguity.",
-      "Each character has a narrative bias — they have information or perspective that makes one narrative feel most plausible to them.",
-      "This creates natural information asymmetry between players.",
-      "Characters must be different people.",
-      "Do not create multiple versions of the same person.",
-      "Each character should be a unique role in the story world.",
-      "Characters may be allies, rivals, staff, relatives, or witnesses.",
-      "They are not required to be the suspects themselves."
-    ].join(" "),
+      'You write concise, vivid, playable murder mystery character profile cards.',
+      'Every character must feel distinct, deeply involved, and plausibly suspect.',
+      'Use the competing suspect narratives to preserve ambiguity.',
+      'Each character has a narrative bias — they have information or perspective that makes one narrative feel most plausible to them.',
+      'This creates natural information asymmetry between players.',
+      'Characters must be different people.',
+      'Do not create multiple versions of the same person.',
+      'Each character should be a unique role in the story world.',
+      'Characters may be allies, rivals, staff, relatives, or witnesses.',
+      'They are not required to be the suspects themselves.'
+    ].join(' '),
     user: `
-Using the story blurb, breadcrumbs, and suspect narratives below, write exactly ${playerCount} character profile cards.
+Using the story blurb, breadcrumbs, and suspect narratives below, write exactly ${count} character profile cards.
 
 Story blurb:
 ${storyBlurb}
@@ -62,7 +74,7 @@ Rules:
 - do not name any character as the confirmed killer
 - make each character socially distinct
 - the narrative bias should create natural suspicion and information asymmetry
-- all ${playerCount} characters must feel like plausible suspects to others
+- all ${count} characters must feel like plausible suspects to others
 `.trim()
   };
 }

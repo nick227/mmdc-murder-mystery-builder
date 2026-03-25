@@ -9,8 +9,8 @@
 export function safeJson(text) {
   // Strip markdown code fences.
   const stripped = text
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```\s*$/, "")
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '')
     .trim();
 
   // First attempt: parse the stripped text directly.
@@ -20,17 +20,17 @@ export function safeJson(text) {
 
   // Second attempt: extract the first complete {...} or [...] block.
   // We try both and take whichever starts earlier in the string.
-  const objStart = stripped.indexOf("{");
-  const arrStart = stripped.indexOf("[");
+  const objStart = stripped.indexOf('{');
+  const arrStart = stripped.indexOf('[');
 
   let start = -1;
   let endChar;
   if (objStart !== -1 && (arrStart === -1 || objStart < arrStart)) {
     start = objStart;
-    endChar = "}";
+    endChar = '}';
   } else if (arrStart !== -1) {
     start = arrStart;
-    endChar = "]";
+    endChar = ']';
   }
 
   if (start !== -1) {
@@ -43,7 +43,7 @@ export function safeJson(text) {
   }
 
   throw new Error(
-    `Failed to parse JSON from model response. ` +
+    'Failed to parse JSON from model response. ' +
     `First 120 chars: ${text.slice(0, 120)}`
   );
 }

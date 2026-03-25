@@ -1,12 +1,14 @@
-import { callText } from "../llm/client.js";
-import { buildStoryBlurbPrompt } from "../prompts/storyBlurbPrompt.js";
+import { callText } from '../llm/client.js';
+import { buildStoryBlurbPrompt } from '../prompts/storyBlurbPrompt.js';
 
 export async function storyBlurbAgent(context) {
-  const prompt = buildStoryBlurbPrompt({
-    userPrompt: context.userPrompt,
-    playerCount: context.playerCount
-  });
+  const prompt = buildStoryBlurbPrompt(context);
 
-  context.storyBlurb = await callText(prompt);
+  const text = await callText(prompt);
+
+  context.story_blurb = text;
+
+  console.log('Story blurb:', text);
+
   return context;
 }

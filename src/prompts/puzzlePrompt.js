@@ -33,12 +33,22 @@ Requirements:
 - every puzzle must ask a concrete deduction question
 - every puzzle must compare at least 2 suspects, or compare a suspect against the evidence
 - every puzzle must be answerable using evidence that could exist in clue or item cards
-- at least 1 puzzle should focus on murder opportunity, access, or movement
-- at least 1 puzzle should focus on the missing fortune, hidden object, or concealment
+- at least 1 puzzle must focus on murder opportunity, access, or movement
+- at least 1 puzzle must focus on the missing fortune, hidden object, or concealment
 - prefer elimination logic over vague suspicion
 - do not write generic discussion prompts
 - do not directly state the solution
 - keep each puzzle focused and playable
+
+REQUIRED puzzle types — include at least one of each:
+1. ELIMINATION puzzle (Act 2): "Which suspect can be ruled out based on their alibi and physical impossibility?" — this should cleanly enable the ambitious/chef suspect to be eliminated.
+2. OBJECT CHAIN puzzle (Act 2–3): "Trace the murder weapon from its origin to the victim — whose hands did it pass through?" — this should build toward the killer's physical chain.
+3. TIMELINE CONTRADICTION puzzle (Act 3): "Which suspect's account of their location is directly contradicted by physical evidence?" — this should surface the killer's impossible alibi.
+4. RED HERRING RESOLUTION puzzle (Act 3): "How does the reclusive suspect's presence near the crime scene relate to the hidden fortune rather than the murder?" — this should redirect suspicion away from the innocent reclusive suspect.
+
+Act distribution:
+- Act 2 puzzles: focus on elimination and alibi testing
+- Act 3 puzzles: focus on object chain and timeline contradiction convergence
 
 Each puzzle card must contain:
 - card_title

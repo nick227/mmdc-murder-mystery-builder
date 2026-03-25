@@ -1,22 +1,25 @@
-import { callJson } from "../llm/client.js";
-import { buildStoryActsPrompt } from "../prompts/storyActsPrompt.js";
-import { actedSimpleCardsSchema } from "../schemas/simpleCardsSchema.js";
-import { pushCards } from "../utils/cards.js";
-import { buildSealedNarrativeContext } from "../utils/contextSeal.js";
+import { callJson } from '../llm/client.js';
+import { buildStoryActsPrompt } from '../prompts/storyActsPrompt.js';
+import { simpleCardsSchema } from '../schemas/simpleCardsSchema.js';
+import { pushCards } from '../utils/cards.js';
 
 export async function storyActsAgent(context) {
-  const sealed = buildSealedNarrativeContext(context);
-
   const prompt = buildStoryActsPrompt({
-    storyBlurb: sealed.storyBlurb,
-    narratives: sealed.narratives
+    storyBlurb: context.story_blurb,
+    narratives: context.narratives,
+    characters: context.characters
   });
 
   const result = await callJson({
     ...prompt,
-    schemaName: "story_acts",
-    schema: actedSimpleCardsSchema
+    schemaName: 'story_acts',
+    schema: simpleCardsSchema
   });
 
-  return pushCards(context, "story_act", result.cards);
+  const cards = (result.cards || []).map((c, i) => ({
+    ...c,
+    act: c.act ?? (i + 1) // 1,2,3
+  }));
+
+  return pushCards(context, 'story_act', cards);
 }

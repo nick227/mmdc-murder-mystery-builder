@@ -1,33 +1,33 @@
 
 export const cardSchema = {
-  type: "object",
+  type: 'object',
   additionalProperties: false,
-  required: ["card_title", "card_contents"],
+  required: ['card_title', 'card_contents'],
   properties: {
-    card_title: { type: "string" },
-    card_contents: { type: "string" }
+    card_title: { type: 'string' },
+    card_contents: { type: 'string' }
   }
 };
 
 export const actedCardSchema = {
-  type: "object",
+  type: 'object',
   additionalProperties: false,
-  required: ["card_title", "card_contents", "act"],
+  required: ['card_title', 'card_contents', 'act'],
   properties: {
-    card_title: { type: "string" },
-    card_contents: { type: "string" },
-    act: { type: "integer", enum: [1, 2, 3] }
+    card_title: { type: 'string' },
+    card_contents: { type: 'string' },
+    act: { type: ['number','null'] }
   }
 };
 
 export function cardsArraySchema(minItems = 1, maxItems = 12) {
   return {
-    type: "object",
+    type: 'object',
     additionalProperties: false,
-    required: ["cards"],
+    required: ['cards'],
     properties: {
       cards: {
-        type: "array",
+        type: 'array',
         minItems,
         maxItems,
         items: cardSchema
@@ -38,12 +38,12 @@ export function cardsArraySchema(minItems = 1, maxItems = 12) {
 
 export function actedCardsArraySchema(minItems = 1, maxItems = 12) {
   return {
-    type: "object",
+    type: 'object',
     additionalProperties: false,
-    required: ["cards"],
+    required: ['cards'],
     properties: {
       cards: {
-        type: "array",
+        type: 'array',
         minItems,
         maxItems,
         items: actedCardSchema

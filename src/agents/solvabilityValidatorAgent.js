@@ -1,45 +1,129 @@
 
+import { callJson } from '../llm/client.js';
+import { buildSolvabilityValidatorPrompt } from '../prompts/solvabilityValidatorPrompt.js';
+import { buildSolvabilityRepairPrompt } from '../prompts/solvabilityRepairPrompt.js';
+
+const solvabilitySchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['pass', 'problems'],
+  properties: {
+    pass: { type: 'boolean' },
+    problems: {
+      type: 'array',
+      items: { type: 'string' }
+    }
+  }
+};
+
+const solvabilityRepairSchema = {
+  type: 'object',
+  required: ['cards'],
+  properties: {
+    cards: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: [
+          'card_type',
+          'card_title',
+          'card_contents'
+        ],
+        properties: {
+          card_type: { type: 'string' },
+          card_title: { type: 'string' },
+          card_contents: { type: 'string' },
+          act: {
+            type: ['number','null']
+          },
+          explanation: {
+            type: ['string','null']
+          }
+        }
+      }
+    }
+  }
+};
+
 export async function solvabilityValidatorAgent(context) {
-  const cards = Array.isArray(context.cards) ? context.cards : [];
 
-  const clues = cards.filter((c) => c?.card_type === "clue");
-  const puzzles = cards.filter((c) => c?.card_type === "puzzle");
+  for (let attempt = 0; attempt < 2; attempt++) {
 
-  if (clues.length < 3) {
-    throw new Error("Not enough clues generated");
+    const validatePrompt = buildSolvabilityValidatorPrompt(context);
+
+    const result = await callJson({
+      ...validatePrompt,
+      schemaName: 'solvability_validation',
+      schema: solvabilitySchema
+    });
+
+    console.log('VALIDATOR RESULT:', result);
+
+    if (result.pass === true) {
+      return context;
+    }
+
+    const problems = Array.isArray(result.problems)
+      ? result.problems
+      : ['unspecified solvability failure'];
+
+    console.log('SOLVABILITY REPAIR:', problems);
+
+    const repairPrompt = buildSolvabilityRepairPrompt(context, problems);
+
+    const repair = await callJson({
+      ...repairPrompt,
+      schemaName: 'solvability_repair',
+      schema: solvabilityRepairSchema
+    });
+
+    if (!repair || !repair.cards) {
+      break;
+    }
+
+    if (
+      repair.cards.length === context.cards.length &&
+      isValidCards(repair.cards) &&
+      sameCardShape(context.cards, repair.cards) &&
+      cardsChanged(context.cards, repair.cards)
+    ) {
+      console.log('REPAIR APPLIED');
+      context.cards = repair.cards;
+    } else {
+      break;
+    }
   }
 
-  if (puzzles.length < 1) {
-    throw new Error("No puzzles generated");
-  }
+  const finalCheck = await callJson({
+    ...buildSolvabilityValidatorPrompt(context),
+    schemaName: 'solvability_validation',
+    schema: solvabilitySchema
+  });
 
-  const seen = new Set();
-  for (const clue of clues) {
-    const key = `${clue.card_title || ""}::${clue.card_contents || ""}`.trim().toLowerCase();
-    if (!key || key === "::") {
-      throw new Error("Invalid clue detected");
-    }
-    if (seen.has(key)) {
-      throw new Error("Duplicate clues detected");
-    }
-    seen.add(key);
-  }
-
-  const forbidden = [
-    "is the killer",
-    "was the killer",
-    "killed",
-    "murdered",
-    "confirms that",
-    "definitively proves"
-  ];
-
-  for (const clue of clues) {
-    const t = String(clue.card_contents || "").toLowerCase();
-    if (forbidden.some((phrase) => t.includes(phrase))) {
-      throw new Error("Clue directly states the solution");
-    }
+  if (finalCheck.pass !== true) {
+    throw new Error(
+      'FAIL: unsolvable after repair\n' +
+      JSON.stringify(finalCheck.problems || [], null, 2)
+    );
   }
 
   return context;
+}
+
+function isValidCards(cards) {
+  return Array.isArray(cards) && cards.every(c =>
+    c.card_type &&
+    c.card_title &&
+    c.card_contents
+  );
+}
+
+function sameCardShape(a, b) {
+  return a.every((card, i) =>
+    card.card_type === b[i].card_type
+  );
+}
+
+function cardsChanged(a, b) {
+  return JSON.stringify(a) !== JSON.stringify(b);
 }

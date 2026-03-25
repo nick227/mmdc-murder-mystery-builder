@@ -1,14 +1,16 @@
 export function buildNarrativeSummary(narratives) {
-  if (!narratives) return undefined;
+  if (!narratives) {
+    return undefined;
+  }
 
   const pick = (n) =>
     n
       ? {
-          suspect: n.suspect,
-          motive: n.motive,
-          opportunity: n.opportunity,
-          contradiction_hooks: n.contradiction_hooks || []
-        }
+        suspect: n.suspect,
+        motive: n.motive,
+        opportunity: n.opportunity,
+        contradiction_hooks: n.contradiction_hooks || []
+      }
       : undefined;
 
   return {

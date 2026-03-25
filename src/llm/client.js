@@ -1,71 +1,141 @@
-import { safeJson } from "../utils/json.js";
-import { recordUsage } from "./costLedger.js";
+import { safeJson } from '../utils/json.js';
+import { recordUsage } from './costLedger.js';
 
-const API_BASE_URL = process.env.API_BASE_URL || "https://api.openai.com/v1";
-const MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const API_BASE_URL = process.env.API_BASE_URL || 'https://api.openai.com/v1';
+const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
+const SMOKE = process.env.SMOKE_MODE === 'true';
 
-async function call(body){
-  const res = await fetch(`${API_BASE_URL}/chat/completions`,{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":`Bearer ${process.env.OPENAI_API_KEY}`
+async function call(body) {
+  const res = await fetch(`${API_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
     },
     body: JSON.stringify(body)
   });
 
-  if(!res.ok){
+  if (!res.ok) {
     const t = await res.text();
-    throw new Error("OpenAI error: "+t);
+    throw new Error('OpenAI error: ' + t);
   }
 
   return res.json();
 }
 
-export async function callText(opts){
+export async function callText(opts) {
+  if (SMOKE) {
+    return 'SMOKE_MODE_TEXT';
+  }
+
   const jsonResp = await call({
     model: MODEL,
     temperature: opts.temperature ?? 0.7,
-    messages:[
-      {role:"system",content:opts.system},
-      {role:"user",content:opts.user}
+    messages: [
+      { role: 'system', content: opts.system },
+      { role: 'user', content: opts.user }
     ]
   });
 
   recordUsage({
-    requestType: "text",
+    requestType: 'text',
     schemaName: null,
     model: jsonResp?.model || MODEL,
     usage: jsonResp?.usage || {}
   });
 
-  return jsonResp.choices[0].message.content.trim();
+  return jsonResp.choices?.[0]?.message?.content?.trim?.() || '';
 }
 
-export async function callJson(opts){
+export async function callJson(opts) {
+  if (SMOKE) {
+    return fakeFromSchema(opts?.schema);
+  }
+
+  if (!opts?.schemaName) {
+    throw new Error('callJson requires schemaName');
+  }
+  if (!opts?.schema) {
+    throw new Error('callJson requires schema');
+  }
+
   const jsonResp = await call({
     model: MODEL,
     temperature: opts.temperature ?? 0.4,
-    response_format:{
-      type:"json_schema",
-      json_schema:{
-        name:opts.schemaName,
-        schema:opts.schema,
-        strict:true
+    response_format: {
+      type: 'json_schema',
+      json_schema: {
+        name: opts.schemaName,
+        schema: opts.schema,
+        strict: true
       }
     },
-    messages:[
-      {role:"system",content:opts.system},
-      {role:"user",content:opts.user}
+    messages: [
+      { role: 'system', content: opts.system },
+      { role: 'user', content: opts.user }
     ]
   });
 
   recordUsage({
-    requestType: "json",
+    requestType: 'json',
     schemaName: opts.schemaName ?? null,
     model: jsonResp?.model || MODEL,
     usage: jsonResp?.usage || {}
   });
 
-  return safeJson(jsonResp.choices[0].message.content);
+  const content = jsonResp.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw new Error('LLM returned empty JSON response');
+  }
+
+  const parsed = safeJson(content);
+
+  if (!parsed || Object.keys(parsed).length === 0) {
+    console.log('INVALID JSON FROM LLM:');
+    console.log(content);
+    throw new Error('LLM returned empty JSON object');
+  }
+
+  return parsed;
+}
+
+function fakeFromSchema(schema) {
+  if (!schema?.properties) {
+    return {};
+  }
+
+  const obj = {};
+
+  for (const key of Object.keys(schema.properties)) {
+    obj[key] = fakeValue(schema.properties[key]);
+  }
+
+  return obj;
+}
+
+function fakeValue(def, _key) {
+  if (!def) {
+    return null;
+  }
+
+  if (def.type === 'string') {
+    return 'mock';
+  }
+  if (def.type === 'number') {
+    return 1;
+  }
+  if (def.type === 'boolean') {
+    return true;
+  }
+
+  if (def.type === 'array') {
+    return [fakeValue(def.items)];
+  }
+
+  if (def.type === 'object') {
+    return fakeFromSchema(def);
+  }
+
+  return 'mock';
 }

@@ -1,10 +1,10 @@
 export function buildItemsPrompt({ storyBlurb, trails, narratives }) {
   return {
     system: [
-      "You write item cards for a murder mystery.",
-      "Items must be concrete, useful, and tied to deduction across competing narratives.",
-      "Items should describe inspectable objects, not restate clue interpretations."
-    ].join(" "),
+      'You write item cards for a murder mystery.',
+      'Items must be concrete, useful, and tied to deduction across competing narratives.',
+      'Items should describe inspectable objects, not restate clue interpretations.'
+    ].join(' '),
     user: `
 Write item cards from the breadcrumb objects and suspect narratives below.
 

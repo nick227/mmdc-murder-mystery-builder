@@ -1,25 +1,22 @@
-import { callJson } from "../llm/client.js";
-import { buildNarrativesPrompt } from "../prompts/narrativesPrompt.js";
-import { narrativesSchema } from "../schemas/narrativesSchema.js";
+import { callJson } from '../llm/client.js';
+import { buildNarrativesPrompt } from '../prompts/narrativesPrompt.js';
+import { narrativesSchema } from '../schemas/narrativesSchema.js';
 
 export async function narrativeGeneratorAgent(context) {
-  if (!context.trails?.length) {
-    throw new Error("No validated trails available for narrative_generator_agent");
-  }
-
   const prompt = buildNarrativesPrompt({
-    storyBlurb: context.storyBlurb,
-    solutions: context.solutions,
+    storyBlurb: context.story_blurb,
+    murder_truth: context.murder_truth,
+    fortune_truth: context.fortune_truth,
     trails: context.trails,
     playerCount: context.playerCount
   });
 
   const result = await callJson({
     ...prompt,
-    schemaName: "suspect_narratives",
+    schemaName: 'suspect_narratives',
     schema: narrativesSchema
   });
 
-  context.narratives = result.narratives;
+  context.narratives = result.narratives || result;
   return context;
 }
