@@ -78,7 +78,9 @@ async function main() {
   const gainCounts = {};
   const strengthCounts = {};
   const stateChangeFlags = [];
+  const hiddenUnlockCounts = [];
   let isolatedBeforeRejection = 0;
+  let redundantUnlockWarnings = 0;
 
   for (const result of results) {
     const debug = result.context?.debug || {};
@@ -93,6 +95,9 @@ async function main() {
     warningCounts.push(warningLog.length);
     longestChains.push(debug.longest_chain_length || 0);
     stateChangeFlags.push(...(debug.state_change_flags || []));
+    hiddenUnlockCounts.push(
+      bundleStats.reduce((sum, item) => sum + Number(item.unlock_count || 0), 0)
+    );
 
     for (const node of connectivity) {
       edgePerBundle.push((node.in_degree || 0) + (node.out_degree || 0));
@@ -108,6 +113,9 @@ async function main() {
     for (const warning of warningLog) {
       allWarnings[warning.reason] = (allWarnings[warning.reason] || 0) + 1;
       allWarningStages[warning.stage] = (allWarningStages[warning.stage] || 0) + 1;
+      if (warning.reason === 'redundant_unlock' || warning.reason === 'redundant_unlock_generation') {
+        redundantUnlockWarnings += 1;
+      }
     }
 
     sumCounts(gainCounts, debug.gain_counts || {});
@@ -132,6 +140,9 @@ async function main() {
   console.log(`Average longest chain: ${average(longestChains).toFixed(2)}`);
   console.log(`Max longest chain: ${Math.max(0, ...longestChains)}`);
   console.log(`Isolated bundles observed: ${isolatedBeforeRejection}`);
+  console.log(`Average hidden unlock cards per run: ${average(hiddenUnlockCounts).toFixed(2)}`);
+  console.log(`Connectivity ratio: ${average(bundleCounts) ? (average(hiddenUnlockCounts) / average(bundleCounts)).toFixed(2) : '0.00'}`);
+  console.log(`Redundant unlock warnings: ${redundantUnlockWarnings}`);
   console.log(`State-change rate: ${stateChangeFlags.length ? ((stateChangeFlags.filter(Boolean).length / stateChangeFlags.length) * 100).toFixed(1) : '0.0'}%`);
 
   console.log('\nTop rejection reasons:');

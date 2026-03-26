@@ -72,7 +72,16 @@ export async function finalEditorAgent(context) {
   });
 
   if (Array.isArray(result.cards)) {
-    context.cards = applyFinalEditorResult(existingCards, result.cards);
+    try {
+      context.cards = applyFinalEditorResult(existingCards, result.cards);
+    } catch (error) {
+      context.debug.warning_log.push({
+        stage: 'final_editor',
+        reason: 'final_editor_contract_fallback',
+        message: error.message
+      });
+      context.cards = existingCards;
+    }
   }
 
   return context;

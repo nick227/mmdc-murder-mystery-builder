@@ -25,6 +25,7 @@ import { hostSpeechAgent } from '../../agents/hostSpeechAgent.js';
 
 import { itemAgent } from '../../agents/itemAgent.js';
 import { puzzleAgent } from '../../agents/puzzleAgent.js';
+import { bundleLinkerAgent } from '../../agents/bundleLinkerAgent.js';
 import { clueAgent } from '../../agents/clueAgent.js';
 import { rosterIntegrityValidatorAgent } from '../../agents/rosterIntegrityValidatorAgent.js';
 
@@ -66,6 +67,7 @@ export const steps = [
 
   { name: 'item_agent', run: itemAgent },
   { name: 'puzzle_agent', run: puzzleAgent },
+  { name: 'bundle_linker_agent', run: bundleLinkerAgent },
   { name: 'clue_agent', run: clueAgent },
 
   { name: 'ambiguity_balancer_agent', run: ambiguityBalancerAgent },

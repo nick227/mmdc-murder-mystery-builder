@@ -46,10 +46,14 @@ Bundle rules:
 - cross_reference bundles should usually require 3+ cards and concentrated comparison
 - cipher bundles should solve faster and unlock concrete progress
 - item_combination bundles should require players to visibly combine multiple assets
+- medium and hard puzzles must reference at least one previously emitted upstream card when available; this helps create investigation chains
+- if no suitable upstream card exists for a bundle, create the bundle normally using local cards only
 - required_card_refs handles both visibility and solving: if those cards exist, the puzzle is available and solvable
 - required_card_refs may include local card_ref values from this bundle or upstream card_id values from the provided upstream cards
 - unlock_card_refs should point only to local bundle card_ref values that stay hidden until solved
 - hidden unlock cards should usually be clue cards or final interpretation cards
+- across the full set of puzzles, at least 1-2 medium or hard puzzles must require a card that is emitted or unlocked by a previous puzzle, when suitable earlier puzzle cards exist
+- when generating later puzzles, look for opportunities to reuse cards from earlier bundles and prefer reusing cards that unlock strong or specific evidence
 - every actionable_gain must answer: "What new actionable information do players gain?"
 - actionable_gain must be concrete and state-changing (use verbs like: narrows, eliminates, contradicts, links, breaks, proves)
 - do not output decorative filler cards
