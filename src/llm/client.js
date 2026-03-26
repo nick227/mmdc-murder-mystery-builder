@@ -119,21 +119,28 @@ function fakeValue(def, _key) {
     return null;
   }
 
-  if (def.type === 'string') {
+  if (Array.isArray(def.enum) && def.enum.length > 0) {
+    return def.enum[0];
+  }
+
+  const types = Array.isArray(def.type) ? def.type : [def.type];
+
+  if (types.includes('string')) {
     return 'mock';
   }
-  if (def.type === 'number') {
+  if (types.includes('integer') || types.includes('number')) {
     return 1;
   }
-  if (def.type === 'boolean') {
+  if (types.includes('boolean')) {
     return true;
   }
 
-  if (def.type === 'array') {
-    return [fakeValue(def.items)];
+  if (types.includes('array')) {
+    const length = Number.isInteger(def.minItems) ? def.minItems : 1;
+    return Array.from({ length }, () => fakeValue(def.items));
   }
 
-  if (def.type === 'object') {
+  if (types.includes('object')) {
     return fakeFromSchema(def);
   }
 

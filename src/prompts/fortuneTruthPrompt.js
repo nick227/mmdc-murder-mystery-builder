@@ -1,5 +1,4 @@
-
-export function buildFortuneTruthPrompt(context) {
+export function buildFortuneTruthPrompt({ storyBlurb, murderTruth, world }) {
   return {
     system:`Define the missing fortune.
 
@@ -18,12 +17,12 @@ Requirements:
 - concise
 - ground truth only`,
     user:`Story:
-${context.story_blurb || ''}
+${storyBlurb || ''}
 
 Murder:
-${context.murder_truth || ''}
+${murderTruth || ''}
 
 World:
-${JSON.stringify(context.world || {},null,2)}`
+${typeof world === 'string' ? world : JSON.stringify(world || {}, null, 2)}`
   };
 }

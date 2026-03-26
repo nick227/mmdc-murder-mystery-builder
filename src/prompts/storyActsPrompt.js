@@ -13,16 +13,16 @@ Create exactly 3 story act cards for this murder mystery.
 Public blurb:
 ${storyBlurb}
 
-Competing suspect narratives (all are plausible — do not treat any as confirmed truth):
+Competing suspect narratives (all are plausible - do not treat any as confirmed truth):
 ${JSON.stringify(narratives, null, 2)}
 
 Playable characters:
-${characters}
+${JSON.stringify(characters || [], null, 2)}
 
 Act structure and act field assignments:
-- Act 1 (act: 1) — opening setup: establish characters, surface first tensions, introduce the crime
-- Act 2 (act: 2) — mid-game escalation: shift suspicion, surface a contradiction, raise stakes
-- Act 3 (act: 3) — final deduction phase: pressure players to commit, narrow focus, do not solve
+- Act 1 (act: 1) - opening setup: establish characters, surface first tensions, introduce the crime
+- Act 2 (act: 2) - mid-game escalation: shift suspicion, surface a contradiction, raise stakes
+- Act 3 (act: 3) - final deduction phase: pressure players to commit, narrow focus, do not solve
 
 Each act card must:
 - advance the mystery without resolving it
@@ -37,7 +37,7 @@ Rules:
 - keep all three narratives live and debatable through Act 2
 - Act 3 may narrow focus but must preserve the final deduction gap
 - return exactly 3 cards with act fields 1, 2, and 3 respectively
-- All suspects must be from playable characters
+- all suspects must be from playable characters
 `.trim()
   };
 }

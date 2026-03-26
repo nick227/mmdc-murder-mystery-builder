@@ -5,6 +5,7 @@ import { saveJobs } from '../storage/store.js';
 import { section } from '../cli/logger.js';
 import { setActiveLlmRunContext, clearActiveLlmRunContext } from '../llm/costLedger.js';
 import { validateContext } from '../pipeline/validate.js';
+import { normalizeContext } from '../utils/context.js';
 
 function ensureJobContext(job) {
   if (!job.context) {
@@ -17,9 +18,7 @@ function ensureJobContext(job) {
     };
   }
 
-  job.context.playerCount = Number(job.context.playerCount ?? 4);
-
-  return job.context;
+  return normalizeContext(job.context);
 }
 
 // FIX: added exponential backoff with jitter and retryable-error detection.
@@ -104,7 +103,7 @@ export async function runWorker(queue, hooks = {}) {
           throw new Error(`${step.name} returned undefined`);
         }
 
-        job.context = next;
+        job.context = normalizeContext(next);
 
         validateContext(job.context, { allowPartial: true });
 

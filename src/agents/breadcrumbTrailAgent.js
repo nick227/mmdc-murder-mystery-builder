@@ -6,7 +6,8 @@ export async function breadcrumbTrailAgent(context) {
   const prompt = buildBreadcrumbTrailPrompt({
     murder_truth: context.murder_truth,
     fortune_truth: context.fortune_truth,
-    world: context.world
+    world: context.world,
+    solution: context.solution
   });
 
   const result = await callJson({

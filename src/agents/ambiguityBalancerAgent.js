@@ -5,6 +5,15 @@ function ensureArray(v) {
 }
 
 export async function ambiguityBalancerAgent(context) {
+  const trailReviewPassed = context.trail_review?.pass === true;
+  const narrativeValidationPassed = context.narrative_validation?.pass === true;
+
+  if (trailReviewPassed && narrativeValidationPassed) {
+    context.ambiguity_notes = null;
+    context.ambiguity_balancer_skipped = true;
+    return context;
+  }
+
   const cards = ensureArray(context.cards);
   if (!cards.length) {
     return context;
@@ -17,5 +26,6 @@ export async function ambiguityBalancerAgent(context) {
 
   const text = await callText(prompt);
   context.ambiguity_notes = text;
+  context.ambiguity_balancer_skipped = false;
   return context;
 }

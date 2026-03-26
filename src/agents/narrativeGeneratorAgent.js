@@ -1,14 +1,16 @@
 import { callJson } from '../llm/client.js';
 import { buildNarrativesPrompt } from '../prompts/narrativesPrompt.js';
 import { narrativesSchema } from '../schemas/narrativesSchema.js';
+import { getCharacterCards } from '../utils/cards.js';
+import { getStoryBlurb } from '../utils/context.js';
 
 export async function narrativeGeneratorAgent(context) {
   const prompt = buildNarrativesPrompt({
-    storyBlurb: context.story_blurb,
-    murder_truth: context.murder_truth,
-    fortune_truth: context.fortune_truth,
+    storyBlurb: getStoryBlurb(context),
+    solution: context.solution,
     trails: context.trails,
-    playerCount: context.playerCount
+    playerCount: context.playerCount,
+    characters: getCharacterCards(context.cards)
   });
 
   const result = await callJson({

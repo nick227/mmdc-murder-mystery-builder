@@ -17,7 +17,6 @@ function fakeFromSchema(schema) {
     obj[key] = fakeValue(schema.properties[key], key);
   }
 
-  // auto-fix cards
   if (Array.isArray(obj.cards)) {
     obj.cards = obj.cards.map((c, i) => ({
       card_type: c.card_type || 'mock',
@@ -37,25 +36,32 @@ function normalizeAct(v, i) {
   return (i % 3) + 1;
 }
 
-function fakeValue(def, _key) {
+function fakeValue(def) {
   if (!def) {
     return null;
   }
 
-  if (def.type === 'string') {
+  if (Array.isArray(def.enum) && def.enum.length > 0) {
+    return def.enum[0];
+  }
+
+  const types = Array.isArray(def.type) ? def.type : [def.type];
+
+  if (types.includes('string')) {
     return 'mock';
   }
-  if (def.type === 'number') {
+  if (types.includes('integer') || types.includes('number')) {
     return 1;
   }
-  if (def.type === 'boolean') {
+  if (types.includes('boolean')) {
     return true;
   }
-  if (def.type === 'array') {
-    return [];
+  if (types.includes('array')) {
+    const length = Number.isInteger(def.minItems) ? def.minItems : 1;
+    return Array.from({ length }, () => fakeValue(def.items));
   }
-  if (def.type === 'object') {
-    return {};
+  if (types.includes('object')) {
+    return fakeFromSchema(def);
   }
   return null;
 }

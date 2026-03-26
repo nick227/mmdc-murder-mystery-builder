@@ -39,7 +39,7 @@ const suspectNarrativeSchema = {
 export const narrativesSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['narratives'],
+  required: ['narratives', 'story_paths'],
   properties: {
     narratives: {
       type: 'object',
@@ -50,6 +50,32 @@ export const narrativesSchema = {
         b: suspectNarrativeSchema,
         c: suspectNarrativeSchema,
         true_narrative: { type: 'string', enum: ['a', 'b', 'c'] }
+      }
+    },
+    story_paths: {
+      type: 'array',
+      minItems: 0,
+      maxItems: 8,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['title', 'summary', 'beats', 'involved_characters'],
+        properties: {
+          title: { type: 'string' },
+          summary: { type: 'string' },
+          beats: {
+            type: 'array',
+            minItems: 3,
+            maxItems: 6,
+            items: { type: 'string' }
+          },
+          involved_characters: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 8,
+            items: { type: 'string' }
+          }
+        }
       }
     }
   }

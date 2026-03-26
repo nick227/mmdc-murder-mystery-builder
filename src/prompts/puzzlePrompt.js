@@ -1,67 +1,104 @@
-
-export function buildPuzzlePrompt({ storyBlurb, trails, narratives, puzzleCount }) {
+export function buildPuzzlePrompt({ storyBlurb, trails, narratives, upstreamCards, puzzleCount }) {
   return {
     system: `
-You design puzzle cards for a social deduction murder mystery.
+You design puzzle bundles for a social deduction murder mystery.
 
-Puzzles are deduction questions players can reasonably solve by combining evidence.
-They must be sharp, specific, and comparison-driven.
-A strong puzzle asks players to resolve:
-- a contradiction
-- a timeline conflict
-- an access problem
-- an ownership problem
-- an elimination question
+Each bundle is a mini evidence package that advances the investigation.
 
-Do not write long explanatory essays.
-Do not pre-solve the mystery.
+Hard rules:
+- each bundle must emit exactly 1 puzzle card
+- each bundle must emit at least 2 new non-puzzle cards
+- bundles may reference upstream cards that already exist
+- bundles may emit hidden unlock cards that only appear after solve
+- every bundle must state one actionable_gain
+- no bundle may reveal the full solution alone
+
+Puzzle quality standard:
+- challenging: players must compare, infer, decode, combine, or notice something
+- solvable: the answer must come from required cards already available in the bundle or from listed upstream cards
+- rewarding: solving must unlock major useful information
+
+Difficulty to evidence strength:
+- easy -> weak/supporting information
+- medium -> narrowing information
+- hard -> strong but not decisive information
+
+Never unlock decisive evidence.
 `.trim(),
 
     user: `
 Story:
 ${storyBlurb}
 
-Trails:
+Reviewed trails:
 ${JSON.stringify(trails, null, 2)}
 
 Narratives:
 ${JSON.stringify(narratives, null, 2)}
 
-Create exactly ${puzzleCount} puzzle cards.
+Available upstream cards you may reference by card_id:
+${JSON.stringify(upstreamCards || [], null, 2)}
 
-Requirements:
-- every puzzle must ask a concrete deduction question
-- every puzzle must compare at least 2 suspects, or compare a suspect against the evidence
-- every puzzle must be answerable using evidence that could exist in clue or item cards
-- at least 1 puzzle must focus on murder opportunity, access, or movement
-- at least 1 puzzle must focus on the missing fortune, hidden object, or concealment
-- prefer elimination logic over vague suspicion
-- do not write generic discussion prompts
-- do not directly state the solution
-- keep each puzzle focused and playable
+Create exactly ${puzzleCount} puzzle bundles.
 
-REQUIRED puzzle types — include at least one of each:
-1. ELIMINATION puzzle (Act 2): "Which suspect can be ruled out based on their alibi and physical impossibility?" — this should cleanly enable the ambitious/chef suspect to be eliminated.
-2. OBJECT CHAIN puzzle (Act 2–3): "Trace the murder weapon from its origin to the victim — whose hands did it pass through?" — this should build toward the killer's physical chain.
-3. TIMELINE CONTRADICTION puzzle (Act 3): "Which suspect's account of their location is directly contradicted by physical evidence?" — this should surface the killer's impossible alibi.
-4. RED HERRING RESOLUTION puzzle (Act 3): "How does the reclusive suspect's presence near the crime scene relate to the hidden fortune rather than the murder?" — this should redirect suspicion away from the innocent reclusive suspect.
+Bundle rules:
+- preferred puzzle types: cross_reference, cipher, item_combination, timeline, elimination
+- cross_reference bundles should usually require 3+ cards and concentrated comparison
+- cipher bundles should solve faster and unlock concrete progress
+- item_combination bundles should require players to visibly combine multiple assets
+- required_card_refs handles both visibility and solving: if those cards exist, the puzzle is available and solvable
+- required_card_refs may include local card_ref values from this bundle or upstream card_id values from the provided upstream cards
+- unlock_card_refs should point only to local bundle card_ref values that stay hidden until solved
+- hidden unlock cards should usually be clue cards or final interpretation cards
+- every actionable_gain must answer: "What new actionable information do players gain?"
+- actionable_gain must be concrete and state-changing (use verbs like: narrows, eliminates, contradicts, links, breaks, proves)
+- do not output decorative filler cards
 
-Act distribution:
-- Act 2 puzzles: focus on elimination and alibi testing
-- Act 3 puzzles: focus on object chain and timeline contradiction convergence
+Unlock card quality rules (avoid redundant_unlock failures):
+- unlock cards must introduce NEW information not already stated by required cards or upstream cards
+- do not paraphrase or restate required cards as unlock cards
+- unlock card_contents should include at least one concrete discriminator such as a time, location, initials, serial/lot number, or access restriction
+- unlock cards may narrow suspicion but must not reveal the full solution alone
 
-Each puzzle card must contain:
-- card_title
-- card_contents
-- act (1, 2, or 3)
-
-Good puzzle examples:
-- Who could actually access the hidden area unseen?
-- Whose timeline breaks if the witness statement is true?
-- Which suspect fits the weapon chain and motive together?
-- Which clue weakens the obvious suspect?
-
-Return cards only.
+Return exactly this JSON shape:
+{
+  "bundles": [
+    {
+      "puzzle_type": "cross_reference",
+      "difficulty": "hard",
+      "actionable_gain": "",
+      "solution_summary": "",
+      "required_card_refs": [],
+      "unlock_card_refs": [],
+      "cards": [
+        {
+          "card_ref": "puzzle_main",
+          "card_type": "puzzle",
+          "card_title": "",
+          "card_contents": "",
+          "act": 2,
+          "hidden_until_solved": false
+        },
+        {
+          "card_ref": "asset_a",
+          "card_type": "item",
+          "card_title": "",
+          "card_contents": "",
+          "act": 2,
+          "hidden_until_solved": false
+        },
+        {
+          "card_ref": "unlock_a",
+          "card_type": "clue",
+          "card_title": "",
+          "card_contents": "",
+          "act": 2,
+          "hidden_until_solved": true
+        }
+      ]
+    }
+  ]
+}
 `.trim()
   };
 }

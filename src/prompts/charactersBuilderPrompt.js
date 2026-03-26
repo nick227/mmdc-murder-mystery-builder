@@ -2,7 +2,9 @@
 export function buildCharactersBuilderPrompt({ storyBlurb, playerCount }) {
   return {
     system: `
-You generate character cards for a murder mystery.
+You generate character cards for a murder mystery.- 
+
+CHARACTER NAMES: Use evocative, descriptive names that hint at their role.
 
 Rules:
 - generate exactly playerCount characters

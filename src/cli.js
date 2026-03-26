@@ -16,7 +16,7 @@ async function ask(question) {
 async function getStartInputs(args) {
   let userPrompt = args[0];
   let playerCount = args[1];
-  let storyStyle = args[1];
+  let storyStyle = args[2];
 
   if (!userPrompt) {
     userPrompt = await ask('Murder mystery prompt: ');
@@ -45,7 +45,7 @@ const args = process.argv.slice(3);
 
 function printHelp() {
   console.log('Commands:');
-  console.log('  node src/cli.js start "<userPrompt>" <playerCount>');
+  console.log('  node src/cli.js start "<userPrompt>" <playerCount> ["storyStyle"]');
   console.log('  node src/cli.js status');
   console.log('  node src/cli.js resume');
   console.log('  node src/cli.js reset');

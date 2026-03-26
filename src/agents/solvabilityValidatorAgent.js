@@ -1,7 +1,7 @@
-
 import { callJson } from '../llm/client.js';
 import { buildSolvabilityValidatorPrompt } from '../prompts/solvabilityValidatorPrompt.js';
 import { buildSolvabilityRepairPrompt } from '../prompts/solvabilityRepairPrompt.js';
+import { mergeCardMetadata } from '../utils/cards.js';
 
 const solvabilitySchema = {
   type: 'object',
@@ -30,14 +30,18 @@ const solvabilityRepairSchema = {
           'card_contents'
         ],
         properties: {
+          card_id: { type: 'string' },
           card_type: { type: 'string' },
           card_title: { type: 'string' },
           card_contents: { type: 'string' },
+          linked_character_id: {
+            type: 'string'
+          },
           act: {
-            type: ['number','null']
+            type: ['number', 'null']
           },
           explanation: {
-            type: ['string','null']
+            type: ['string', 'null']
           }
         }
       }
@@ -46,9 +50,7 @@ const solvabilityRepairSchema = {
 };
 
 export async function solvabilityValidatorAgent(context) {
-
   for (let attempt = 0; attempt < 2; attempt++) {
-
     const validatePrompt = buildSolvabilityValidatorPrompt(context);
 
     const result = await callJson({
@@ -88,7 +90,7 @@ export async function solvabilityValidatorAgent(context) {
       cardsChanged(context.cards, repair.cards)
     ) {
       console.log('REPAIR APPLIED');
-      context.cards = repair.cards;
+      context.cards = mergeCardMetadata(context.cards, repair.cards);
     } else {
       break;
     }
@@ -111,7 +113,7 @@ export async function solvabilityValidatorAgent(context) {
 }
 
 function isValidCards(cards) {
-  return Array.isArray(cards) && cards.every(c =>
+  return Array.isArray(cards) && cards.every((c) =>
     c.card_type &&
     c.card_title &&
     c.card_contents

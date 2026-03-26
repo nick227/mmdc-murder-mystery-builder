@@ -25,6 +25,35 @@ export function validateContext(context, options = {}) {
     assert(typeof context.userPrompt === 'string', 'context.userPrompt must be a string');
   }
 
+  if (context.storyBlurb !== undefined) {
+    assert(typeof context.storyBlurb === 'string', 'context.storyBlurb must be a string');
+  }
+
+  if (context.story_blurb !== undefined) {
+    assert(typeof context.story_blurb === 'string', 'context.story_blurb must be a string');
+  }
+
+  if (context.storyStyle !== undefined) {
+    assert(typeof context.storyStyle === 'string', 'context.storyStyle must be a string');
+  }
+
+  if (context.solution !== undefined && context.solution !== null) {
+    assert(isObject(context.solution), 'context.solution must be an object');
+
+    if (context.solution.killer !== undefined) {
+      assert(typeof context.solution.killer === 'string', 'context.solution.killer must be a string');
+    }
+    if (context.solution.method !== undefined) {
+      assert(typeof context.solution.method === 'string', 'context.solution.method must be a string');
+    }
+    if (context.solution.location !== undefined) {
+      assert(typeof context.solution.location === 'string', 'context.solution.location must be a string');
+    }
+    if (context.solution.motive !== undefined) {
+      assert(typeof context.solution.motive === 'string', 'context.solution.motive must be a string');
+    }
+  }
+
   if (context.playerCount !== undefined && context.playerCount !== null) {
     context.playerCount = Number(context.playerCount);
   }
@@ -48,8 +77,59 @@ export function validateContext(context, options = {}) {
       if (card.card_contents !== undefined) {
         assert(typeof card.card_contents === 'string', `context.cards[${index}].card_contents must be a string`);
       }
+      if (card.card_id !== undefined) {
+        assert(typeof card.card_id === 'string', `context.cards[${index}].card_id must be a string`);
+      }
       if (card.act !== undefined && card.act !== null) {
         assert([1, 2, 3].includes(card.act), `context.cards[${index}].act must be 1, 2, or 3`);
+      }
+      if (card.linked_character_id !== undefined) {
+        assert(typeof card.linked_character_id === 'string', `context.cards[${index}].linked_character_id must be a string`);
+      }
+      if (card.linked_character_index !== undefined && card.linked_character_index !== null) {
+        assert(Number.isInteger(card.linked_character_index), `context.cards[${index}].linked_character_index must be an integer`);
+      }
+      if (card.trail_role !== undefined && card.trail_role !== null) {
+        assert(
+          ['red_herring', 'ambiguous', 'killer_aligned'].includes(card.trail_role),
+          `context.cards[${index}].trail_role must be red_herring, ambiguous, or killer_aligned`
+        );
+      }
+      if (card.bundle_id !== undefined && card.bundle_id !== null) {
+        assert(typeof card.bundle_id === 'string', `context.cards[${index}].bundle_id must be a string`);
+      }
+      if (card.puzzle_type !== undefined && card.puzzle_type !== null) {
+        assert(
+          ['cross_reference', 'cipher', 'item_combination', 'timeline', 'elimination'].includes(card.puzzle_type),
+          `context.cards[${index}].puzzle_type must be a supported puzzle type`
+        );
+      }
+      if (card.difficulty !== undefined && card.difficulty !== null) {
+        assert(['easy', 'medium', 'hard'].includes(card.difficulty), `context.cards[${index}].difficulty must be easy, medium, or hard`);
+      }
+      if (card.required_card_ids !== undefined && card.required_card_ids !== null) {
+        assert(Array.isArray(card.required_card_ids), `context.cards[${index}].required_card_ids must be an array`);
+      }
+      if (card.unlock_card_ids !== undefined && card.unlock_card_ids !== null) {
+        assert(Array.isArray(card.unlock_card_ids), `context.cards[${index}].unlock_card_ids must be an array`);
+      }
+      if (card.actionable_gain !== undefined && card.actionable_gain !== null) {
+        assert(typeof card.actionable_gain === 'string', `context.cards[${index}].actionable_gain must be a string`);
+      }
+      if (card.solution_summary !== undefined && card.solution_summary !== null) {
+        assert(typeof card.solution_summary === 'string', `context.cards[${index}].solution_summary must be a string`);
+      }
+      if (card.hidden_until_solved !== undefined && card.hidden_until_solved !== null) {
+        assert(typeof card.hidden_until_solved === 'boolean', `context.cards[${index}].hidden_until_solved must be a boolean`);
+      }
+      if (card.evidence_strength !== undefined && card.evidence_strength !== null) {
+        assert(
+          ['weak', 'supporting', 'strong', 'decisive'].includes(card.evidence_strength),
+          `context.cards[${index}].evidence_strength must be weak, supporting, strong, or decisive`
+        );
+      }
+      if (card.requires !== undefined && card.requires !== null) {
+        assert(Array.isArray(card.requires), `context.cards[${index}].requires must be an array`);
       }
     }
   }

@@ -1,24 +1,46 @@
+export function buildBreadcrumbTrailPrompt({
+  murder_truth,
+  fortune_truth,
+  world,
+  solution
+}) {
+  const worldBlock = typeof world === 'string' ? world : JSON.stringify(world || {}, null, 2);
 
-export function buildBreadcrumbTrailPrompt(context) {
   return {
-    system:`List player discoveries.
+    system: `
+You write exactly three breadcrumb investigation trails for a social deduction murder mystery.
 
-Create:
-- early discovery introduces suspicion
-- middle discovery shifts suspicion
-- final discovery confirms the killer
+Use the hidden solution as ground truth for planning beats (players must not be handed the killer's name as a conclusion).
+
+Trail roles (in order — trails[0], trails[1], trails[2]):
+1. RED-HERRING LEAN — beats that reasonably widen suspicion toward suspects other than solution.killer. Do not confirm an alternate killer.
+2. KILLER-ALIGNED — beats that tighten opportunity, access, method, or motive in ways that later converge on solution.killer without naming them as killer in any beat.
+3. AMBIGUOUS — beats that could cut multiple ways until combined with clues from other trails or cards.
+
+Each trail:
+- 3-4 beats; each beat has concrete "information" and a social "game" prompt
+- final beat of each trail narrows suspicion but does not identify the killer alone (no single beat solves the case)
 
 Guidelines:
-- physical evidence
+- physical, discoverable details
 - concise
-- each discovery changes understanding`,
-    user:`Murder:
-${context.murder_truth || ''}
+- each beat changes what players think they know
+`.trim(),
+    user: `
+Hidden solution (private — structure beats around this, never reveal it outright):
+${JSON.stringify(solution || {}, null, 2)}
+
+Murder truth:
+${murder_truth || ''}
 
 Fortune:
-${context.fortune_truth || ''}
+${fortune_truth || ''}
 
 World:
-${JSON.stringify(context.world || {},null,2)}`
+${worldBlock}
+
+Return JSON with exactly three trails in order: red-herring lean, killer-aligned, ambiguous.
+`
   };
 }
+

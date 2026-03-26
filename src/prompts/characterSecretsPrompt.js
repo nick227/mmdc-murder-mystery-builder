@@ -1,4 +1,4 @@
-export function buildCharacterSecretsPrompt({ storyBlurb, character }) {
+export function buildCharacterSecretsPrompt({ storyBlurb, characterName }) {
   return {
     system: `
 You generate hidden secrets for a murder mystery character.
@@ -10,7 +10,7 @@ Rules:
 - no murder mechanics
 - no assigning killer
 - keep concise
-- secrets must relate to the character profile
+- secrets should be driven by story context and social dynamics
 `.trim(),
 
     user: `
@@ -18,10 +18,7 @@ Story:
 ${storyBlurb}
 
 Character:
-${character.card_title}
-
-Profile:
-${character.card_contents}
+${characterName}
 
 Return JSON only:
 

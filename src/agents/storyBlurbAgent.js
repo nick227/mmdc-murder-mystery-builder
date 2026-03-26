@@ -6,6 +6,7 @@ export async function storyBlurbAgent(context) {
 
   const text = await callText(prompt);
 
+  context.storyBlurb = text;
   context.story_blurb = text;
 
   console.log('Story blurb:', text);
