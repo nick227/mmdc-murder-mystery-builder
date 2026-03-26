@@ -13,9 +13,20 @@ function ensureJobContext(job) {
       runId: job.runId ?? job.id ?? null,
       runDir: job.runDir ?? null,
       userPrompt: job.userPrompt ?? '',
-      playerCount: 4,
+      playerCount: job.playerCount ?? job.player_count ?? 4,
+      storyStyle: job.storyStyle ?? job.story_style ?? '',
       cards: []
     };
+  }
+
+  if (job.context.userPrompt == null && job.userPrompt != null) {
+    job.context.userPrompt = job.userPrompt;
+  }
+  if (job.context.playerCount == null && (job.playerCount != null || job.player_count != null)) {
+    job.context.playerCount = job.playerCount ?? job.player_count;
+  }
+  if (job.context.storyStyle == null && (job.storyStyle != null || job.story_style != null)) {
+    job.context.storyStyle = job.storyStyle ?? job.story_style;
   }
 
   return normalizeContext(job.context);

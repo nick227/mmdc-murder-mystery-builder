@@ -34,6 +34,7 @@ import { solvabilityValidatorAgent } from '../../agents/solvabilityValidatorAgen
 import { gameCardAgent } from '../../agents/gameCardAgent.js';
 import { cardQualityAgent } from '../../agents/cardQualityAgent.js';
 import { finalEditorAgent } from '../../agents/finalEditorAgent.js';
+import { postFinalInvariantsAgent } from '../../agents/postFinalInvariantsAgent.js';
 import { bundleIntegrityValidatorAgent } from '../../agents/bundleIntegrityValidatorAgent.js';
 
 export const steps = [
@@ -77,5 +78,6 @@ export const steps = [
 
   { name: 'card_quality_agent', run: cardQualityAgent },
   { name: 'final_editor_agent', run: finalEditorAgent },
+  { name: 'post_final_invariants_agent', run: postFinalInvariantsAgent },
   { name: 'bundle_integrity_validator_agent', run: bundleIntegrityValidatorAgent }
 ];

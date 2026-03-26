@@ -18,6 +18,15 @@ async function getStartInputs(args) {
   let playerCount = args[1];
   let storyStyle = args[2];
 
+  // Support `start "<prompt>" "<style>"` by treating a non-numeric second arg as storyStyle.
+  if (playerCount && !storyStyle) {
+    const asNumber = parseInt(playerCount, 10);
+    if (!Number.isFinite(asNumber)) {
+      storyStyle = playerCount;
+      playerCount = undefined;
+    }
+  }
+
   if (!userPrompt) {
     userPrompt = await ask('Murder mystery prompt: ');
   }

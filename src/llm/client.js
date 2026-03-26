@@ -4,6 +4,7 @@ import { recordUsage } from './costLedger.js';
 const API_BASE_URL = process.env.API_BASE_URL || 'https://api.openai.com/v1';
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 const SMOKE = process.env.SMOKE_MODE === 'true';
+let smokeCallSeq = 0;
 
 async function call(body) {
   const res = await fetch(`${API_BASE_URL}/chat/completions`, {
@@ -49,7 +50,8 @@ export async function callText(opts) {
 
 export async function callJson(opts) {
   if (SMOKE) {
-    return fakeFromSchema(opts?.schema);
+    smokeCallSeq += 1;
+    return fakeFromSchema(opts?.schema, `root${smokeCallSeq}`, 0);
   }
 
   if (!opts?.schemaName) {
@@ -100,7 +102,7 @@ export async function callJson(opts) {
   return parsed;
 }
 
-function fakeFromSchema(schema) {
+function fakeFromSchema(schema, parentKey = 'root', index = 0) {
   if (!schema?.properties) {
     return {};
   }
@@ -108,13 +110,13 @@ function fakeFromSchema(schema) {
   const obj = {};
 
   for (const key of Object.keys(schema.properties)) {
-    obj[key] = fakeValue(schema.properties[key]);
+    obj[key] = fakeValue(schema.properties[key], `${parentKey}.${key}`, index);
   }
 
   return obj;
 }
 
-function fakeValue(def, _key) {
+function fakeValue(def, key, index) {
   if (!def) {
     return null;
   }
@@ -126,7 +128,7 @@ function fakeValue(def, _key) {
   const types = Array.isArray(def.type) ? def.type : [def.type];
 
   if (types.includes('string')) {
-    return 'mock';
+    return `mock_${key || 'string'}_${index}`;
   }
   if (types.includes('integer') || types.includes('number')) {
     return 1;
@@ -137,12 +139,12 @@ function fakeValue(def, _key) {
 
   if (types.includes('array')) {
     const length = Number.isInteger(def.minItems) ? def.minItems : 1;
-    return Array.from({ length }, () => fakeValue(def.items));
+    return Array.from({ length }, (_v, i) => fakeValue(def.items, key, i + 1));
   }
 
   if (types.includes('object')) {
-    return fakeFromSchema(def);
+    return fakeFromSchema(def, key, index);
   }
 
-  return 'mock';
+  return `mock_${key || 'value'}_${index}`;
 }

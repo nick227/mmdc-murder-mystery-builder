@@ -10,7 +10,13 @@ Check:
 - not trivial
 - relates to conflict
 
-Set passes true if valid otherwise list issues.`,
+Return JSON:
+{
+  "pass": true|false,
+  "issues": ["..."]
+}
+
+Set pass=true only if valid; otherwise pass=false and list issues.`,
     user:`Fortune:
 ${context.fortune_truth || ''}`
   };
