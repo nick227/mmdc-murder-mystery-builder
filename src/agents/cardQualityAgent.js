@@ -411,8 +411,7 @@ function validatePuzzleBundles(cards, context) {
     }
 
     if (requiredIds.length < 2) {
-      context.debug.rejection_log.push({ bundle_id: bundleId, reason: 'trivial_required_card_ids', stage: 'structural' });
-      throw new Error(`Puzzle bundle ${bundleId} has trivial required_card_ids`);
+      warn(context, bundleId, 'trivial_required_card_ids', 'structural');
     }
     if (!unlockIds.length) {
       context.debug.rejection_log.push({ bundle_id: bundleId, reason: 'missing_unlock_cards', stage: 'structural' });

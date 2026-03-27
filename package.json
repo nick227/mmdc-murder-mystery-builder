@@ -10,6 +10,7 @@
     "reset": "node src/cli.js reset",
     "smoke": "node src/tests/pipelineSmokeTest.js",
     "test:puzzle-harness": "node src/tests/harness/puzzleHarness.js",
+    "test:bundle-regressions": "node src/tests/bundleRegressionTest.js",
     "test:roster-harness": "node src/tests/harness/rosterHarness.js",
     "test:connectivity-harness": "node src/tests/harness/connectivityHarness.js",
     "test:roster-integrity": "node src/tests/rosterIntegrityValidatorTest.js",

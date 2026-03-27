@@ -12,9 +12,40 @@ const difficultyToEvidenceStrength = {
   hard: 'strong'
 };
 
-function hasMeaningfulActionableGain(value) {
+const fallbackTitlesByType = {
+  puzzle: [
+    'Access Reconstruction',
+    'Timeline Cross-Check',
+    'Object Chain Comparison',
+    'Decoded Contradiction'
+  ],
+  item: [
+    'Logbook Entry',
+    'Encrypted Note',
+    'Physical Trace',
+    'Witness Statement'
+  ],
+  clue: [
+    'Access Restriction',
+    'Timeline Contradiction',
+    'Object Link',
+    'Alibi Break'
+  ]
+};
+
+export function hasMeaningfulActionableGain(value) {
   const text = String(value || '').trim().toLowerCase();
   if (!text || text === 'mock') {
+    return false;
+  }
+
+  const genericPhrases = [
+    'narrows the suspect space',
+    'through access, timeline',
+    'through access timeline',
+    'object evidence'
+  ];
+  if (genericPhrases.some((term) => text.includes(term))) {
     return false;
   }
 
@@ -94,6 +125,13 @@ function makeBundleId(index) {
   return `puzzle_bundle_${String(index + 1).padStart(3, '0')}`;
 }
 
+export function isPlaceholderTitle(value) {
+  const text = String(value || '').trim();
+  return /Puzzle Bundle.*Card/i.test(text)
+    || /^Card \d+$/i.test(text)
+    || /^Bundle \d+/i.test(text);
+}
+
 function defaultCardContents(cardType) {
   if (cardType === 'puzzle') {
     return 'A concrete deduction question that requires comparing at least two referenced cards.';
@@ -102,6 +140,36 @@ function defaultCardContents(cardType) {
     return 'A physical item with markings, ownership hints, and a time-related detail players can compare against a record.';
   }
   return 'An objective record excerpt (log, ledger, schedule, note) that can contradict or narrow a suspect timeline or access.';
+}
+
+function defaultCardTitle(cardType, bundleIndex, cardIndex) {
+  const options = fallbackTitlesByType[cardType] || fallbackTitlesByType.item;
+  return options[(bundleIndex + cardIndex) % options.length];
+}
+
+function validateNormalizedBundle(bundle, index) {
+  for (const card of bundle.cards || []) {
+    if (isPlaceholderTitle(card.card_title)) {
+      throw new Error(`Puzzle bundle ${makeBundleId(index)} contains placeholder title after normalization`);
+    }
+  }
+}
+
+function defaultActionableGain(puzzleType) {
+  switch (puzzleType) {
+    case 'cross_reference':
+      return 'Proves one suspect could access the scene while another could not.';
+    case 'cipher':
+      return 'Reveals a hidden timing or location clue.';
+    case 'item_combination':
+      return 'Links one object to one suspect or route.';
+    case 'elimination':
+      return 'Rules out one suspect from a key action.';
+    case 'timeline':
+      return 'Breaks one alibi or narrows the event window.';
+    default:
+      return 'Narrows one suspect, route, or timeline possibility.';
+  }
 }
 
 function buildUpstreamLookup(cards) {
@@ -133,11 +201,14 @@ function ensureBundleShape(bundle, index) {
     const inferredType = card?.card_type;
     const fallbackType = cardIndex === 0 ? 'puzzle' : (cardIndex % 2 === 1 ? 'item' : 'clue');
     const cardType = inferredType || fallbackType;
+    const rawTitle = String(card?.card_title || '').trim();
 
     return {
       card_ref: cardRef,
       card_type: cardType,
-      card_title: String(card?.card_title || '').trim() || `Puzzle Bundle ${index + 1} Card ${cardIndex + 1}`,
+      card_title: !rawTitle || isPlaceholderTitle(rawTitle)
+        ? defaultCardTitle(cardType, index, cardIndex)
+        : rawTitle,
       card_contents: String(card?.card_contents || '').trim() || defaultCardContents(cardType),
       act: card?.act,
       hidden_until_solved: card?.hidden_until_solved === true
@@ -149,7 +220,7 @@ function ensureBundleShape(bundle, index) {
     ensuredCards.push({
       card_ref: `bundle_${index + 1}_card_${ensuredCards.length + 1}`,
       card_type: fallbackType,
-      card_title: `Puzzle Bundle ${index + 1} Card ${ensuredCards.length + 1}`,
+      card_title: defaultCardTitle(fallbackType, index, ensuredCards.length),
       card_contents: defaultCardContents(fallbackType),
       act: 2,
       hidden_until_solved: false
@@ -191,7 +262,7 @@ function ensureBundleShape(bundle, index) {
     difficulty: bundle?.difficulty,
     actionable_gain: hasMeaningfulActionableGain(bundle?.actionable_gain)
       ? String(bundle.actionable_gain).trim()
-      : `Narrows the suspect space through access, timeline, or object evidence from puzzle bundle ${index + 1}.`,
+      : defaultActionableGain(bundle?.puzzle_type),
     solution_summary: hasMeaningfulSolutionSummary(bundle?.solution_summary)
       ? String(bundle.solution_summary).trim()
       : `Compare both visible records together to find the contradiction that narrows the suspect space in puzzle bundle ${index + 1}.`,
@@ -247,8 +318,9 @@ function safePuzzleDifficulty(requested, actionableGain, solutionSummary) {
   return 'hard';
 }
 
-function flattenBundle(bundle, index, upstreamLookup) {
+export function flattenBundle(bundle, index, upstreamLookup) {
   const normalized = ensureBundleShape(bundle, index);
+  validateNormalizedBundle(normalized, index);
   const bundleId = makeBundleId(index);
   const act = pickAct(normalized, normalized.cards);
   const refToId = new Map();
@@ -394,6 +466,9 @@ function validateFlattenedBundle(bundle, solution) {
 
   if (puzzleCards.length !== 1) {
     throw new Error(`Puzzle bundle ${bundle.bundle_id} must emit exactly 1 puzzle card`);
+  }
+  if (cards.some((card) => isPlaceholderTitle(card.card_title))) {
+    throw new Error(`Puzzle bundle ${bundle.bundle_id} contains placeholder titles after flattening`);
   }
   if (nonPuzzleCards.length < 2) {
     throw new Error(`Puzzle bundle ${bundle.bundle_id} must emit at least 2 new non-puzzle cards`);
