@@ -29,29 +29,28 @@ export function validateContext(context, options = {}) {
     assert(typeof context.storyBlurb === 'string', 'context.storyBlurb must be a string');
   }
 
-  if (context.story_blurb !== undefined) {
-    assert(typeof context.story_blurb === 'string', 'context.story_blurb must be a string');
-  }
-
   if (context.storyStyle !== undefined) {
     assert(typeof context.storyStyle === 'string', 'context.storyStyle must be a string');
   }
 
-  if (context.solution !== undefined && context.solution !== null) {
-    assert(isObject(context.solution), 'context.solution must be an object');
+  if (context.coreTruth !== undefined && context.coreTruth !== null) {
+    assert(isObject(context.coreTruth), 'context.coreTruth must be an object');
+    if (context.coreTruth.murder !== undefined && context.coreTruth.murder !== null) {
+      assert(isObject(context.coreTruth.murder), 'context.coreTruth.murder must be an object');
+    }
+    if (context.coreTruth.treasure !== undefined && context.coreTruth.treasure !== null) {
+      assert(isObject(context.coreTruth.treasure), 'context.coreTruth.treasure must be an object');
+    }
+  }
 
-    if (context.solution.killer !== undefined) {
-      assert(typeof context.solution.killer === 'string', 'context.solution.killer must be a string');
-    }
-    if (context.solution.method !== undefined) {
-      assert(typeof context.solution.method === 'string', 'context.solution.method must be a string');
-    }
-    if (context.solution.location !== undefined) {
-      assert(typeof context.solution.location === 'string', 'context.solution.location must be a string');
-    }
-    if (context.solution.motive !== undefined) {
-      assert(typeof context.solution.motive === 'string', 'context.solution.motive must be a string');
-    }
+  if (context.case_state !== undefined && context.case_state !== null) {
+    assert(isObject(context.case_state), 'context.case_state must be an object');
+    assert(Array.isArray(context.case_state.suspects), 'context.case_state.suspects must be an array');
+    assert(typeof context.case_state.killer_id === 'string', 'context.case_state.killer_id must be a string');
+    assert(isObject(context.case_state.state_progression), 'context.case_state.state_progression must be an object');
+    assert(Array.isArray(context.case_state.state_progression.viable_suspects), 'context.case_state.state_progression.viable_suspects must be an array');
+    assert(Array.isArray(context.case_state.state_progression.eliminated_suspects), 'context.case_state.state_progression.eliminated_suspects must be an array');
+    assert(Array.isArray(context.case_state.state_progression.constraints), 'context.case_state.state_progression.constraints must be an array');
   }
 
   if (context.playerCount !== undefined && context.playerCount !== null) {
@@ -83,6 +82,9 @@ export function validateContext(context, options = {}) {
       if (card.act !== undefined && card.act !== null) {
         assert([1, 2, 3].includes(card.act), `context.cards[${index}].act must be 1, 2, or 3`);
       }
+      if (card.location_ref !== undefined && card.location_ref !== null) {
+        assert(typeof card.location_ref === 'string', `context.cards[${index}].location_ref must be a string`);
+      }
       if (card.linked_character_id !== undefined) {
         assert(typeof card.linked_character_id === 'string', `context.cards[${index}].linked_character_id must be a string`);
       }
@@ -98,11 +100,20 @@ export function validateContext(context, options = {}) {
       if (card.bundle_id !== undefined && card.bundle_id !== null) {
         assert(typeof card.bundle_id === 'string', `context.cards[${index}].bundle_id must be a string`);
       }
+      if (card.card_ref !== undefined && card.card_ref !== null) {
+        assert(typeof card.card_ref === 'string', `context.cards[${index}].card_ref must be a string`);
+      }
       if (card.puzzle_type !== undefined && card.puzzle_type !== null) {
         assert(
           ['cross_reference', 'cipher', 'item_combination', 'timeline', 'elimination'].includes(card.puzzle_type),
           `context.cards[${index}].puzzle_type must be a supported puzzle type`
         );
+      }
+      if (card.required_card_refs !== undefined && card.required_card_refs !== null) {
+        assert(Array.isArray(card.required_card_refs), `context.cards[${index}].required_card_refs must be an array`);
+      }
+      if (card.unlock_card_refs !== undefined && card.unlock_card_refs !== null) {
+        assert(Array.isArray(card.unlock_card_refs), `context.cards[${index}].unlock_card_refs must be an array`);
       }
       if (card.difficulty !== undefined && card.difficulty !== null) {
         assert(['easy', 'medium', 'hard'].includes(card.difficulty), `context.cards[${index}].difficulty must be easy, medium, or hard`);
@@ -119,6 +130,12 @@ export function validateContext(context, options = {}) {
       if (card.solution_summary !== undefined && card.solution_summary !== null) {
         assert(typeof card.solution_summary === 'string', `context.cards[${index}].solution_summary must be a string`);
       }
+      if (card.solve_instructions !== undefined && card.solve_instructions !== null) {
+        assert(typeof card.solve_instructions === 'string', `context.cards[${index}].solve_instructions must be a string`);
+      }
+      if (card.solution !== undefined && card.solution !== null) {
+        assert(typeof card.solution === 'string', `context.cards[${index}].solution must be a string`);
+      }
       if (card.hidden_until_solved !== undefined && card.hidden_until_solved !== null) {
         assert(typeof card.hidden_until_solved === 'boolean', `context.cards[${index}].hidden_until_solved must be a boolean`);
       }
@@ -130,6 +147,30 @@ export function validateContext(context, options = {}) {
       }
       if (card.requires !== undefined && card.requires !== null) {
         assert(Array.isArray(card.requires), `context.cards[${index}].requires must be an array`);
+      }
+      if (card.derived_facts !== undefined && card.derived_facts !== null) {
+        assert(Array.isArray(card.derived_facts), `context.cards[${index}].derived_facts must be an array`);
+        for (const [factIndex, fact] of card.derived_facts.entries()) {
+          assert(isObject(fact), `context.cards[${index}].derived_facts[${factIndex}] must be an object`);
+          if (fact.fact_id !== undefined && fact.fact_id !== null) {
+            assert(typeof fact.fact_id === 'string', `context.cards[${index}].derived_facts[${factIndex}].fact_id must be a string`);
+          }
+          if (fact.subject !== undefined && fact.subject !== null) {
+            assert(typeof fact.subject === 'string', `context.cards[${index}].derived_facts[${factIndex}].subject must be a string`);
+          }
+          if (fact.time !== undefined && fact.time !== null) {
+            assert(typeof fact.time === 'string', `context.cards[${index}].derived_facts[${factIndex}].time must be a string`);
+          }
+          if (fact.location !== undefined && fact.location !== null) {
+            assert(typeof fact.location === 'string', `context.cards[${index}].derived_facts[${factIndex}].location must be a string`);
+          }
+          if (fact.statement !== undefined && fact.statement !== null) {
+            assert(typeof fact.statement === 'string', `context.cards[${index}].derived_facts[${factIndex}].statement must be a string`);
+          }
+          if (fact.source_card_id !== undefined && fact.source_card_id !== null) {
+            assert(typeof fact.source_card_id === 'string', `context.cards[${index}].derived_facts[${factIndex}].source_card_id must be a string`);
+          }
+        }
       }
     }
   }

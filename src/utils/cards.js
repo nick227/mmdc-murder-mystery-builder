@@ -37,11 +37,23 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (card?.trail_role !== undefined || previous.trail_role !== undefined) {
       merged.trail_role = card?.trail_role ?? previous.trail_role;
     }
+    if (card?.location_ref !== undefined || previous.location_ref !== undefined) {
+      merged.location_ref = card?.location_ref ?? previous.location_ref;
+    }
     if (card?.bundle_id !== undefined || previous.bundle_id !== undefined) {
       merged.bundle_id = card?.bundle_id ?? previous.bundle_id;
     }
+    if (card?.card_ref !== undefined || previous.card_ref !== undefined) {
+      merged.card_ref = card?.card_ref ?? previous.card_ref;
+    }
     if (card?.puzzle_type !== undefined || previous.puzzle_type !== undefined) {
       merged.puzzle_type = card?.puzzle_type ?? previous.puzzle_type;
+    }
+    if (card?.required_card_refs !== undefined || previous.required_card_refs !== undefined) {
+      merged.required_card_refs = card?.required_card_refs ?? previous.required_card_refs;
+    }
+    if (card?.unlock_card_refs !== undefined || previous.unlock_card_refs !== undefined) {
+      merged.unlock_card_refs = card?.unlock_card_refs ?? previous.unlock_card_refs;
     }
     if (card?.difficulty !== undefined || previous.difficulty !== undefined) {
       merged.difficulty = card?.difficulty ?? previous.difficulty;
@@ -58,6 +70,12 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (card?.solution_summary !== undefined || previous.solution_summary !== undefined) {
       merged.solution_summary = card?.solution_summary ?? previous.solution_summary;
     }
+    if (card?.solve_instructions !== undefined || previous.solve_instructions !== undefined) {
+      merged.solve_instructions = card?.solve_instructions ?? previous.solve_instructions;
+    }
+    if (card?.solution !== undefined || previous.solution !== undefined) {
+      merged.solution = card?.solution ?? previous.solution;
+    }
     if (card?.hidden_until_solved !== undefined || previous.hidden_until_solved !== undefined) {
       merged.hidden_until_solved = card?.hidden_until_solved ?? previous.hidden_until_solved;
     }
@@ -66,6 +84,9 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     }
     if (card?.requires !== undefined || previous.requires !== undefined) {
       merged.requires = card?.requires ?? previous.requires;
+    }
+    if (card?.derived_facts !== undefined || previous.derived_facts !== undefined) {
+      merged.derived_facts = card?.derived_facts ?? previous.derived_facts;
     }
 
     return merged;
@@ -100,11 +121,23 @@ export function pushCards(context, type, entries) {
     if (e.trail_role !== undefined) {
       card.trail_role = e.trail_role;
     }
+    if (e.location_ref !== undefined) {
+      card.location_ref = e.location_ref;
+    }
     if (e.bundle_id !== undefined) {
       card.bundle_id = e.bundle_id;
     }
+    if (e.card_ref !== undefined) {
+      card.card_ref = e.card_ref;
+    }
     if (e.puzzle_type !== undefined) {
       card.puzzle_type = e.puzzle_type;
+    }
+    if (e.required_card_refs !== undefined) {
+      card.required_card_refs = e.required_card_refs;
+    }
+    if (e.unlock_card_refs !== undefined) {
+      card.unlock_card_refs = e.unlock_card_refs;
     }
     if (e.difficulty !== undefined) {
       card.difficulty = e.difficulty;
@@ -121,6 +154,12 @@ export function pushCards(context, type, entries) {
     if (e.solution_summary !== undefined) {
       card.solution_summary = e.solution_summary;
     }
+    if (e.solve_instructions !== undefined) {
+      card.solve_instructions = e.solve_instructions;
+    }
+    if (e.solution !== undefined) {
+      card.solution = e.solution;
+    }
     if (e.hidden_until_solved !== undefined) {
       card.hidden_until_solved = e.hidden_until_solved;
     }
@@ -129,6 +168,9 @@ export function pushCards(context, type, entries) {
     }
     if (e.requires !== undefined) {
       card.requires = e.requires;
+    }
+    if (e.derived_facts !== undefined) {
+      card.derived_facts = e.derived_facts;
     }
 
     return card;

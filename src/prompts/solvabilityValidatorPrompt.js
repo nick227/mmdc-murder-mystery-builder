@@ -1,4 +1,10 @@
 
+import { getMurderTruth } from '../utils/context.js';
+
+function formatTruth(value) {
+  return typeof value === 'string' ? value : JSON.stringify(value || {}, null, 2);
+}
+
 export function buildSolvabilityValidatorPrompt(context) {
   return {
     system: `
@@ -21,7 +27,7 @@ Rules:
 
     user: `
 MURDER TRUTH
-${context.murder_truth}
+${formatTruth(getMurderTruth(context))}
 
 CARDS
 ${JSON.stringify(context.cards, null, 2)}

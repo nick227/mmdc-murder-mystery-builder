@@ -1,13 +1,16 @@
 import { callJson } from '../llm/client.js';
 import { buildBreadcrumbTrailPrompt } from '../prompts/breadcrumbTrailPrompt.js';
 import { trailsSchema } from '../schemas/trailsSchema.js';
+import { getCardsByType } from '../utils/cards.js';
+import { getMurderTruth, getSolution, getTreasureTruth } from '../utils/context.js';
 
 export async function breadcrumbTrailAgent(context) {
   const prompt = buildBreadcrumbTrailPrompt({
-    murder_truth: context.murder_truth,
-    fortune_truth: context.fortune_truth,
+    murder_truth: getMurderTruth(context),
+    fortune_truth: getTreasureTruth(context),
     world: context.world,
-    solution: context.solution
+    solution: getSolution(context),
+    locations: getCardsByType(context.cards, 'location')
   });
 
   const result = await callJson({

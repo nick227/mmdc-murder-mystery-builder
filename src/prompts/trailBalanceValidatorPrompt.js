@@ -1,5 +1,5 @@
 
-export function buildTrailBalanceValidatorPrompt({ storyBlurb, solutions, trails }) {
+export function buildTrailBalanceValidatorPrompt({ storyBlurb, solution, trails }) {
   return {
     system: [
       'You are a validator and rewriter for murder mystery breadcrumb trails.',
@@ -15,7 +15,7 @@ Public blurb:
 ${storyBlurb}
 
 Private truth:
-${JSON.stringify(solutions, null, 2)}
+${JSON.stringify(solution, null, 2)}
 
 Trails:
 ${JSON.stringify(trails, null, 2)}

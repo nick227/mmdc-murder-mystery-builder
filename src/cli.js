@@ -3,6 +3,12 @@ import { runWorker } from './queue/Worker.js';
 import { resetStore } from './storage/store.js';
 import { createRunDir } from './storage/runDir.js';
 import { loadEnv } from './utils/env.js';
+import { buildPlayabilityReport } from './utils/playabilityReport.js';
+import { reviewBatch, formatBatchReview } from './utils/playabilityBatchReview.js';
+import { buildStructuralPreflight } from './utils/structuralPreflight.js';
+import { buildStepAudit, formatStepAudits } from './utils/stepAudit.js';
+import fs from 'node:fs';
+import path from 'node:path';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 
@@ -55,9 +61,44 @@ const args = process.argv.slice(3);
 function printHelp() {
   console.log('Commands:');
   console.log('  node src/cli.js start "<userPrompt>" <playerCount> ["storyStyle"]');
+  console.log('  node src/cli.js start-fast "<userPrompt>" <playerCount> ["storyStyle"]');
+  console.log('  node src/cli.js audit-steps "<userPrompt>" <playerCount> ["storyStyle"] [--json] [--full]');
   console.log('  node src/cli.js status');
   console.log('  node src/cli.js resume');
   console.log('  node src/cli.js reset');
+  console.log('  node src/cli.js review <runDir|result.json>');
+  console.log('  node src/cli.js preflight <runDir|result.json>');
+  console.log('  node src/cli.js review-batch [runsDir] [--json] [--current-only]');
+}
+
+function printPlayabilityReport(report) {
+  console.log('Playability score:', `${report.score_10}/10`, `(${report.grade})`);
+  console.log('Status:', report.status);
+  console.log('Issues:', report.issue_count);
+  for (const issue of report.issues.slice(0, 10)) {
+    console.log(`- [${issue.severity}] ${issue.code}: ${issue.message}`);
+  }
+}
+
+function printStructuralPreflight(report) {
+  console.log('Structural preflight:', report.status);
+  console.log('Issues:', report.issue_count);
+  for (const issue of report.issues.slice(0, 10)) {
+    console.log(`- [${issue.severity}] ${issue.code}: ${issue.message}`);
+  }
+}
+
+function resolveReviewPath(inputPath) {
+  const raw = String(inputPath || '').trim();
+  if (!raw) {
+    throw new Error('Missing path for review command.');
+  }
+  const fullPath = path.resolve(raw);
+  const stats = fs.statSync(fullPath);
+  if (stats.isDirectory()) {
+    return path.join(fullPath, 'result.json');
+  }
+  return fullPath;
 }
 
 async function main() {
@@ -70,7 +111,7 @@ async function main() {
     }
 
     const run = createRunDir();
-    queue.createJob({
+    const job = queue.createJob({
       runId: run.id,
       runDir: run.dir,
       playerCount,
@@ -89,6 +130,7 @@ async function main() {
     console.log('────────────────────────────────────────');
 
     await runWorker(queue, {
+      targetJobId: job.id,
       onStepStart: ({ stepName, index, total }) => {
         console.log(`→ [${index + 1}/${total}] ${stepName}`);
       },
@@ -131,6 +173,159 @@ async function main() {
   if (cmd === 'reset') {
     resetStore();
     console.log('Job store reset.');
+    return;
+  }
+
+  if (cmd === 'start-fast') {
+    const { userPrompt, playerCount, storyStyle } = await getStartInputs(args);
+
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('Missing OPENAI_API_KEY. Copy .env.example to .env and fill it in.');
+      process.exit(1);
+    }
+
+    const run = createRunDir();
+    let latestContext = null;
+    const job = queue.createJob({
+      runId: run.id,
+      runDir: run.dir,
+      playerCount,
+      userPrompt,
+      storyStyle,
+      cards: []
+    });
+
+    console.log('Fast structural build');
+    console.log('Run ID :', run.id);
+    console.log('Output :', run.dir);
+
+    const resultPath = path.join(run.dir, 'result.json');
+    try {
+      await runWorker(queue, {
+        targetJobId: job.id,
+        stopAfterStepName: 'structural_preflight_agent',
+        onStepStart: ({ stepName, index, total, job }) => {
+          latestContext = job?.context || latestContext;
+          console.log(`→ [${index + 1}/${total}] ${stepName}`);
+        },
+        onStepDone: ({ stepName }) => {
+          console.log(`✓ ${stepName}`);
+        },
+        onStepError: ({ stepName, error, job }) => {
+          latestContext = job?.context || latestContext;
+          console.log(`✗ ${stepName}`);
+          console.log(String(error));
+        }
+      });
+    } catch (error) {
+      if (!fs.existsSync(resultPath)) {
+        if (!latestContext) {
+          throw error;
+        }
+      }
+    }
+
+    const context = fs.existsSync(resultPath)
+      ? JSON.parse(fs.readFileSync(resultPath, 'utf8'))
+      : latestContext;
+    printStructuralPreflight(context.structural_preflight || buildStructuralPreflight(context));
+    printPlayabilityReport(buildPlayabilityReport(context, { partial: true, stepName: 'start-fast' }));
+    return;
+  }
+
+  if (cmd === 'audit-steps') {
+    const jsonMode = args.includes('--json');
+    const fullMode = args.includes('--full');
+    const filteredArgs = args.filter((arg) => arg !== '--json' && arg !== '--full');
+    const { userPrompt, playerCount, storyStyle } = await getStartInputs(filteredArgs);
+
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('Missing OPENAI_API_KEY. Copy .env.example to .env and fill it in.');
+      process.exit(1);
+    }
+
+    const run = createRunDir();
+    const audits = [];
+    let latestContext = null;
+    const job = queue.createJob({
+      runId: run.id,
+      runDir: run.dir,
+      playerCount,
+      userPrompt,
+      storyStyle,
+      cards: []
+    });
+
+    console.log('Step audit build');
+    console.log('Run ID :', run.id);
+    console.log('Output :', run.dir);
+
+    try {
+      await runWorker(queue, {
+        targetJobId: job.id,
+        stopAfterStepName: fullMode ? null : 'structural_preflight_agent',
+        onStepStart: ({ stepName, index, total, job }) => {
+          latestContext = job?.context || latestContext;
+          console.log(`→ [${index + 1}/${total}] ${stepName}`);
+        },
+        onStepDone: ({ stepName, job }) => {
+          latestContext = job?.context || latestContext;
+          const audit = buildStepAudit(job.context, stepName);
+          audits.push(audit);
+          console.log(`✓ ${stepName} (${audit.finding_count} findings, ${audit.playability_score_10}/10)`);
+        },
+        onStepError: ({ stepName, error, job }) => {
+          if (job?.context) {
+            audits.push(buildStepAudit(job.context, stepName));
+          }
+          console.log(`✗ ${stepName}`);
+          console.log(String(error));
+        }
+      });
+    } catch {
+      // Keep the partial audit output; caller asked for iterative diagnostics.
+    }
+
+    const auditPath = path.join(run.dir, 'step_audit.json');
+    fs.writeFileSync(auditPath, JSON.stringify(audits, null, 2));
+    if (latestContext && !fs.existsSync(path.join(run.dir, 'result.json'))) {
+      fs.writeFileSync(path.join(run.dir, 'result.json'), JSON.stringify(latestContext, null, 2));
+    }
+
+    if (jsonMode) {
+      console.log(JSON.stringify({ run_id: run.id, run_dir: run.dir, audits }, null, 2));
+    } else {
+      console.log(formatStepAudits(audits));
+      console.log(`Audit JSON: ${auditPath}`);
+    }
+    return;
+  }
+
+  if (cmd === 'review') {
+    const targetPath = resolveReviewPath(args[0]);
+    const context = JSON.parse(fs.readFileSync(targetPath, 'utf8'));
+    const report = buildPlayabilityReport(context, { partial: false, stepName: 'review' });
+    printPlayabilityReport(report);
+    return;
+  }
+
+  if (cmd === 'preflight') {
+    const targetPath = resolveReviewPath(args[0]);
+    const context = JSON.parse(fs.readFileSync(targetPath, 'utf8'));
+    printStructuralPreflight(buildStructuralPreflight(context));
+    return;
+  }
+
+  if (cmd === 'review-batch') {
+    const jsonMode = args.includes('--json');
+    const currentOnly = args.includes('--current-only');
+    const target = args.find((arg) => arg !== '--json' && arg !== '--current-only');
+    const summary = reviewBatch(target, { currentOnly });
+    if (jsonMode) {
+      console.log(JSON.stringify(summary, null, 2));
+    } else {
+      console.log(formatBatchReview(summary));
+    }
     return;
   }
 

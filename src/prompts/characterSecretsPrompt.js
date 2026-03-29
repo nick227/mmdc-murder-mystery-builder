@@ -1,4 +1,4 @@
-export function buildCharacterSecretsPrompt({ storyBlurb, characterName }) {
+export function buildCharacterSecretsPrompt({ storyBlurb, characterName, rejectionReasons = [] }) {
   return {
     system: `
 You generate hidden secrets for a murder mystery character.
@@ -11,6 +11,12 @@ Rules:
 - no assigning killer
 - keep concise
 - secrets should be driven by story context and social dynamics
+- generate exactly 2 secrets for this character
+- at least 1 secret must provide an explicit motive for this character
+- across the 2 secrets together, this character must have:
+  1. at least 1 logistical hook from: access, movement, location, object/means
+  2. at least 1 competitive hook from: motive, contradiction, opportunity
+- do not output flavor-only embarrassment or romance unless it also affects suspicion materially
 `.trim(),
 
     user: `
@@ -30,6 +36,16 @@ Return JSON only:
     }
   ]
 }
+
+Make one secret concrete and logistical, such as:
+- unauthorized access
+- being seen in a key place
+- handling a suspicious object
+- conflicting alibi
+- debt, threat, jealousy, leverage, inheritance pressure, or rivalry tied to the victim or treasure
+
+Retry guidance:
+${JSON.stringify(rejectionReasons || [], null, 2)}
 `
   };
 }

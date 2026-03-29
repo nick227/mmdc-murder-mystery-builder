@@ -32,6 +32,8 @@ function makeCards() {
       difficulty: 'medium',
       required_card_ids: ['item-1', 'upstream-item-1'],
       unlock_card_ids: ['clue-1'],
+      solve_instructions: 'Compare the watch log and route sketch, then state which route is impossible.',
+      solution: 'The archive route is impossible at the logged time, so the stated alibi fails.',
       hidden_until_solved: false
     },
     {
@@ -44,8 +46,17 @@ function makeCards() {
       hidden_until_solved: false
     },
     {
+      card_id: 'item-2',
+      card_type: 'item',
+      card_title: 'Service Hall Badge Log',
+      card_contents: 'A badge record for the side corridor.',
+      act: 2,
+      bundle_id: 'puzzle_bundle_001',
+      hidden_until_solved: false
+    },
+    {
       card_id: 'clue-1',
-      card_type: 'clue',
+      card_type: 'solution',
       card_title: 'Archive Access Contradiction',
       card_contents: 'One route was impossible at the stated time.',
       act: 2,
@@ -65,28 +76,30 @@ function makeCards() {
 function makeEditedCards() {
   return [
     {
-      card_id: 'item-1',
-      card_type: 'item',
-      card_title: 'Route Sketch Revised',
-      card_contents: 'A cleaner map of the service halls.',
-      act: 2
-    },
-    {
-      card_id: 'clue-1',
-      card_type: 'clue',
-      card_title: 'Archive Access Contradiction Revised',
-      card_contents: 'The route timing does not work.',
-      act: 3
-    },
-    {
-      card_id: 'puzzle-1',
       card_type: 'puzzle',
       card_title: 'Archive Access Puzzle Revised',
       card_contents: 'Compare the route sketch and watch log.',
       act: 2
     },
     {
-      card_id: 'upstream-item-1',
+      card_type: 'item',
+      card_title: 'Route Sketch Revised',
+      card_contents: 'A cleaner map of the service halls.',
+      act: 2
+    },
+    {
+      card_type: 'item',
+      card_title: 'Service Hall Badge Log Revised',
+      card_contents: 'A revised badge record for the side corridor.',
+      act: 2
+    },
+    {
+      card_type: 'solution',
+      card_title: 'Archive Access Contradiction Revised',
+      card_contents: 'The route timing does not work.',
+      act: 3
+    },
+    {
       card_type: 'item',
       card_title: 'Watch Log Revised',
       card_contents: 'A revised corridor activity log.',
@@ -102,16 +115,21 @@ function run() {
 
     assert(nextCards.length === existingCards.length, 'final editor should preserve card count');
     assert(JSON.stringify(nextCards.map((card) => card.card_id)) === JSON.stringify(existingCards.map((card) => card.card_id)), 'final editor should preserve original card order');
-    assert(nextCards[0].card_title === 'Archive Access Puzzle Revised', 'final editor should apply title edits by card_id');
-    assert(nextCards[2].hidden_until_solved === true, 'final editor should preserve hidden unlock metadata');
+    assert(nextCards[0].card_title === existingCards[0].card_title, 'final editor should not rewrite bundle puzzle cards');
+    assert(nextCards[1].card_title === existingCards[1].card_title, 'final editor should not rewrite bundle evidence cards');
+    assert(nextCards[3].card_title === existingCards[3].card_title, 'final editor should not rewrite bundle solution cards');
+    assert(nextCards[3].hidden_until_solved === true, 'final editor should preserve hidden unlock metadata');
     assert(nextCards[0].unlock_card_ids[0] === 'clue-1', 'final editor should preserve unlock ids');
+    assert(nextCards[0].solve_instructions === existingCards[0].solve_instructions, 'final editor should preserve solve instructions');
+    assert(nextCards[0].solution === existingCards[0].solution, 'final editor should preserve solution');
+    assert(nextCards[4].card_title === 'Watch Log Revised', 'final editor should still edit non-bundle cards');
 
     validateBundleIntegrity({
       cards: nextCards,
       puzzle_bundles: [
         {
           bundle_id: 'puzzle_bundle_001',
-          card_ids: ['puzzle-1', 'item-1', 'clue-1']
+          card_ids: ['puzzle-1', 'item-1', 'item-2', 'clue-1']
         }
       ]
     });
@@ -125,20 +143,11 @@ function run() {
   }
 
   {
-    const duplicateIds = makeEditedCards();
-    duplicateIds[1] = { ...duplicateIds[1], card_id: 'item-1' };
-    expectFailure(
-      () => applyFinalEditorResult(makeCards(), duplicateIds),
-      /duplicate card_id/
-    );
-  }
-
-  {
     const changedIds = makeEditedCards();
-    changedIds[0] = { ...changedIds[0], card_id: 'item-1-new' };
+    changedIds.length = 3;
     expectFailure(
       () => applyFinalEditorResult(makeCards(), changedIds),
-      /exact card_id set/
+      /preserve card count/
     );
   }
 

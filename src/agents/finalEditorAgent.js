@@ -1,6 +1,5 @@
 import { callJson } from '../llm/client.js';
 import { buildFinalEditorPrompt } from '../prompts/finalEditorPrompt.js';
-import { finalCardsSchema } from '../schemas/finalCardsSchema.js';
 import { getStoryBlurb } from '../utils/context.js';
 
 export function applyFinalEditorResult(existingCards, editedCards) {
@@ -11,20 +10,11 @@ export function applyFinalEditorResult(existingCards, editedCards) {
     throw new Error(`final_editor_agent must preserve card count (${safeExistingCards.length} -> ${safeEditedCards.length})`);
   }
 
-  const resultIds = safeEditedCards.map((card) => card?.card_id).filter(Boolean);
-  const existingIds = safeExistingCards.map((card) => card?.card_id).filter(Boolean);
-  const hasDuplicateIds = new Set(resultIds).size !== resultIds.length;
-  if (hasDuplicateIds) {
-    throw new Error('final_editor_agent returned duplicate card_id values');
-  }
-  if (resultIds.length !== existingIds.length || resultIds.some((id) => !existingIds.includes(id))) {
-    throw new Error('final_editor_agent must preserve the exact card_id set');
-  }
-
-  const editedById = new Map(safeEditedCards.map((card) => [card.card_id, card]));
-
   return safeExistingCards.map((card, index) => {
-    const edited = editedById.get(card.card_id) || {};
+    const edited = safeEditedCards[index] || {};
+    if (card?.bundle_id) {
+      return { ...card };
+    }
     const nextAct = edited.act === 1 || edited.act === 2 || edited.act === 3
       ? edited.act
       : (card.act === 1 || card.act === 2 || card.act === 3 ? card.act : ((index % 3) + 1));
@@ -46,13 +36,24 @@ export async function finalEditorAgent(context) {
   }
 
   const schema = {
-    ...finalCardsSchema,
+    type: 'object',
+    additionalProperties: false,
+    required: ['cards'],
     properties: {
-      ...finalCardsSchema.properties,
       cards: {
-        ...finalCardsSchema.properties.cards,
+        type: 'array',
         minItems: existingCards.length,
-        maxItems: existingCards.length
+        maxItems: existingCards.length,
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['card_title', 'card_contents', 'act'],
+          properties: {
+            card_title: { type: 'string' },
+            card_contents: { type: 'string' },
+            act: { type: 'integer', enum: [1, 2, 3] }
+          }
+        }
       }
     }
   };

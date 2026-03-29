@@ -11,10 +11,11 @@ export const trailsSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['title', 'goal', 'beats'],
+        required: ['title', 'goal', 'location_ref', 'beats'],
         properties: {
           title: { type: 'string' },
           goal: { type: 'string' },
+          location_ref: { type: 'string' },
           beats: {
             type: 'array',
             minItems: 3,

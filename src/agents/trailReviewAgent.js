@@ -1,7 +1,8 @@
 import { callJson } from '../llm/client.js';
 import { buildTrailReviewPrompt } from '../prompts/trailReviewPrompt.js';
 import { trailsSchema } from '../schemas/trailsSchema.js';
-import { getStoryBlurb } from '../utils/context.js';
+import { getCardsByType } from '../utils/cards.js';
+import { getSolution, getStoryBlurb } from '../utils/context.js';
 
 const trailReviewSchema = {
   type: 'object',
@@ -43,8 +44,9 @@ export async function trailReviewAgent(context) {
 
   const prompt = buildTrailReviewPrompt({
     storyBlurb: getStoryBlurb(context),
-    solution: context.solution,
-    trails: context.trails
+    solution: getSolution(context),
+    trails: context.trails,
+    locations: getCardsByType(context.cards, 'location')
   });
 
   const result = await callJson({

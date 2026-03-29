@@ -1,4 +1,10 @@
 
+import { getMurderTruth } from '../utils/context.js';
+
+function formatTruth(value) {
+  return typeof value === 'string' ? value : JSON.stringify(value || {}, null, 2);
+}
+
 export function buildSolvabilityRepairPrompt(context, problems) {
   return {
     system: `
@@ -24,7 +30,7 @@ CARDS
 ${JSON.stringify(context.cards, null, 2)}
 
 MURDER TRUTH
-${context.murder_truth}
+${formatTruth(getMurderTruth(context))}
 `
   };
 }

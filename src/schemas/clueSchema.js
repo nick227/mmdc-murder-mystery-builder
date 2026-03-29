@@ -3,10 +3,11 @@
 export const clueSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['card_title', 'card_contents', 'act', 'trail_role'],
+  required: ['card_title', 'card_contents', 'location_ref', 'act', 'trail_role'],
   properties: {
     card_title: { type: 'string' },
     card_contents: { type: 'string' },
+    location_ref: { type: ['string', 'null'] },
     act: { type: 'integer', enum: [1, 2, 3] },
     trail_role: {
       type: 'string',

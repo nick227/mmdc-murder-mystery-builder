@@ -1,3 +1,5 @@
+import { getSolution } from '../utils/context.js';
+
 export function buildBreadcrumbTrailPrompt(context) {
   return {
     system: `You are a Lead Game Designer and Mystery Architect.
@@ -30,6 +32,6 @@ Secrets:
 ${JSON.stringify(context.secrets ?? [], null, 2)}
 
 Solution:
-${JSON.stringify(context.solution ?? {}, null, 2)}`
+${JSON.stringify(getSolution(context) ?? {}, null, 2)}`
   };
 }

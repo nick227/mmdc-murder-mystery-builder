@@ -13,7 +13,12 @@ function ensureStore() {
 
 export function loadJobs() {
   ensureStore();
-  return JSON.parse(fs.readFileSync(jobsFile, 'utf8'));
+  try {
+    return JSON.parse(fs.readFileSync(jobsFile, 'utf8'));
+  } catch {
+    fs.writeFileSync(jobsFile, '[]', 'utf8');
+    return [];
+  }
 }
 
 export function saveJobs(jobs) {

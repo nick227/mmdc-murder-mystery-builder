@@ -1,7 +1,9 @@
-import { steps } from '../pipeline/steps/index.js';
-import { getCardsByType, getCharacterCards } from '../utils/cards.js';
-import { normalizeContext } from '../utils/context.js';
-import { validateBundleIntegrity } from '../utils/puzzleBundles.js';
+let steps;
+let getCardsByType;
+let getCharacterCards;
+let getSolution;
+let normalizeContext;
+let validateBundleIntegrity;
 
 const trailRoleToAct = {
   red_herring: 1,
@@ -26,20 +28,30 @@ function validateContext(context, stepName) {
     assert(context.world, 'world missing');
   }
 
-  if (stepName === 'murder_truth_agent') {
-    assert(context.murder_truth, 'murder_truth missing');
+  if (stepName === 'core_truth_agent') {
+    assert(context.coreTruth, 'coreTruth missing');
+    assert(context.coreTruth.murder, 'coreTruth.murder missing');
+    assert(context.coreTruth.treasure, 'coreTruth.treasure missing');
+    const solution = getSolution(context);
+    assert(solution, 'solution should derive from coreTruth');
+    assert(solution.killer, 'derived solution.killer missing');
   }
 
-  if (stepName === 'fortune_truth_agent') {
-    assert(context.fortune_truth, 'fortune_truth missing');
+  if (stepName === 'core_truth_validator_agent') {
+    const solution = getSolution(context);
+    assert(solution, 'derived solution missing');
+    assert(solution.killer, 'derived solution.killer missing');
+    assert(solution.method, 'derived solution.method missing');
+    assert(solution.location, 'derived solution.location missing');
+    assert(solution.motive, 'derived solution.motive missing');
   }
 
-  if (stepName === 'solution_assembler_agent') {
-    assert(context.solution, 'solution missing');
-    assert(context.solution.killer, 'solution.killer missing');
-    assert(context.solution.method, 'solution.method missing');
-    assert(context.solution.location, 'solution.location missing');
-    assert(context.solution.motive, 'solution.motive missing');
+  if (stepName === 'case_state_builder_agent') {
+    assert(context.case_state, 'case_state missing');
+    assert(Array.isArray(context.case_state.suspects), 'case_state suspects missing');
+    assert(context.case_state.suspects.length === context.playerCount, 'case_state suspect count mismatch');
+    assert(context.case_state.killer_id, 'case_state killer_id missing');
+    assert(Array.isArray(context.case_state.state_progression.viable_suspects), 'case_state viable_suspects missing');
   }
 
   if (stepName === 'trail_review_agent') {
@@ -73,49 +85,73 @@ function validateContext(context, stepName) {
     }
   }
 
+  if (stepName === 'structural_preflight_agent') {
+    assert(context.structural_preflight, 'structural_preflight missing');
+    assert(Array.isArray(context.structural_preflight.issues), 'structural_preflight issues missing');
+  }
+
+  if (stepName === 'suspect_coverage_agent') {
+    assert(context.suspect_coverage, 'suspect_coverage missing');
+    assert(Array.isArray(context.suspect_coverage.issues), 'suspect_coverage issues missing');
+  }
+
   if (stepName === 'puzzle_agent') {
     const puzzleCards = getCardsByType(context.cards, 'puzzle');
     const puzzleBundles = context.puzzle_bundles || [];
-    const cardIds = new Set((context.cards || []).map((card) => card.card_id));
 
     assert(puzzleBundles.length === 4, 'expected 4 puzzle bundles');
     assert(puzzleCards.length === puzzleBundles.length, 'expected one puzzle card per bundle');
 
     for (const bundle of puzzleBundles) {
       assert(bundle.bundle_id, 'puzzle bundle missing bundle_id');
-      assert(bundle.actionable_gain, `puzzle bundle ${bundle.bundle_id} missing actionable_gain`);
 
       const bundleCards = (context.cards || []).filter((card) => card.bundle_id === bundle.bundle_id);
       const bundlePuzzleCards = bundleCards.filter((card) => card.card_type === 'puzzle');
       const bundleNonPuzzleCards = bundleCards.filter((card) => card.card_type !== 'puzzle');
       const hiddenBundleCards = bundleNonPuzzleCards.filter((card) => card.hidden_until_solved === true);
+      const hiddenSolutionCards = hiddenBundleCards.filter((card) => card.card_type === 'solution');
 
       assert(bundlePuzzleCards.length === 1, `bundle ${bundle.bundle_id} must emit exactly one puzzle card`);
-      assert(bundleNonPuzzleCards.length >= 2, `bundle ${bundle.bundle_id} must emit at least two non-puzzle cards`);
+      assert(bundleCards.length >= 2, `bundle ${bundle.bundle_id} must emit at least two cards`);
+      assert(bundleNonPuzzleCards.length >= 1, `bundle ${bundle.bundle_id} must emit at least one non-puzzle card`);
 
       const puzzle = bundlePuzzleCards[0];
+      assert(Array.isArray(puzzle.required_card_refs), `bundle ${bundle.bundle_id} puzzle missing required_card_refs`);
+      assert(Array.isArray(puzzle.unlock_card_refs), `bundle ${bundle.bundle_id} puzzle missing unlock_card_refs`);
       assert(Array.isArray(puzzle.required_card_ids), `bundle ${bundle.bundle_id} puzzle missing required_card_ids`);
-      assert(puzzle.required_card_ids.length >= 2, `bundle ${bundle.bundle_id} puzzle must require at least two cards`);
       assert(Array.isArray(puzzle.unlock_card_ids), `bundle ${bundle.bundle_id} puzzle missing unlock_card_ids`);
-      assert(puzzle.unlock_card_ids.length >= 1, `bundle ${bundle.bundle_id} puzzle must unlock at least one card`);
-      assert(!puzzle.required_card_ids.includes(puzzle.card_id), `bundle ${bundle.bundle_id} puzzle cannot require itself`);
+      assert(puzzle.required_card_ids.length >= 1, `bundle ${bundle.bundle_id} puzzle must resolve required_card_ids`);
+      assert(typeof puzzle.solve_instructions === 'string' && puzzle.solve_instructions.trim(), `bundle ${bundle.bundle_id} puzzle missing solve_instructions`);
+      assert(hiddenSolutionCards.length === 1, `bundle ${bundle.bundle_id} must emit exactly one hidden solution card`);
+      assert(hiddenSolutionCards[0].hidden_until_solved === true, `bundle ${bundle.bundle_id} solution card must remain hidden`);
+      assert(!puzzle.required_card_refs.includes(puzzle.card_ref), `bundle ${bundle.bundle_id} puzzle should not self-reference required_card_refs`);
+      assert(!puzzle.unlock_card_refs.includes(puzzle.card_ref), `bundle ${bundle.bundle_id} puzzle should not self-reference unlock_card_refs`);
 
-      for (const requiredId of puzzle.required_card_ids) {
-        assert(cardIds.has(requiredId), `bundle ${bundle.bundle_id} required card missing from output`);
-        assert(!hiddenBundleCards.some((card) => card.card_id === requiredId), `bundle ${bundle.bundle_id} cannot require hidden cards`);
+      const bundleRefs = new Set(bundleCards.map((card) => card.card_ref).filter(Boolean));
+      const allRefs = new Set((context.cards || []).map((card) => card.card_ref).filter(Boolean));
+      for (const requiredRef of puzzle.required_card_refs) {
+        assert(allRefs.has(requiredRef), `bundle ${bundle.bundle_id} required card_ref missing from output`);
       }
-      for (const unlockId of puzzle.unlock_card_ids || []) {
-        assert(cardIds.has(unlockId), `bundle ${bundle.bundle_id} unlock card missing from output`);
-        assert(bundleCards.some((card) => card.card_id === unlockId), `bundle ${bundle.bundle_id} unlock card must be in the bundle`);
-        assert(hiddenBundleCards.some((card) => card.card_id === unlockId), `bundle ${bundle.bundle_id} unlock card must be hidden`);
+      for (const unlockRef of puzzle.unlock_card_refs) {
+        assert(bundleRefs.has(unlockRef), `bundle ${bundle.bundle_id} unlock card_ref missing from output`);
       }
+      assert(bundleCards[bundleCards.length - 1]?.card_type === 'puzzle', `bundle ${bundle.bundle_id} must emit puzzle card last`);
+      if (puzzle.unlock_card_ids.length === 0) {
+        assert(
+          hiddenBundleCards.length === hiddenSolutionCards.length,
+          `bundle ${bundle.bundle_id} hidden unlock count mismatch`
+        );
+      } else {
+        assert(hiddenBundleCards.length === puzzle.unlock_card_ids.length, `bundle ${bundle.bundle_id} hidden unlock count mismatch`);
+      }
+    }
+  }
 
-      if (puzzle.difficulty === 'hard') {
-        const unlockClues = bundleCards.filter((card) => card.card_type === 'clue' && puzzle.unlock_card_ids.includes(card.card_id));
-        for (const clue of unlockClues) {
-          assert(clue.evidence_strength === 'strong', `bundle ${bundle.bundle_id} hard puzzle should unlock strong clues`);
-        }
-      }
+  if (stepName === 'evidence_canonicalizer_agent') {
+    const evidenceCards = (context.cards || []).filter((card) => ['clue', 'item'].includes(card.card_type) && !card.bundle_id);
+    assert(evidenceCards.length >= 1, 'expected evidence cards before canonicalization validation');
+    for (const card of evidenceCards) {
+      assert(Array.isArray(card.derived_facts), `evidence card missing derived_facts: ${card.card_title}`);
     }
   }
 
@@ -140,6 +176,23 @@ function validateContext(context, stepName) {
 }
 
 async function runSmoke() {
+  process.env.SMOKE_MODE = 'true';
+
+  ({
+    steps
+  } = await import('../pipeline/steps/index.js'));
+  ({
+    getCardsByType,
+    getCharacterCards
+  } = await import('../utils/cards.js'));
+  ({
+    getSolution,
+    normalizeContext
+  } = await import('../utils/context.js'));
+  ({
+    validateBundleIntegrity
+  } = await import('../utils/puzzleBundles.js'));
+
   let context = normalizeContext({
     playerCount: 4,
     userPrompt: 'Smoke test murder',

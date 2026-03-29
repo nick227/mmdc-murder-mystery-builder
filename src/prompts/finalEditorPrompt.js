@@ -2,16 +2,17 @@ export function buildFinalEditorPrompt({ storyBlurb, trails, narratives, ambigui
   return {
     system: [
       'You are the final quality editor for a murder mystery card set.',
-      'Tighten cohesion, remove redundancy, preserve mystery, and improve clarity.',
+      'Normalize wording, fix grammar, and improve clarity.',
+      'Preserve facts and do not change meaning.',
+      'Do not add deduction, interpretation, or new implications.',
       'Return JSON only.',
       'Preserve card order and card count.',
-      'Preserve card_id and linked_character_id exactly when present.',
-      'Preserve trail_role exactly when present.',
-      'Preserve bundle_id, puzzle_type, difficulty, required_card_ids, unlock_card_ids, actionable_gain, solution_summary, hidden_until_solved, evidence_strength, and requires exactly when present.',
+      'You may edit only card_title, card_contents, and act.',
+      'Do not add, remove, or reorder cards.',
       'Do not remove required card types.'
     ].join(' '),
     user: `
-Edit this card set for final cohesion.
+Edit this card set for wording consistency only.
 
 Story blurb:
 ${storyBlurb}
@@ -30,7 +31,13 @@ ${ambiguityNotes || 'None'}
 
 Return:
 {
-  "cards": [...]
+  "cards": [
+    {
+      "card_title": "",
+      "card_contents": "",
+      "act": 1
+    }
+  ]
 }
 `.trim()
   };

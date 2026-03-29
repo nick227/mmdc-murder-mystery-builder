@@ -7,6 +7,7 @@ const finalCardSchema = {
     'card_title',
     'card_contents',
     'act',
+    'location_ref',
     'linked_character_id',
     'linked_character_index',
     'linked_character',
@@ -18,6 +19,8 @@ const finalCardSchema = {
     'unlock_card_ids',
     'actionable_gain',
     'solution_summary',
+    'solve_instructions',
+    'solution',
     'hidden_until_solved',
     'evidence_strength',
     'requires'
@@ -28,6 +31,7 @@ const finalCardSchema = {
     card_title: { type: 'string' },
     card_contents: { type: 'string' },
     act: { type: 'integer', enum: [1, 2, 3] },
+    location_ref: { type: ['string', 'null'] },
     linked_character_id: { type: ['string', 'null'] },
     linked_character_index: { type: ['integer', 'null'] },
     linked_character: { type: ['string', 'null'] },
@@ -45,6 +49,8 @@ const finalCardSchema = {
     },
     actionable_gain: { type: ['string', 'null'] },
     solution_summary: { type: ['string', 'null'] },
+    solve_instructions: { type: ['string', 'null'] },
+    solution: { type: ['string', 'null'] },
     hidden_until_solved: { type: ['boolean', 'null'] },
     evidence_strength: { type: ['string', 'null'], enum: ['weak', 'supporting', 'strong', 'decisive', null] },
     requires: {

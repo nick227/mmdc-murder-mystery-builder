@@ -22,6 +22,7 @@ function expectFailure(fn, pattern) {
 function makeBaseContext() {
   const puzzleId = 'puzzle-1';
   const itemId = 'item-1';
+  const itemId2 = 'item-2';
   const unlockId = 'clue-1';
 
   return {
@@ -48,8 +49,17 @@ function makeBaseContext() {
         hidden_until_solved: false
       },
       {
+        card_id: itemId2,
+        card_type: 'item',
+        card_title: 'Service Hall Badge Log',
+        card_contents: 'An internal badge log for side-hall access.',
+        act: 2,
+        bundle_id: 'puzzle_bundle_001',
+        hidden_until_solved: false
+      },
+      {
         card_id: unlockId,
-        card_type: 'clue',
+        card_type: 'solution',
         card_title: 'Archive Access Contradiction',
         card_contents: 'One route was impossible at the stated time.',
         act: 2,
@@ -67,7 +77,7 @@ function makeBaseContext() {
     puzzle_bundles: [
       {
         bundle_id: 'puzzle_bundle_001',
-        card_ids: [puzzleId, itemId, unlockId]
+        card_ids: [puzzleId, itemId, itemId2, unlockId]
       }
     ]
   };
@@ -126,7 +136,7 @@ function run() {
     context.cards = remappedCards;
     validateBundleIntegrity(context, { allowIdRemap: true });
     assert(
-      JSON.stringify(context.puzzle_bundles[0].card_ids) === JSON.stringify(['puzzle-1-new', 'item-1-new', 'clue-1-new']),
+      JSON.stringify(context.puzzle_bundles[0].card_ids) === JSON.stringify(['puzzle-1-new', 'item-1-new', 'item-2-new', 'clue-1-new']),
       'allowIdRemap should rewrite bundle.card_ids'
     );
   }

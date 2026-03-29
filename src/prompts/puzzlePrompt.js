@@ -1,108 +1,165 @@
-export function buildPuzzlePrompt({ storyBlurb, trails, narratives, upstreamCards, puzzleCount }) {
+export const puzzleTypesContent = {
+  cross_reference: [
+    'Question stem: start from "Which ..." such as which location, which record, or which person was tied to a specific detail.',
+    'Compare multiple records or labels to isolate one shared factual detail.'
+  ],
+
+  timeline: [
+    'Question stem: start from "When did ..." or "At what time ...".',
+    'Order or align time-based evidence to find one concrete timing fact.'
+  ],
+
+  item_combination: [
+    'Question stem: start from "What ..." or "Which single fact emerges when ...".',
+    'Combine physical items or attributes that only make sense together to reveal one concrete fact.'
+  ],
+
+  elimination: [
+    'Question stem: start from "Which possibility is impossible ..." or "Which option is ruled out ...".',
+    'Use constraints in the visible evidence to rule out exactly one possibility or confirm one concrete limit.'
+  ],
+
+  cipher: [
+    'Question stem: start from "What does the decoded message state ..." or "Which location or name ...".',
+    'Decode an encoded message using a provided key.'
+  ]
+};
+
+function bundlePositionGuidance(bundleIndex, bundleCount) {
+  const n = Number(bundleCount) || 4;
+  const i = Number(bundleIndex) || 0;
+  const isFirst = i === 0;
+  const isFinal = i === n - 1;
+
+  if (isFirst) {
+    return `
+Bundle position: first of ${n}.
+- This bundle opens the chain: evidence should establish discoverable facts players need before later constraints.
+- Do not assume players hold hidden clues from later bundles.
+`.trim();
+  }
+
+  if (isFinal) {
+    return `
+Bundle position: final (${n} of ${n}). Final bundle must confirm, not solve:
+- Confirm a suspect already constrained by earlier clues.
+- Do not introduce a completely new decisive fact that could prove guilt or identity without the earlier chain.
+- Require earlier bundle information to interpret correctly.
+- The hidden clue remains the direct answer to this bundle's puzzle question, but its meaning must land as confirmation after prior constraints, not as the opening case.
+`.trim();
+  }
+
+  return `
+Bundle position: middle (${i + 1} of ${n}).
+- This bundle should add constraints that narrow time, movement, access, or object linkage.
+- Evidence and puzzle framing may lightly echo earlier discovered facts so the clue chain feels connected.
+- Earlier bundles should meaningfully narrow suspects; do not save all decisive evidence for the final bundle.
+`.trim();
+}
+
+export function buildPuzzlePrompt({
+  storyBlurb,
+  puzzleType,
+  clueTarget,
+  characters = [],
+  locations = [],
+  priorClueTargets = [],
+  bundleIndex = 0,
+  bundleCount = 4,
+  finalDependencyHint = ''
+}) {
+  const typeLines = puzzleTypesContent[puzzleType] || puzzleTypesContent.cross_reference;
+  const targetFact = String(clueTarget?.fact || '').trim();
+  const targetCategory = String(clueTarget?.category || '').trim();
+  const act = clueTarget?.act === 1 || clueTarget?.act === 2 || clueTarget?.act === 3 ? clueTarget.act : null;
+  const positionBlock = bundlePositionGuidance(bundleIndex, bundleCount);
+  const safePriorClueTargets = Array.isArray(priorClueTargets) ? priorClueTargets.filter(Boolean) : [];
+
   return {
     system: `
-You design puzzle bundles for a social deduction murder mystery.
+Design a playable ${puzzleType} puzzle.
 
-Each bundle is a mini evidence package that advances the investigation.
+${typeLines.map((line) => `- ${line}`).join('\n')}
 
-Hard rules:
-- each bundle must emit exactly 1 puzzle card
-- each bundle must emit at least 2 new non-puzzle cards
-- bundles may reference upstream cards that already exist
-- bundles may emit hidden unlock cards that only appear after solve
-- every bundle must state one actionable_gain
-- no bundle may reveal the full solution alone
+${positionBlock}
 
-Puzzle quality standard:
-- challenging: players must compare, infer, decode, combine, or notice something
-- solvable: the answer must come from required cards already available in the bundle or from listed upstream cards
-- rewarding: solving must unlock major useful information
+Create exactly one puzzle bundle with:
+- 2 to 4 visible evidence cards
+- 1 visible puzzle card
+- 1 hidden clue card
 
-Difficulty to evidence strength:
-- easy -> weak/supporting information
-- medium -> narrowing information
-- hard -> strong but not decisive information
+The hidden clue card is the puzzle answer and the revealed clue.
+The puzzle question must have exactly one clear answer.
+The puzzle should be solvable within a single play session using only this bundle's visible evidence cards.
 
-Never unlock decisive evidence.
+Do not use the word "contradiction" in puzzle text, evidence, or instructions.
+Do not ask players to "extract" or "find the contradiction."
+Use the type-specific question stem style shown above.
+
+When naming suspects or places in evidence or puzzle text:
+- use only the provided playable character names
+- use only the provided established location names
+- do not invent new witnesses, rooms, wings, archives, docks, terraces, gates, or landmarks
+
+Time discipline:
+- Do not invent new clock times unless the target clue fact already includes one.
+- Prefer relative timing language such as "before the scene", "during the performance", or "after the body was discovered".
+- If any visible evidence mentions a specific clock time, every other time reference in the bundle must be consistent with it.
+
+If this is the final bundle: confirm prior constraints; do not standalone-solve; require earlier clue context to interpret the confirmation.
 `.trim(),
 
     user: `
+Craft a ${puzzleType} puzzle bundle based on the following story context:
+
 Story:
 ${storyBlurb}
 
-Reviewed trails:
-${JSON.stringify(trails, null, 2)}
+Playable characters:
+${JSON.stringify(characters || [], null, 2)}
 
-Narratives:
-${JSON.stringify(narratives, null, 2)}
+Established locations:
+${JSON.stringify(locations || [], null, 2)}
 
-Available upstream cards you may reference by card_id:
-${JSON.stringify(upstreamCards || [], null, 2)}
+Target clue fact:
+${targetFact}
 
-Create exactly ${puzzleCount} puzzle bundles.
+Target category:
+${targetCategory}
+${act != null ? `\nAct: ${act}` : ''}
 
-Bundle rules:
-- preferred puzzle types: cross_reference, cipher, item_combination, timeline, elimination
-- cross_reference bundles should usually require 3+ cards and concentrated comparison
-- cipher bundles should solve faster and unlock concrete progress
-- item_combination bundles should require players to visibly combine multiple assets
-- medium and hard puzzles must reference at least one previously emitted upstream card when available; this helps create investigation chains
-- if no suitable upstream card exists for a bundle, create the bundle normally using local cards only
-- required_card_refs handles both visibility and solving: if those cards exist, the puzzle is available and solvable
-- required_card_refs may include local card_ref values from this bundle or upstream card_id values from the provided upstream cards
-- unlock_card_refs should point only to local bundle card_ref values that stay hidden until solved
-- hidden unlock cards should usually be clue cards or final interpretation cards
-- across the full set of puzzles, at least 1-2 medium or hard puzzles must require a card that is emitted or unlocked by a previous puzzle, when suitable earlier puzzle cards exist
-- when generating later puzzles, look for opportunities to reuse cards from earlier bundles and prefer reusing cards that unlock strong or specific evidence
-- every actionable_gain must answer: "What new actionable information do players gain?"
-- actionable_gain must be concrete and state-changing (use verbs like: narrows, eliminates, contradicts, links, breaks, proves)
-- do not output decorative filler cards
+Return only bundle content for this puzzle:
+- visible evidence cards that support the puzzle
+- one puzzle card whose question follows the ${puzzleType} stem style and asks for one factual answer derivable from the evidence
+- one hidden clue card whose text is the direct answer to the puzzle
 
-Unlock card quality rules (avoid redundant_unlock failures):
-- unlock cards must introduce NEW information not already stated by required cards or upstream cards
-- do not paraphrase or restate required cards as unlock cards
-- unlock card_contents should include at least one concrete discriminator such as a time, location, initials, serial/lot number, or access restriction
-- unlock cards may narrow suspicion but must not reveal the full solution alone
+The hidden clue must:
+- match the target clue fact
+- be directly discoverable from the visible evidence
+- have one clear answer
 
-Return exactly this JSON shape:
-{
-  "bundles": [
-    {
-      "puzzle_type": "cross_reference",
-      "difficulty": "hard",
-      "actionable_gain": "",
-      "solution_summary": "",
-      "required_card_refs": [],
-      "unlock_card_refs": [],
-      "cards": [
-        {
-          "card_ref": "puzzle_main",
-          "card_type": "puzzle",
-          "card_title": "",
-          "card_contents": "",
-          "act": 2,
-          "hidden_until_solved": false
-        },
-        {
-          "card_ref": "asset_a",
-          "card_type": "item",
-          "card_title": "",
-          "card_contents": "",
-          "act": 2,
-          "hidden_until_solved": false
-        },
-        {
-          "card_ref": "unlock_a",
-          "card_type": "clue",
-          "card_title": "",
-          "card_contents": "",
-          "act": 2,
-          "hidden_until_solved": true
-        }
-      ]
-    }
-  ]
-}
+This puzzle should build on information discovered in earlier bundles when applicable.
+Earlier bundles contribute constraints to the overall case. Phrase this bundle so it adds the intended constraint or confirmation without duplicating prior target facts verbatim.
+Earlier bundles should meaningfully narrow suspects. Do not reserve all decisive evidence for the final bundle.
+Do not create fresh explicit clock times unless they already appear in the target clue fact; use relative timing instead.
+${safePriorClueTargets.length ? `
+
+Earlier clue target facts:
+${safePriorClueTargets.map((fact) => `- ${fact}`).join('\n')}
+
+This puzzle should build on information discovered in earlier bundles.
+Do not require players to read another bundle to understand this puzzle.
+Instead, let the evidence or puzzle framing lightly echo at least one earlier clue target concept so the clue chain feels connected.
+` : ''}
+${finalDependencyHint ? `
+
+${finalDependencyHint}
+` : ''}${bundleIndex === (bundleCount || 4) - 1 ? `
+
+Final bundle: tie evidence text to at least one fact from an earlier clue target, but keep the answer derivable from this bundle's visible evidence.
+` : ''}
+
+Do not write meta-explanations, detective reasoning, or conclusion language.
 `.trim()
   };
 }

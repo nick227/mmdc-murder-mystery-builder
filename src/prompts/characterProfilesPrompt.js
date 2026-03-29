@@ -1,41 +1,39 @@
-export function buildCharacterProfilesPrompt({ storyBlurb, characters }) {
+export function buildCharacterProfilePrompt({ storyBlurb, roster, targetCharacter }) {
+  const targetName = targetCharacter?.card_title || 'This character';
   return {
     system: `
-You are a Character Writer. Enrich the provided character seeds into full bios.
-Focus on creating distinct, relatable people for a murder mystery setting.
+You write one strong playable character profile for a murder mystery game.
 
-For each character, provide:
-1. AGE & OCCUPATION: Their stage in life and how they spend their days.
-2. INTERESTS: Two or three specific hobbies or obsessions.
-3. STYLE: Their physical aesthetic, clothing, and how they carry themselves.
-4. CHARACTERISTICS: Core personality traits (e.g., "Wryly cynical," "Eager to please").
-5. BACKSTORY: A brief, 2-sentence history of how they arrived at this location/event.
+Write like you are helping make ${targetName} fun to play, fun to suspect, and easy to picture.
 
-STRICT RULES:
-- Keep the card_id and card_title (Name) exactly as provided.
-- Do not mention the murder, the killer, or any specific game secrets.
-- Return JSON only in the requested shape.
+Focus on ${targetName}.
+
+Make ${targetName} feel like a real person with a clear vibe, sharp social energy, and a life that seems to continue beyond the party.
+
+Cover:
+- age and occupation
+- interests or obsessions
+- style and physical presence
+- personality
+- short backstory
+
+Keep it simple, vivid, and natural.
+Do not mention the murder, the killer, or game secrets.
 `.trim(),
 
     user: `
-Story Context:
+Story context:
 ${storyBlurb}
 
-Current Roster:
-${JSON.stringify(characters || [], null, 2)}
+Target character:
+${JSON.stringify(targetCharacter || {}, null, 2)}
 
-Please upgrade these characters with full bios.
+If helpful, here is the rest of the cast:
+${JSON.stringify((roster || []).filter((card) => card?.card_id !== targetCharacter?.card_id), null, 2)}
 
-Return:
-{
-  "cards":[
-    {
-      "card_id":"",
-      "card_title":"",
-      "card_contents":""
-    }
-  ]
-}
+Write a richer version of ${targetName}.
+Make ${targetName} specific, memorable, and easy for a player to inhabit.
+Avoid generic filler and bland archetype language.
 `.trim()
   };
 }

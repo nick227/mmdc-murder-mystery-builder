@@ -4,6 +4,27 @@ function assert(condition, message) {
   }
 }
 
+export function derivePuzzleDifficulty(evidenceCount) {
+  if (evidenceCount <= 2) {
+    return 'easy';
+  }
+  if (evidenceCount === 3) {
+    return 'medium';
+  }
+  return 'hard';
+}
+
+export function validatePuzzleCardComposition(cards = [], label = 'puzzle bundle') {
+  const safeCards = Array.isArray(cards) ? cards : [];
+  const puzzle = safeCards.filter((card) => card?.card_type === 'puzzle');
+  const solution = safeCards.filter((card) => card?.card_type === 'solution');
+  const evidence = safeCards.filter((card) => card?.card_type === 'evidence' || card?.card_type === 'clue' || card?.card_type === 'item');
+
+  assert(puzzle.length === 1, `${label}: must have exactly 1 puzzle card`);
+  assert(solution.length === 1, `${label}: must have exactly 1 solution card`);
+  assert(evidence.length >= 2, `${label}: must have at least 2 evidence cards`);
+}
+
 function collectCardsByBundle(cards = []) {
   const bundles = new Map();
 
@@ -47,6 +68,7 @@ export function validateBundleIntegrity(context, options = {}) {
 
     const allCardsMatchBundle = finalBundleCards.every((card) => card.bundle_id === bundleId);
     assert(allCardsMatchBundle, `bundle_integrity_validator_agent: bundle ${bundleId} has mixed bundle_id values`);
+    validatePuzzleCardComposition(finalBundleCards, `bundle_integrity_validator_agent: bundle ${bundleId}`);
 
     const missingIds = expectedCardIds.filter((cardId) => !cardLookup.has(cardId));
     if (missingIds.length) {

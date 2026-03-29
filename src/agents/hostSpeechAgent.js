@@ -1,12 +1,14 @@
 import { callJson } from '../llm/client.js';
 import { buildHostSpeechPrompt } from '../prompts/hostSpeechPrompt.js';
 import { simpleCardsSchema } from '../schemas/simpleCardsSchema.js';
-import { pushCards } from '../utils/cards.js';
+import { getCardsByType, pushCards } from '../utils/cards.js';
+import { getStoryBlurb } from '../utils/context.js';
 
 export async function hostSpeechAgent(context) {
   const prompt = buildHostSpeechPrompt({
-    storyBlurb: context.story_blurb,
-    narratives: context.narratives
+    storyBlurb: getStoryBlurb(context),
+    narratives: context.narratives,
+    locations: getCardsByType(context.cards, 'location')
   });
 
   const result = await callJson({

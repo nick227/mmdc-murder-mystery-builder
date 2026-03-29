@@ -1,4 +1,4 @@
-export function buildStoryActsPrompt({ storyBlurb, narratives, characters }) {
+export function buildStoryActsPrompt({ storyBlurb, narratives, characters, locations }) {
   return {
     system: [
       'You write structured story act cards for a live murder mystery host.',
@@ -19,6 +19,9 @@ ${JSON.stringify(narratives, null, 2)}
 Playable characters:
 ${JSON.stringify(characters || [], null, 2)}
 
+Known locations:
+${JSON.stringify(locations || [], null, 2)}
+
 Act structure and act field assignments:
 - Act 1 (act: 1) - opening setup: establish characters, surface first tensions, introduce the crime
 - Act 2 (act: 2) - mid-game escalation: shift suspicion, surface a contradiction, raise stakes
@@ -38,6 +41,7 @@ Rules:
 - Act 3 may narrow focus but must preserve the final deduction gap
 - return exactly 3 cards with act fields 1, 2, and 3 respectively
 - all suspects must be from playable characters
+- each act must center on one main known location and include its location_ref
 `.trim()
   };
 }

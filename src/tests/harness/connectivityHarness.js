@@ -83,7 +83,7 @@ async function run() {
     }),
     ...bundleCards({
       bundleId: 'bundleB',
-      act: 2,
+      act: 3,
       requiredIds: ['bundleB-v1', unlockClue1],
       unlockId: 'bundleB-unlock',
       actionableGain: 'Narrows the suspect space by timeline evidence.',

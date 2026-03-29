@@ -1,6 +1,6 @@
 import { callJson } from '../llm/client.js';
 import { buildNarrativeValidatorPrompt } from '../prompts/narrativeValidatorPrompt.js';
-import { getStoryBlurb } from '../utils/context.js';
+import { getSolution, getStoryBlurb } from '../utils/context.js';
 import { getCharacterCards } from '../utils/cards.js';
 
 const narrativeValidationSchema = {
@@ -54,7 +54,7 @@ const narrativeValidationSchema = {
 export async function narrativeValidatorAgent(context) {
   const prompt = buildNarrativeValidatorPrompt({
     storyBlurb: getStoryBlurb(context),
-    solution: context.solution,
+    solution: getSolution(context),
     trails: context.trails,
     narratives: context.narratives,
     characters: getCharacterCards(context.cards)

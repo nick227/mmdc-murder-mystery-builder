@@ -5,9 +5,10 @@ export function buildCardQualityPrompt({
 
   return {
     system: `
-You refine murder mystery cards for clarity, uniqueness, and deduction value.
-Do not reveal the killer.
-Preserve ambiguity and contradiction.
+You lightly edit murder mystery cards for wording clarity only.
+Do not perform deduction.
+Do not explain reasoning.
+Do not identify the killer.
 `,
 
     user: `
@@ -21,10 +22,9 @@ Cards:
 {{CARDS_PLACEHOLDER}}
 
 Rules:
-- remove redundancy
-- keep contradictions
-- balance suspects
-- preserve ambiguity
+- improve wording clarity only
+- preserve facts
+- do not add interpretation
 - do not reveal solution
 
 Return improved cards.

@@ -81,60 +81,51 @@ export async function bundleLinkerAgent(context) {
     return context;
   }
 
-  const hasAnyDependency = bundles.some((source, sourceIndex) =>
-    bundles.some((target, targetIndex) =>
-      sourceIndex !== targetIndex && hasCrossBundleDependency(source, target)
-    )
-  );
-
-  if (hasAnyDependency) {
-    return context;
-  }
-
   const links = [];
 
-  for (let laterIndex = 1; laterIndex < bundles.length && links.length < 2; laterIndex += 1) {
-    const later = bundles[laterIndex];
-    const laterPuzzle = later.puzzle;
-
-    if (!laterPuzzle || !['medium', 'hard'].includes(laterPuzzle.difficulty)) {
-      continue;
+  function tryLinkAdjacentBundle(sourceBundle, targetBundle) {
+    const targetPuzzle = targetBundle?.puzzle;
+    if (!sourceBundle?.puzzle || !targetPuzzle) {
+      return false;
+    }
+    if (hasCrossBundleDependency(sourceBundle, targetBundle)) {
+      return false;
     }
 
-    const currentRequired = Array.isArray(laterPuzzle.required_card_ids)
-      ? [...laterPuzzle.required_card_ids]
+    const currentRequired = Array.isArray(targetPuzzle.required_card_ids)
+      ? [...targetPuzzle.required_card_ids]
       : [];
-
-    for (let earlierIndex = 0; earlierIndex < laterIndex; earlierIndex += 1) {
-      const earlier = bundles[earlierIndex];
-      const earlierUnlockIds = Array.isArray(earlier.puzzle?.unlock_card_ids) ? earlier.puzzle.unlock_card_ids : [];
-      const earlierUnlockCards = earlierUnlockIds
-        .map((id) => cardLookup.get(id))
-        .filter(Boolean)
-        .sort((a, b) => {
-          if (a.card_type === 'clue' && b.card_type !== 'clue') {
-            return -1;
-          }
-          if (a.card_type !== 'clue' && b.card_type === 'clue') {
-            return 1;
-          }
-          return String(a.card_id).localeCompare(String(b.card_id));
-        });
-
-      const linkCard = earlierUnlockCards.find((card) => canLinkUnlockToPuzzle(earlier, card, later, currentRequired));
-
-      if (!linkCard) {
-        continue;
-      }
-
-      laterPuzzle.required_card_ids = [...currentRequired, linkCard.card_id];
-      links.push({
-        from_bundle_id: earlier.bundleId,
-        to_bundle_id: later.bundleId,
-        required_card_id: linkCard.card_id
+    const earlierUnlockIds = Array.isArray(sourceBundle.puzzle?.unlock_card_ids) ? sourceBundle.puzzle.unlock_card_ids : [];
+    const earlierUnlockCards = earlierUnlockIds
+      .map((id) => cardLookup.get(id))
+      .filter(Boolean)
+      .sort((a, b) => {
+        if (a.card_type === 'clue' && b.card_type !== 'clue') {
+          return -1;
+        }
+        if (a.card_type !== 'clue' && b.card_type === 'clue') {
+          return 1;
+        }
+        return String(a.card_id).localeCompare(String(b.card_id));
       });
-      break;
+
+    const linkCard = earlierUnlockCards.find((card) => canLinkUnlockToPuzzle(sourceBundle, card, targetBundle, currentRequired));
+    if (!linkCard) {
+      return false;
     }
+
+    targetPuzzle.required_card_ids = [...currentRequired, linkCard.card_id];
+    links.push({
+      from_bundle_id: sourceBundle.bundleId,
+      to_bundle_id: targetBundle.bundleId,
+      required_card_id: linkCard.card_id,
+      mutation_type: 'required_card_id_append_only'
+    });
+    return true;
+  }
+
+  for (let index = 1; index < bundles.length; index += 1) {
+    tryLinkAdjacentBundle(bundles[index - 1], bundles[index]);
   }
 
   if (links.length) {

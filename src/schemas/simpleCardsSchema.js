@@ -9,10 +9,11 @@ export const simpleCardsSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['card_title', 'card_contents'],
+        required: ['card_title', 'card_contents', 'location_ref'],
         properties: {
           card_title: { type: 'string' },
-          card_contents: { type: 'string' }
+          card_contents: { type: 'string' },
+          location_ref: { type: ['string', 'null'] }
         }
       }
     }
@@ -30,11 +31,12 @@ export const actedSimpleCardsSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['card_title', 'card_contents', 'act'],
+        required: ['card_title', 'card_contents', 'act', 'location_ref'],
         properties: {
           card_title: { type: 'string' },
           card_contents: { type: 'string' },
-          act: { type: 'integer', enum: [1, 2, 3] }
+          act: { type: 'integer', enum: [1, 2, 3] },
+          location_ref: { type: ['string', 'null'] }
         }
       }
     }

@@ -6,6 +6,8 @@ import { section } from '../cli/logger.js';
 import { setActiveLlmRunContext, clearActiveLlmRunContext } from '../llm/costLedger.js';
 import { validateContext } from '../pipeline/validate.js';
 import { normalizeContext } from '../utils/context.js';
+import { buildPlayabilityReport } from '../utils/playabilityReport.js';
+import { getPlayabilityGateDecision } from '../utils/playabilityGate.js';
 
 function ensureJobContext(job) {
   if (!job.context) {
@@ -30,6 +32,16 @@ function ensureJobContext(job) {
   }
 
   return normalizeContext(job.context);
+}
+
+function syncJobIdentity(job) {
+  job.context ??= {};
+  if (job.runId && job.context.runId !== job.runId) {
+    job.context.runId = job.runId;
+  }
+  if (job.runDir && job.context.runDir !== job.runDir) {
+    job.context.runDir = job.runDir;
+  }
 }
 
 // FIX: added exponential backoff with jitter and retryable-error detection.
@@ -82,14 +94,19 @@ async function runWithRetry(fn, retries = 2) {
 }
 
 export async function runWorker(queue, hooks = {}) {
+  const repairGateIndex = steps.findIndex((step) => step.name === 'playability_repair_agent');
+  const stopAfterStepName = typeof hooks.stopAfterStepName === 'string' ? hooks.stopAfterStepName : null;
 
   while (true) {
-    const job = queue.next();
+    const job = hooks.targetJobId
+      ? queue.jobs.find((candidate) => candidate.id === hooks.targetJobId && candidate.status === 'pending')
+      : queue.next();
     if (!job) {
       break;
     }
 
     ensureJobContext(job);
+    syncJobIdentity(job);
     validateContext(job.context, { allowPartial: true });
 
     job.status = 'running';
@@ -115,13 +132,50 @@ export async function runWorker(queue, hooks = {}) {
         }
 
         job.context = normalizeContext(next);
+        syncJobIdentity(job);
 
         validateContext(job.context, { allowPartial: true });
+
+        const report = buildPlayabilityReport(job.context, {
+          partial: repairGateIndex === -1 ? false : job.stepIndex < repairGateIndex,
+          stepName: step.name
+        });
+        job.context.playability_report = report;
+        job.context.playability_history ??= [];
+        job.context.playability_history.push({
+          step_name: step.name,
+          score_10: report.score_10,
+          status: report.status,
+          issue_count: report.issue_count
+        });
+        saveJobs(queue.jobs);
+        writeOutput(job.context.runDir, job.context);
+
+        const forceCaseStateGate = step.name === 'case_state_builder_agent'
+          && report.issues.some((issue) => issue.code === 'killer_equals_victim');
+        const gateDecision = getPlayabilityGateDecision(report, {
+          allowPartial: !forceCaseStateGate
+        });
+        if (gateDecision.blocked) {
+          throw new Error(
+            `PLAYABILITY_GATE_BLOCKED at ${step.name}\n` +
+            gateDecision.reasons.join('\n')
+          );
+        }
 
         hooks.onStepDone?.({ stepName: step.name, index: job.stepIndex, total: steps.length, job });
 
         job.stepIndex++;
         saveJobs(queue.jobs);
+        writeOutput(job.context.runDir, job.context);
+
+        if (stopAfterStepName && step.name === stopAfterStepName) {
+          clearActiveLlmRunContext();
+          job.status = 'done';
+          saveJobs(queue.jobs);
+          writeOutput(job.context.runDir, job.context);
+          return;
+        }
       }
 
       clearActiveLlmRunContext();
@@ -135,6 +189,17 @@ export async function runWorker(queue, hooks = {}) {
       job.status = 'error';
       job.error = String(error);
       saveJobs(queue.jobs);
+      if (job.context?.runDir) {
+        syncJobIdentity(job);
+        writeOutput(job.context.runDir, {
+          ...job.context,
+          worker_error: String(error),
+          playability_report: job.context.playability_report || buildPlayabilityReport(job.context, {
+            partial: true,
+            stepName: steps[job.stepIndex]?.name ?? 'unknown_step'
+          })
+        });
+      }
       hooks.onStepError?.({ stepName: steps[job.stepIndex]?.name ?? 'unknown_step', error, index: job.stepIndex, total: steps.length, job });
       throw error;
     }

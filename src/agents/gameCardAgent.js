@@ -2,10 +2,11 @@ import { callJson } from '../llm/client.js';
 import { buildGameCardsPrompt } from '../prompts/gameCardsPrompt.js';
 import { actedCardsArraySchema } from '../schemas/cardsSchema.js';
 import { pushCards } from '../utils/cards.js';
+import { getStoryBlurb } from '../utils/context.js';
 
 export async function gameCardAgent(context) {
   const prompt = buildGameCardsPrompt({
-    storyBlurb: context.story_blurb,
+    storyBlurb: getStoryBlurb(context),
     trails: context.trails,
     playerCount: context.playerCount,
     narratives: context.narratives
