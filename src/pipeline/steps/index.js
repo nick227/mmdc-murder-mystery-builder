@@ -70,11 +70,11 @@ export const steps = [
   { name: 'host_speech_agent', run: hostSpeechAgent },
 
   { name: 'item_agent', run: itemAgent },
+  { name: 'clue_agent', run: clueAgent },
+  { name: 'post_clue_dedup_agent', run: postClueDedupAgent },
   { name: 'clue_target_agent', run: clueTargetAgent },
   { name: 'puzzle_agent', run: puzzleAgent },
   { name: 'bundle_linker_agent', run: bundleLinkerAgent },
-  { name: 'clue_agent', run: clueAgent },
-  { name: 'post_clue_dedup_agent', run: postClueDedupAgent },
   { name: 'structural_preflight_agent', run: structuralPreflightAgent },
 
   { name: 'ambiguity_balancer_agent', run: ambiguityBalancerAgent },

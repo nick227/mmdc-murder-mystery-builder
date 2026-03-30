@@ -4,101 +4,93 @@ Date: 2026-03-29
 
 ## Executive Summary
 
-The pipeline is now MVP-stable for internal playtesting.
+The Shakespeare pipeline is now substantially stabilized.
 
-Operationally:
-- runs complete reliably through structural preflight
-- partial and failed runs persist usable diagnostics
-- the main structural blockers that dominated earlier work are resolved
+Current real signal:
+- latest 5-run regression: `5/5` runs reached full playtest-ready status
+- tracked structural issue counts are all `0/5`
+- `one_suspect_gravity`: `0/5`
+- `underused_suspects`: `0/5`
+- `early_suspect_collapse`: `0/5`
+- `final_bundle_redundant_confirmation`: `0/5`
+- `duplicate_evidence_weighting`: `0/5`
 
-Quality-wise:
-- Shakespeare regression is now at `2/3` passing on the tracked blocker set
-- `early_suspect_collapse` is at `0/3`
-- `underused_suspects` is at `0/3`
-- `final_bundle_redundant_confirmation` is at `0/3`
-- one residual blocker remains: `duplicate_evidence_weighting` in `1/3` runs
-
-This is no longer a clue-target architecture problem. It is a narrow downstream evidence-cleanup issue.
+This is no longer a structural preflight or core-truth stability problem in the latest batch.
 
 ## Latest Regression Signal
 
 Latest Shakespeare batch:
-- report: [shakespeare_regression_report.json](/C:/wamp64/www/runs/shakespeare-regression-1774765307725-kpyyve/shakespeare_regression_report.json)
-- total runs: `3`
-- passed runs: `2`
-- failed runs: `1`
+- report: [shakespeare_regression_report.json](/C:/wamp64/www/runs/shakespeare-regression-1774829419816-arv0pl/shakespeare_regression_report.json)
+- total runs: `5`
+- passed runs: `5`
+- failed runs: `0`
 
 Tracked issue counts:
-- `duplicate_evidence_weighting`: `1/3`
-- `underused_suspects`: `0/3`
-- `early_suspect_collapse`: `0/3`
-- `final_bundle_redundant_confirmation`: `0/3`
+- `duplicate_evidence_weighting`: `0/5`
+- `underused_suspects`: `0/5`
+- `one_suspect_gravity`: `0/5`
+- `early_suspect_collapse`: `0/5`
+- `final_bundle_redundant_confirmation`: `0/5`
 
 Per-run summary:
-- Run `1774765307741-746izf`: failed at `structural_preflight_agent` with `duplicate_evidence_weighting`
-- Run `1774765437256-d6ew9e`: reached `structural_preflight_agent` with no tracked blocker failures
-- Run `1774765568246-yunavf`: reached `structural_preflight_agent` with no tracked blocker failures
+- Run `1774829419872-53pw9n`: pass
+- Run `1774829548232-sdbfba`: pass
+- Run `1774829644120-yix2po`: pass
+- Run `1774829764180-njyua8`: pass
+- Run `1774829884161-njyx1s`: pass
 
-## What Is Stable Now
+## What Is Actually Stable Now
 
-These areas are materially stabilized:
+These areas are materially improved and holding:
 
-- victim reservation before roster finalization
-- deterministic core-truth safety checks
-- deterministic early clue-target generation for slots 1-3
-- deterministic final bundle path
-- post-clue dedup against clue targets, item facts, and clue-vs-clue canonical signatures
-- suspect coverage gate with motive/access competition enforcement
-- bounded retry and rejection logging in critical agents
-- Shakespeare regression harness as the main quality signal
+- clue cards preserve `suspect_name`
+- clue generation has deterministic per-player volume and stronger upstream balancing guidance
+- clue-vs-clue canonical dedupe is active in [postClueDedupAgent.js](/C:/wamp64/www/mmdc2-dev-builder/src/agents/postClueDedupAgent.js)
+- cross-agent duplicate detection is retired; duplicate checks are now type-isolated
+- `puzzleAgent` no longer depends on deleted `context.clue_targets`
+- structural preflight no longer relies on deleted clue-target scaffolding
+- clue pressure in [structuralPreflight.js](/C:/wamp64/www/mmdc2-dev-builder/src/utils/structuralPreflight.js) is now based on `suspect_name` and `clue_weight`, not clue-body text scanning
+- suspect coverage now counts signal hooks from character profiles in addition to secrets and narratives
+- reserved-victim exclusion is explicitly pushed into character generation retries
+- `core_truth_agent` now enforces reserved-victim identity and alternate-killer exclusion inline, with bounded retries
+- evidence signature handling is much stricter about whole words, composite object phrases, and name/object collisions
+- bundle metadata is no longer canonicalized as evidence in [factLedger.js](/C:/wamp64/www/mmdc2-dev-builder/src/utils/factLedger.js)
 
-## What Is No Longer The Main Problem
+## Guardrails Added
 
-These earlier blockers are now substantially resolved:
+Focused tests now cover the recent fixes:
 
-- clue-target suspect assignment drift
-- early one-suspect collapse
-- dead suspect slots as the dominant failure mode
-- final bundle redundancy
-- prompt-compliance instability as the main bottleneck
+- [clueAgentUnitTest.js](/C:/wamp64/www/mmdc2-dev-builder/src/tests/clueAgentUnitTest.js)
+- [evidenceCanonicalizationTest.js](/C:/wamp64/www/mmdc2-dev-builder/src/tests/evidenceCanonicalizationTest.js)
+- [charactersBuilderPromptGuardrailTest.js](/C:/wamp64/www/mmdc2-dev-builder/src/tests/charactersBuilderPromptGuardrailTest.js)
+- [suspectCoverageTest.js](/C:/wamp64/www/mmdc2-dev-builder/src/tests/suspectCoverageTest.js)
+- [structuralPreflightTest.js](/C:/wamp64/www/mmdc2-dev-builder/src/tests/structuralPreflightTest.js)
 
-## Remaining Blocker
+These now explicitly cover:
+- `Quillan` / `Quill` name collisions
+- `Cryptic Sonnet` vs `First Folio`
+- `quill case` and `quill and parchment` composite titles
+- reserved-victim prompt exclusion
+- profile-driven access hooks in suspect coverage
 
-### Duplicate Evidence Weighting
+## Remaining Open Gap
 
-One run in the latest batch still failed on `duplicate_evidence_weighting`.
+There is no current tracked blocker in the latest 5-run batch.
 
-Interpretation:
-- the broad duplicate-evidence problem is mostly solved
-- the remaining failure is a narrower canonical-signature case that survives the current dedup pass
-- this is downstream cleanup, not upstream story-structure instability
-
-## Recent Fixes That Moved The Needle
-
-- Added parse retry resilience in [storyActsAgent.js](/C:/wamp64/www/mmdc2-dev-builder/src/agents/storyActsAgent.js)
-- Raised overweight-threshold calibration by one point in [suspectPressureMap.js](/C:/wamp64/www/mmdc2-dev-builder/src/utils/suspectPressureMap.js)
-- Added clue-vs-clue canonical signature dedupe in [postClueDedupAgent.js](/C:/wamp64/www/mmdc2-dev-builder/src/agents/postClueDedupAgent.js)
-- Made bundle 4 deterministic in [puzzleAgent.js](/C:/wamp64/www/mmdc2-dev-builder/src/agents/puzzleAgent.js)
-
-## Recommended Next Work
-
-Only one high-value cleanup remains before calling this cleaner than MVP:
-
-1. Inspect the exact surviving duplicate-evidence cluster from the failed run.
-2. Extend the post-clue dedup pass or structural signature normalization to remove that class deterministically.
-3. Re-run the 3-run Shakespeare regression and verify `duplicate_evidence_weighting` drops to `0/3`.
-
-Do not reopen clue-target architecture or prompt tuning unless a future regression proves they have become unstable again.
+If additional work continues, it should be proactive hardening rather than reactive stabilization:
+- widen the sample beyond `5` runs to confirm the pass rate holds
+- add a focused unit test around `coreTruthAgent` retry behavior
+- keep future cleanup scoped so the current duplicate/preflight contract does not drift again
 
 ## Bottom Line
 
-The pipeline is now stable enough to generate playable internal test stories.
-
 Current state:
 - orchestration: stable
-- validation: useful and trustworthy
-- clue-target structure: stable enough
-- bundle progression: stable enough
-- remaining risk: one residual duplicate-evidence outlier
+- structural preflight: clean in the latest batch
+- core truth generation: clean in the latest batch
+- clue balance: materially fixed
+- suspect coverage: materially fixed
+- victim-roster leakage: guarded
+- remaining gap: none in the latest 5-run sample
 
-This is no longer an open-ended stabilization effort. It is a targeted cleanup pass.
+This is now in maintenance mode rather than active stabilization.

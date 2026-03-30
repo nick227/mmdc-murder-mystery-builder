@@ -26,9 +26,9 @@ const schema = {
 };
 
 const MAX_ATTEMPTS = 3;
-const MATERIAL_PATTERN = /\b(access|key|backstage|cellar|study|vault|alcove|room|entry|route|passage|seen|spotted|present|near|during|before|after|whereabouts|rope|dagger|poison|weapon|scarf|quill|blood|fingerprint|debt|threat|inheritance|blackmail|alibi|lied|denied|secretly)\b/i;
-const MOTIVE_PATTERN = /\b(debt|jealous|blackmail|threat|inheritance|fortune|power|legacy|revenge|fear|expose|silence|desperate|rival|ambition|leverage)\b/i;
-const LOGISTICAL_HOOK_PATTERN = /\b(access|key|backstage|cellar|study|vault|alcove|room|entry|route|passage|moving|arrived|left|seen|spotted|present|near|during|before|after|whereabouts|rope|dagger|poison|weapon|scarf|quill|blood|fingerprint|print|holding|carrying|found)\b/i;
+const MATERIAL_PATTERN = /\b(access|key|backstage|cellar|study|vault|alcove|room|entry|route|passage|seen|spotted|present|near|during|before|after|whereabouts|entering|entered|slipping|slipped|rope|dagger|poison|weapon|scarf|quill|blood|fingerprint|debt|threat|inheritance|blackmail|alibi|lied|denied|secretly)\b/i;
+const MOTIVE_PATTERN = /\b(debt|jealous|blackmail|threat|inheritance|fortune|power|legacy|revenge|fear|expose|silence|desperate|rival|rivalry|ambition|leverage|resentment|reputation|career|fame|role|endorsement|criticized)\b/i;
+const LOGISTICAL_HOOK_PATTERN = /\b(access|key|backstage|cellar|study|vault|alcove|room|entry|route|passage|moving|arrived|left|entering|entered|slipping|slipped|seen|spotted|present|near|during|before|after|whereabouts|rope|dagger|poison|weapon|scarf|quill|blood|fingerprint|print|holding|carrying|found)\b/i;
 const COMPETITIVE_HOOK_PATTERN = /\b(contradict|claims|despite|though|however|alibi|elsewhere|denied|inconsistent|debt|jealous|blackmail|threat|inheritance|fortune|power|legacy|revenge|fear|expose|silence|desperate|opportunity|alone|between)\b/i;
 
 function validateSecrets(cards, characterName) {

@@ -37,6 +37,18 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (card?.trail_role !== undefined || previous.trail_role !== undefined) {
       merged.trail_role = card?.trail_role ?? previous.trail_role;
     }
+    if (card?.clue_type !== undefined || previous.clue_type !== undefined) {
+      merged.clue_type = card?.clue_type ?? previous.clue_type;
+    }
+    if (card?.clue_weight !== undefined || previous.clue_weight !== undefined) {
+      merged.clue_weight = card?.clue_weight ?? previous.clue_weight;
+    }
+    if (card?.assigned_suspect_id !== undefined || previous.assigned_suspect_id !== undefined) {
+      merged.assigned_suspect_id = card?.assigned_suspect_id ?? previous.assigned_suspect_id;
+    }
+    if (card?.assigned_suspect_name !== undefined || previous.assigned_suspect_name !== undefined) {
+      merged.assigned_suspect_name = card?.assigned_suspect_name ?? previous.assigned_suspect_name;
+    }
     if (card?.location_ref !== undefined || previous.location_ref !== undefined) {
       merged.location_ref = card?.location_ref ?? previous.location_ref;
     }
@@ -120,6 +132,18 @@ export function pushCards(context, type, entries) {
     }
     if (e.trail_role !== undefined) {
       card.trail_role = e.trail_role;
+    }
+    if (e.clue_type !== undefined) {
+      card.clue_type = e.clue_type;
+    }
+    if (e.clue_weight !== undefined) {
+      card.clue_weight = e.clue_weight;
+    }
+    if (e.assigned_suspect_id !== undefined) {
+      card.assigned_suspect_id = e.assigned_suspect_id;
+    }
+    if (e.assigned_suspect_name !== undefined) {
+      card.assigned_suspect_name = e.assigned_suspect_name;
     }
     if (e.location_ref !== undefined) {
       card.location_ref = e.location_ref;

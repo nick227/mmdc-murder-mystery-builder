@@ -1,6 +1,7 @@
 import { getCardsByType, getCharacterCards } from './cards.js';
-import { buildFactLedger, extractAxes } from './factLedger.js';
+import { buildFactLedger, buildPressureEntriesFromText, extractAxes } from './factLedger.js';
 import {
+  addPressure,
   addPressureFromText,
   createSuspectPressureMap,
   getPressureBalance
@@ -12,10 +13,6 @@ function normalizeText(value) {
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-function tokenize(value) {
-  return normalizeText(value).split(' ').filter((token) => token.length >= 4);
 }
 
 function baseName(title) {
@@ -40,43 +37,46 @@ function buildSuspectList(context) {
   }));
 }
 
-function buildSuspectMatchers(suspects) {
-  return suspects.map((suspect) => {
-    const phrases = new Set();
-    for (const raw of [suspect.name, suspect.title]) {
-      const normalized = normalizeText(raw);
-      if (!normalized) {
-        continue;
-      }
-      phrases.add(normalized);
-      const tokens = normalized.split(' ').filter(Boolean);
-      if (tokens.length >= 2) {
-        phrases.add(tokens.slice(0, 2).join(' '));
-        phrases.add(tokens.slice(-2).join(' '));
-      }
-      for (const token of tokens) {
-        if (token.length >= 5) {
-          phrases.add(token);
-        }
-      }
-    }
-
-    return {
-      ...suspect,
-      phrases: [...phrases].filter(Boolean)
-    };
-  });
+function getClueCards(context) {
+  return getCardsByType(context?.cards, 'clue');
 }
 
-function findMentionedSuspects(text, suspectMatchers) {
-  const normalized = normalizeText(text);
-  if (!normalized) {
-    return [];
+function getSuspectIdByName(suspects, value) {
+  const normalizedValue = normalizeText(value);
+  if (!normalizedValue) {
+    return '';
   }
 
-  return suspectMatchers
-    .filter((suspect) => suspect.phrases.some((phrase) => normalized.includes(phrase)))
-    .map((suspect) => suspect.id);
+  const match = suspects.find((suspect) =>
+    [suspect.name, baseName(suspect.title), suspect.title]
+      .map((entry) => normalizeText(entry))
+      .filter(Boolean)
+      .includes(normalizedValue)
+  );
+
+  return String(match?.id || '').trim();
+}
+
+function getClueSuspectIds(card, suspects) {
+  const suspectId = getSuspectIdByName(suspects, card?.suspect_name);
+  return suspectId ? [suspectId] : [];
+}
+
+function addAssignedPressureFromText(map, suspectId, text, { weight = 'weak', source = 'unknown' } = {}) {
+  const normalizedSuspectId = String(suspectId || '').trim();
+  if (!normalizedSuspectId) {
+    return;
+  }
+
+  for (const axis of extractAxes(text)) {
+    addPressure(map, {
+      suspect_id: normalizedSuspectId,
+      axis,
+      weight,
+      source,
+      raw_text: text
+    });
+  }
 }
 
 function addIssue(issues, severity, code, message, details = {}) {
@@ -117,128 +117,53 @@ function collectVictimIssue(context, issues) {
   }
 }
 
-function collectEarlyLeakIssues(context, issues, suspectMatchers) {
-  const killerId = String(context?.case_state?.killer_id || '').trim();
-  if (!killerId) {
-    return;
-  }
-
-  const earlyFacts = [
-    ...(Array.isArray(context?.clue_targets) ? context.clue_targets : [])
-      .filter((target) => Number(target?.act || 0) < 3)
-      .map((target) => ({ source: 'clue_target', act: target.act, text: target.fact })),
-    ...(Array.isArray(context?.puzzle_bundles) ? context.puzzle_bundles : [])
-      .filter((bundle) => Number(bundle?.act || 0) < 3)
-      .map((bundle) => ({ source: bundle.bundle_id || 'bundle', act: bundle.act, text: bundle.solution_summary || bundle.clue_target }))
-  ];
-
-  const decisivePatterns = [
-    /\bexclusive access\b/i,
-    /\bonly [a-z]/i,
-    /\bmatching\b/i,
-    /\bunaccounted\b/i,
-    /\bbelong(?:ed|ing)? to\b/i,
-    /\bidentified as belonging to\b/i,
-    /\bused to\b/i
-  ];
-
-  for (const fact of earlyFacts) {
-    const mentions = findMentionedSuspects(fact.text, suspectMatchers);
-    if (mentions.length === 1 && mentions[0] === killerId && decisivePatterns.some((pattern) => pattern.test(String(fact.text || '')))) {
-      addIssue(
-        issues,
-        'major',
-        'early_killer_leak',
-        `Early deduction chain is too decisive in Act ${fact.act}: ${String(fact.text || '').trim()}`,
-        { source: fact.source, act: fact.act, text: fact.text }
-      );
-    }
-  }
-}
-
-function collectDeadSuspectIssues(context, issues, suspectMatchers) {
-  const suspects = buildSuspectList(context);
-  const suspectActivity = new Map(suspects.map((suspect) => [suspect.id, 0]));
-
-  const secretCards = (Array.isArray(context?.cards) ? context.cards : [])
-    .filter((card) => card?.card_type === 'secret');
-  for (const card of secretCards) {
-    const linkedId = String(card?.linked_character_id || '').trim();
-    if (linkedId && suspectActivity.has(linkedId)) {
-      suspectActivity.set(linkedId, (suspectActivity.get(linkedId) || 0) + 1);
-      continue;
-    }
-    for (const suspectId of findMentionedSuspects(card.card_contents, suspectMatchers)) {
-      suspectActivity.set(suspectId, (suspectActivity.get(suspectId) || 0) + 1);
-    }
-  }
-
-  const activityTexts = [
-    ...(Array.isArray(context?.clue_targets) ? context.clue_targets : []).map((target) => target.fact),
-    ...(Array.isArray(context?.puzzle_bundles) ? context.puzzle_bundles : []).flatMap((bundle) => [bundle.solution_summary, bundle.clue_target])
-  ];
-  for (const text of activityTexts) {
-    for (const suspectId of findMentionedSuspects(text, suspectMatchers)) {
-      suspectActivity.set(suspectId, (suspectActivity.get(suspectId) || 0) + 1);
-    }
-  }
-
-  const deadSuspects = suspects
-    .filter((suspect) => (suspectActivity.get(suspect.id) || 0) <= 1)
-    .map((suspect) => suspect.name);
-
-  if (deadSuspects.length) {
-    addIssue(
-      issues,
-      'major',
-      'dead_suspect_slots',
-      `Suspects are not materially used in deduction: ${deadSuspects.slice(0, 6).join(', ')}`,
-      { suspects: deadSuspects }
-    );
-  }
-}
-
 function compactSourceRef(record) {
   const sourceAgent = String(record?.source_agent || 'unknown').trim();
   const sourceTitle = String(record?.source_title || record?.source_id || '').trim();
   return sourceTitle ? `${sourceAgent}:${sourceTitle}` : sourceAgent;
 }
 
-function isMirrorBundleDuplicateCluster(cluster) {
-  const records = Array.isArray(cluster?.records) ? cluster.records : [];
-  if (records.length < 2) {
-    return false;
-  }
-
-  const allowedCardTypes = new Set(['clue_target', 'bundle_target', 'bundle_solution', 'bundle_unlock']);
-  if (records.some((record) => !allowedCardTypes.has(String(record?.card_type || '').trim()))) {
-    return false;
-  }
-
-  const sourceAgents = new Set(records.map((record) => String(record?.source_agent || '').trim()));
-  if (![...sourceAgents].every((agent) => ['clue_target_agent', 'puzzle_agent'].includes(agent))) {
-    return false;
-  }
-
-  return records.some((record) => String(record?.card_type || '').trim() === 'clue_target')
-    && records.some((record) => String(record?.card_type || '').trim() === 'bundle_target')
-    && records.some((record) => String(record?.card_type || '').trim() === 'bundle_solution');
+function normalizeDuplicateTitle(value) {
+  return normalizeText(String(value || '').trim());
 }
 
 function collectDuplicateEvidenceIssue(ledger, issues) {
-  const duplicateClusters = [...(ledger?.signatureClusters?.entries() || [])]
+  const clueClusters = [...(ledger?.signatureClusters?.entries() || [])]
     .map(([signature, records]) => ({
       signature,
-      records: Array.isArray(records) ? records : []
+      records: (Array.isArray(records) ? records : [])
+        .filter((record) => String(record?.card_type || '').trim() === 'clue')
     }))
-    .filter((cluster) => cluster.records.length >= 2)
-    .filter((cluster) => !isMirrorBundleDuplicateCluster(cluster));
+    .filter((cluster) => cluster.records.length >= 2);
 
-  if (!duplicateClusters.length) {
+  const itemRecords = Array.isArray(ledger?.records)
+    ? ledger.records.filter((record) => String(record?.card_type || '').trim() === 'item')
+    : [];
+  const itemTitleClusters = new Map();
+  for (const record of itemRecords) {
+    const normalizedTitle = normalizeDuplicateTitle(record?.source_title);
+    if (!normalizedTitle) {
+      continue;
+    }
+    if (!itemTitleClusters.has(normalizedTitle)) {
+      itemTitleClusters.set(normalizedTitle, []);
+    }
+    itemTitleClusters.get(normalizedTitle).push(record);
+  }
+  const itemClusters = [...itemTitleClusters.entries()]
+    .map(([normalizedTitle, records]) => ({
+      signature: `item_title:${normalizedTitle}`,
+      records
+    }))
+    .filter((cluster) => cluster.records.length >= 2);
+
+  const filteredClusters = [...clueClusters, ...itemClusters];
+
+  if (!filteredClusters.length) {
     return;
   }
 
-  const compactClusters = duplicateClusters.slice(0, 3).map((cluster) => ({
+  const compactClusters = filteredClusters.slice(0, 3).map((cluster) => ({
     signature: cluster.signature,
     sources: cluster.records.slice(0, 4).map(compactSourceRef)
   }));
@@ -249,7 +174,7 @@ function collectDuplicateEvidenceIssue(ledger, issues) {
     'duplicate_evidence_weighting',
     `Canonical evidence repeats across ledger signatures: ${compactClusters.map((cluster) => `${cluster.signature} [${cluster.sources.join(', ')}]`).join('; ')}`,
     {
-      duplicate_clusters: duplicateClusters.map((cluster) => ({
+      duplicate_clusters: filteredClusters.map((cluster) => ({
         signature: cluster.signature,
         sources: cluster.records.map((record) => ({
           source_agent: record.source_agent,
@@ -264,17 +189,65 @@ function collectDuplicateEvidenceIssue(ledger, issues) {
 
 function collectPressureImbalanceIssue(context, ledger, issues) {
   const map = createSuspectPressureMap(context?.case_state);
+  const suspects = buildSuspectList(context);
+  const strongestClueBySuspect = new Map();
+  const axisPriority = ['weapon', 'physical_trace', 'possession', 'access', 'opportunity', 'timeline', 'witness', 'contradiction', 'motive'];
+
+  for (const clue of getClueCards(context)) {
+    const weight = String(clue?.clue_weight || '').trim() === 'high' ? 'material' : 'weak';
+    for (const suspectId of getClueSuspectIds(clue, suspects)) {
+      const current = strongestClueBySuspect.get(suspectId);
+      const currentRank = current?.weight === 'material' ? 1 : 0;
+      const nextRank = weight === 'material' ? 1 : 0;
+      if (!current || nextRank > currentRank) {
+        strongestClueBySuspect.set(suspectId, {
+          suspect_id: suspectId,
+          axis: 'opportunity',
+          weight,
+          source: 'clue_agent',
+          raw_text: `${clue.card_title || ''} ${clue.card_contents || ''}`.trim()
+        });
+      }
+    }
+  }
+
+  for (const entry of strongestClueBySuspect.values()) {
+    addPressure(map, entry);
+  }
+
   for (const record of Array.isArray(ledger?.records) ? ledger.records : []) {
     if (!record?.raw_text) {
       continue;
     }
-    if (['bundle_target', 'bundle_solution', 'bundle_unlock'].includes(String(record.card_type || '').trim())) {
+    if (['clue', 'bundle_target', 'bundle_solution', 'bundle_unlock'].includes(String(record.card_type || '').trim())) {
       continue;
     }
-    addPressureFromText(map, record.raw_text, context, {
-      weight: ['clue_target', 'bundle_solution', 'bundle_unlock'].includes(record.card_type) ? 'material' : 'weak',
-      source: record.source_agent || 'unknown'
-    });
+    const weight = ['clue_target', 'bundle_solution', 'bundle_unlock'].includes(record.card_type) ? 'material' : 'weak';
+    const entries = buildPressureEntriesFromText(record.raw_text, context);
+    const bySuspect = new Map();
+    for (const entry of entries) {
+      const suspectId = String(entry?.suspectId || '').trim();
+      if (!suspectId) {
+        continue;
+      }
+      const existing = bySuspect.get(suspectId) || [];
+      existing.push(String(entry?.axis || '').trim());
+      bySuspect.set(suspectId, existing);
+    }
+
+    for (const [suspectId, axes] of bySuspect.entries()) {
+      const axis = axisPriority.find((candidate) => axes.includes(candidate));
+      if (!axis) {
+        continue;
+      }
+      addPressure(map, {
+        suspect_id: suspectId,
+        axis,
+        weight,
+        source: record.source_agent || 'unknown',
+        raw_text: record.raw_text
+      });
+    }
   }
 
   const balance = getPressureBalance(map);
@@ -290,7 +263,13 @@ function collectPressureImbalanceIssue(context, ledger, issues) {
       total_score: entry.total_score,
       axes: Object.entries(entry.axes || {})
         .filter(([, count]) => count > 0)
-        .map(([axis, count]) => `${axis}:${count}`)
+        .map(([axis, count]) => `${axis}:${count}`),
+      pressure_sources: (map.bySuspect.get(entry.suspect_id)?.entries || []).map((sourceEntry) => ({
+        axis: sourceEntry.axis,
+        weight: sourceEntry.weight,
+        source: sourceEntry.source,
+        raw_text: sourceEntry.raw_text
+      }))
     }));
 
   addIssue(
@@ -355,14 +334,10 @@ function collectFinalBundleRedundancyIssue(context, issues) {
 
 export function buildStructuralPreflight(context) {
   const issues = [];
-  const suspects = buildSuspectList(context);
-  const suspectMatchers = buildSuspectMatchers(suspects);
   const ledger = buildFactLedger(context);
 
   collectDuplicateCharacterIssues(context, issues);
   collectVictimIssue(context, issues);
-  collectEarlyLeakIssues(context, issues, suspectMatchers);
-  collectDeadSuspectIssues(context, issues, suspectMatchers);
   collectDuplicateEvidenceIssue(ledger, issues);
   collectPressureImbalanceIssue(context, ledger, issues);
   collectFinalBundleRedundancyIssue(context, issues);

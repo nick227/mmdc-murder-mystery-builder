@@ -46,10 +46,10 @@ function getNarrativeTextsForName(name, narratives) {
 }
 
 const SIGNAL_PATTERNS = {
-  motive: /\b(debt|jealous|blackmail|threat|inheritance|fortune|power|legacy|revenge|fear|expose|silence|desperate)\b/i,
+  motive: /\b(debt|jealous|blackmail|threat|inheritance|fortune|power|legacy|revenge|fear|expose|silence|desperate|resentment|reputation|career|fame|role|endorsement|criticized|rivalry)\b/i,
   access: /\b(access|key|backstage|cellar|study|vault|alcove|garden|room|entry|prop|storage|route|passage)\b/i,
-  movement: /\b(moving|arrived|left|walked|crossed|approached|departed|whereabouts|route)\b/i,
-  location: /\b(near|at|inside|outside|beside|within|through|around)\b/i,
+  movement: /\b(moving|arrived|left|walked|crossed|approached|departed|whereabouts|route|entering|entered|slipping|slipped)\b/i,
+  location: /\b(near|at|inside|outside|beside|within|through|around|alcove|maze|amphitheater|stage|garden)\b/i,
   object: /\b(rope|dagger|poison|weapon|scarf|quill|blood|fingerprint|print|ledger|letter|glove|key)\b/i,
   opportunity: /\b(seen|spotted|present|near|alone|during|before|after|between|moving|arrived|left|whereabouts)\b/i,
   weapon: /\b(rope|dagger|poison|weapon|scarf|quill|blood|fingerprint|print|checked out|carrying|holding)\b/i,
@@ -91,6 +91,7 @@ export function buildSuspectCoverageReport(context) {
     const narrativeCount = countNarrativeMentions(name, context?.narratives);
     const normalizedTitle = normalizeText(title);
     const supportingTexts = [
+      character?.card_contents,
       ...linkedSecrets.map((card) => card?.card_contents),
       ...getNarrativeTextsForName(name, context?.narratives)
     ];

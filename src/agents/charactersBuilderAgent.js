@@ -154,7 +154,12 @@ export async function charactersBuilderAgent(context) {
         storyBlurb: getStoryBlurb(context),
         world: context.world,
         worldPeople: filteredWorldPeople,
-        playerCount
+        playerCount,
+        reservedVictimName: reservedVictim?.name || '',
+        rejectionReasons: context.debug.rejection_log
+          .filter((entry) => entry?.stage === 'characters_builder_agent')
+          .map((entry) => entry.reason)
+          .slice(-4)
       });
 
       const result = await callJson({

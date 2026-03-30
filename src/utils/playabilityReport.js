@@ -158,7 +158,20 @@ function collectTimelineIssues(context, issues) {
 
 function collectWarningIssues(context, issues) {
   const warnings = Array.isArray(context?.debug?.warning_log) ? context.debug.warning_log : [];
+  const seenWarnings = new Set();
   for (const warning of warnings) {
+    const warningKey = [
+      String(warning?.stage || '').trim(),
+      String(warning?.reason || '').trim(),
+      String(warning?.message || '').trim(),
+      String(warning?.character || '').trim(),
+      String(warning?.bundle_id || '').trim()
+    ].join('|');
+    if (seenWarnings.has(warningKey)) {
+      continue;
+    }
+    seenWarnings.add(warningKey);
+
     if (warning?.stage === 'structural_preflight_agent' && warning?.reason) {
       const issueMap = {
         duplicate_character_systems: { severity: 'major', points: 1.5 },
@@ -179,6 +192,9 @@ function collectWarningIssues(context, issues) {
     }
 
     if (warning?.stage === 'suspect_coverage_agent' && warning?.reason) {
+      if (String(warning.reason) === 'regenerated_duplicate_profile_secrets') {
+        continue;
+      }
       addIssue(
         issues,
         'major',

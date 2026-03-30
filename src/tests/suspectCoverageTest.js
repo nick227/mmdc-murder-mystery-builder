@@ -40,4 +40,20 @@ const materiallyBalanced = buildSuspectCoverageReport({
 assert.equal(materiallyBalanced.pass, true);
 assert.equal(materiallyBalanced.underused_suspects.length, 0);
 
+const profileDrivenAccess = buildSuspectCoverageReport({
+  cards: [
+    { card_id: 'c1', card_type: 'character', card_title: 'Jasper Vale, The Fixer', card_contents: 'He carried a backstage key, used the archive passage, and feared his debt would be exposed.' },
+    { card_id: 'c2', card_type: 'character', card_title: 'Mara Quinn, The Heiress', card_contents: 'She had access to the vault, argued over the inheritance, and was seen near the study before the confrontation.' },
+    { card_id: 'c3', card_type: 'character', card_title: 'Theo Ward, The Bartender', card_contents: 'He knew the cellar route, handled poison, and gave contradictory statements about where he went after the argument.' },
+    { card_id: 'c4', card_type: 'character', card_title: 'Iris Cole, The Archivist', card_contents: 'She guarded the reading room key, feared exposure, and was present near the archive during the critical window.' },
+    { card_id: 's1', card_type: 'secret', card_title: 'Secret', card_contents: 'Jasper hid a ledger after the threat.', linked_character_id: 'c1' },
+    { card_id: 's2', card_type: 'secret', card_title: 'Secret', card_contents: 'Mara wanted the fortune before anyone could expose her claim.', linked_character_id: 'c2' },
+    { card_id: 's3', card_type: 'secret', card_title: 'Secret', card_contents: 'Theo carried a poison vial before the confrontation.', linked_character_id: 'c3' },
+    { card_id: 's4', card_type: 'secret', card_title: 'Secret', card_contents: 'Iris lied about the timing of the archive meeting.', linked_character_id: 'c4' }
+  ],
+  narratives: {}
+});
+
+assert.equal(profileDrivenAccess.issues.some((issue) => issue.code === 'insufficient_access_competition'), false);
+
 console.log('suspectCoverageTest passed');

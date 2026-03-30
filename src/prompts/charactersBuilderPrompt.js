@@ -1,5 +1,5 @@
 
-export function buildCharactersBuilderPrompt({ storyBlurb, world, worldPeople, playerCount }) {
+export function buildCharactersBuilderPrompt({ storyBlurb, world, worldPeople, playerCount, reservedVictimName, rejectionReasons = [] }) {
   return {
     system: `
 You generate the playable suspect cast for a murder mystery.
@@ -19,6 +19,7 @@ Rules:
 - if existing world people are useful, you may adapt them into the playable cast
 - do not feel obligated to use any existing world person
 - if existing world people are weak, background-only, or lore-only, ignore them and invent a stronger cast
+- NEVER include the reserved victim in the playable suspect roster
 - no killer assignment
 - no murder mechanics
 - use strong, memorable names that fit the tone and hint at role or personality
@@ -36,6 +37,9 @@ ${world || ''}
 Existing world people you may borrow from if useful:
 ${JSON.stringify(worldPeople || [], null, 2)}
 
+Reserved victim:
+${reservedVictimName || 'none'}
+
 Player Count:
 ${playerCount}
 
@@ -47,8 +51,12 @@ Goal:
 - avoid including one obviously "safe" role that the clue system will struggle to use as a suspect
 - if you reuse a world person, sharpen them into a suspect-ready character rather than copying their summary mechanically
 - do not create a playable suspect who is also left behind as a duplicate background person entry
+- do not include the reserved victim as a suspect, even if they seem dramatic or central
 - make the cast feel varied, dramatic, and fun to roleplay
 - avoid bland job-title-only archetypes or repetitive bios
+
+Recent rejection reasons to avoid repeating:
+${JSON.stringify(rejectionReasons, null, 2)}
 `.trim()
   };
 }

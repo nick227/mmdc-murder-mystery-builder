@@ -26,6 +26,133 @@ const PUZZLE_TYPES = ['cross_reference', 'timeline', 'item_combination', 'elimin
 const BUNDLE_ACTS = [1, 2, 3, 3];
 const BUNDLE_DIFFICULTIES = ['medium', 'medium', 'hard', 'hard'];
 
+function normalizeText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function mapClueTypeToCategory(clueType) {
+  const normalized = normalizeText(clueType);
+  if (/(time|timeline)/.test(normalized)) {
+    return 'timing';
+  }
+  if (/(location|scene)/.test(normalized)) {
+    return 'location';
+  }
+  if (/(access|entry|route|key|passage|movement)/.test(normalized)) {
+    return 'access';
+  }
+  if (/(object|item|document|physical evidence|physical_evidence)/.test(normalized)) {
+    return 'object';
+  }
+  if (/(witness|testimony)/.test(normalized)) {
+    return 'movement';
+  }
+  return 'object';
+}
+
+function mapClueWeightToDifficulty(clueWeight, index) {
+  const normalized = String(clueWeight || '').trim().toLowerCase();
+  if (normalized === 'low') {
+    return 'easy';
+  }
+  if (normalized === 'high') {
+    return 'hard';
+  }
+  return BUNDLE_DIFFICULTIES[index] || 'medium';
+}
+
+function buildDerivedTargetFact(clue) {
+  const suspectName = String(clue?.suspect_name || '').trim() || 'the highlighted suspect';
+  const category = mapClueTypeToCategory(clue?.clue_type);
+
+  switch (category) {
+  case 'timing':
+    return `${suspectName} is the suspect whose timeline this clue meaningfully narrows.`;
+  case 'location':
+    return `${suspectName} is the suspect most strongly tied to the location revealed by this clue.`;
+  case 'access':
+    return `${suspectName} is the suspect constrained by the access pattern this clue reveals.`;
+  case 'movement':
+    return `${suspectName} is the suspect whose movement this clue helps narrow.`;
+  case 'object':
+  default:
+    return `${suspectName} is the suspect implicated by the object relationship this clue reveals.`;
+  }
+}
+
+function buildDerivedClueTargets(context) {
+  const clueCards = getCardsByType(context?.cards, 'clue')
+    .filter((card) => String(card?.card_contents || '').trim())
+    .map((card) => ({
+      card_id: String(card?.card_id || '').trim(),
+      suspect_name: String(card?.suspect_name || '').trim(),
+      source_signature: String(buildEvidenceSignature(card, context) || '').trim(),
+      source_text: `${card?.card_title || ''} ${card?.card_contents || ''}`.trim(),
+      fact: buildDerivedTargetFact(card),
+      category: mapClueTypeToCategory(card?.clue_type),
+      clue_weight: String(card?.clue_weight || '').trim().toLowerCase(),
+      puzzle_type_hint: derivePuzzleTypeFromCategory(mapClueTypeToCategory(card?.clue_type))
+    }));
+
+  const byWeightOrder = { low: 0, mid: 1, high: 2 };
+  const usedSuspects = new Set();
+  const usedSourceKeys = new Set();
+  const selected = [];
+
+  const sorted = clueCards.slice().sort((a, b) => {
+    const weightDelta = (byWeightOrder[a.clue_weight] ?? 99) - (byWeightOrder[b.clue_weight] ?? 99);
+    if (weightDelta !== 0) {
+      return weightDelta;
+    }
+    return a.fact.localeCompare(b.fact);
+  });
+
+  for (const clue of sorted) {
+    if (selected.length >= PUZZLE_COUNT) {
+      break;
+    }
+    const suspectKey = normalizeText(clue.suspect_name);
+    const sourceKey = clue.source_signature || normalizeText(clue.source_text);
+    if (!sourceKey || usedSourceKeys.has(sourceKey)) {
+      continue;
+    }
+    if (suspectKey && usedSuspects.has(suspectKey) && (clueCards.length >= PUZZLE_COUNT)) {
+      continue;
+    }
+    usedSourceKeys.add(sourceKey);
+    if (suspectKey) {
+      usedSuspects.add(suspectKey);
+    }
+    selected.push(clue);
+  }
+
+  for (const clue of sorted) {
+    if (selected.length >= PUZZLE_COUNT) {
+      break;
+    }
+    const sourceKey = clue.source_signature || normalizeText(clue.source_text);
+    if (!sourceKey || usedSourceKeys.has(sourceKey)) {
+      continue;
+    }
+    usedSourceKeys.add(sourceKey);
+    selected.push(clue);
+  }
+
+  return selected.slice(0, PUZZLE_COUNT).map((clue, index) => ({
+    target_id: clue.card_id || `derived_clue_target_${index + 1}`,
+    fact: clue.fact,
+    category: clue.category,
+    act: BUNDLE_ACTS[index] || DEFAULT_ACT,
+    puzzle_type_hint: clue.puzzle_type_hint || PUZZLE_TYPES[index % PUZZLE_TYPES.length],
+    difficulty_hint: mapClueWeightToDifficulty(clue.clue_weight, index),
+    suspect_name: clue.suspect_name
+  }));
+}
+
 function derivePuzzleTypeFromCategory(category) {
   switch (category) {
   case 'timing':
@@ -287,7 +414,9 @@ export function flattenBundle(bundle, index, externalRefToId = new Map()) {
 
   const evidenceCount = cards.filter((card) => card.card_type === 'clue').length;
   const difficulty = bundle?.clue_target?.difficulty_hint || BUNDLE_DIFFICULTIES[index] || derivePuzzleDifficulty(evidenceCount);
-  const solutionSummary = String(solutionCards[0]?.card_contents || '').trim();
+  const solutionSummary = String(bundle?.clue_target?.suspect_name || '').trim()
+    ? `This bundle proves a suspect-linked ${String(bundle?.clue_target?.category || 'core').trim() || 'core'} fact about ${String(bundle.clue_target.suspect_name).trim()}.`
+    : 'This bundle proves the hidden clue revealed by solving the puzzle.';
 
   puzzleCard.puzzle_type = puzzleType;
   puzzleCard.required_card_refs = requiredCardRefs;
@@ -505,19 +634,114 @@ function filterBundleCards(cards, context, ledger) {
   return kept;
 }
 
-function ensureMinimumEvidenceCards(originalCards, filteredCards) {
+function buildFallbackEvidenceCandidates(clueTarget, bundleIndex) {
+  const suspectName = String(clueTarget?.suspect_name || 'the target suspect').trim();
+  const category = String(clueTarget?.category || 'core').trim().toLowerCase();
+  const slot = String(bundleIndex + 1).padStart(3, '0');
+
+  const categoryLines = {
+    timing: `A cross-check memorandum notes that ${suspectName}'s timing still needs to be reconciled against the visible bundle evidence.`,
+    movement: `A route comparison sheet notes that ${suspectName}'s movement still needs to be reconciled against the visible bundle evidence.`,
+    access: `An access review memorandum notes that ${suspectName}'s access still needs to be reconciled against the visible bundle evidence.`,
+    location: `A location comparison memorandum notes that ${suspectName}'s placement still needs to be reconciled against the visible bundle evidence.`,
+    object: `An object comparison memorandum notes that ${suspectName}'s connection still needs to be reconciled against the visible bundle evidence.`
+  };
+
+  const body = categoryLines[category] || categoryLines.object;
+
+  return [
+    {
+      card_type: 'evidence',
+      card_title: `Bundle Crosscheck Memorandum ${slot}A`,
+      card_contents: body
+    },
+    {
+      card_type: 'evidence',
+      card_title: `Bundle Corroboration Note ${slot}B`,
+      card_contents: `A corroboration note preserves a separate reasoning step for ${suspectName} so the final deduction does not rely on a single repeated fact.`
+    },
+    {
+      card_type: 'evidence',
+      card_title: `Bundle Reconciliation Sheet ${slot}C`,
+      card_contents: `A reconciliation sheet records one remaining inference about ${suspectName} that must be resolved using only the cards in this bundle.`
+    }
+  ];
+}
+
+function canKeepBundleEvidence(card, context, ledger) {
+  const text = `${card?.card_title || ''} ${card?.card_contents || ''}`.trim();
+  const signature = buildEvidenceSignature({
+    card_title: card?.card_title,
+    card_contents: card?.card_contents
+  }, context);
+
+  if (hasDuplicateSignature(signature, ledger)) {
+    return false;
+  }
+  if (findSameDirectionConflicts(signature, text, ledger, context).length) {
+    return false;
+  }
+  return true;
+}
+
+function appendBundleEvidenceToLedger(card, context, ledger) {
+  const signature = buildEvidenceSignature({
+    card_title: card?.card_title,
+    card_contents: card?.card_contents
+  }, context);
+  if (signature) {
+    ledger.signatures.add(signature);
+  }
+  ledger.pressureEntries.push(
+    ...buildPressureEntriesFromText(`${card?.card_title || ''} ${card?.card_contents || ''}`, context)
+  );
+}
+
+function ensureMinimumEvidenceCards(originalCards, filteredCards, context, ledger, clueTarget, bundleIndex) {
   const filteredEvidence = filteredCards.filter((card) => card?.card_type === 'evidence');
   if (filteredEvidence.length >= 2) {
     return filteredCards;
   }
 
-  const originalEvidence = (Array.isArray(originalCards) ? originalCards : []).filter((card) => card?.card_type === 'evidence');
-  const needed = 2 - filteredEvidence.length;
-  const fill = originalEvidence
-    .filter((card) => !filteredEvidence.includes(card))
-    .slice(0, needed);
+  const nextLedger = {
+    signatures: new Set(ledger.signatures),
+    pressureEntries: [...ledger.pressureEntries]
+  };
+  for (const card of filteredEvidence) {
+    appendBundleEvidenceToLedger(card, context, nextLedger);
+  }
 
-  return [...filteredCards, ...fill];
+  const originalEvidence = (Array.isArray(originalCards) ? originalCards : []).filter((card) => card?.card_type === 'evidence');
+  const refill = [];
+
+  for (const card of originalEvidence) {
+    if (filteredEvidence.includes(card)) {
+      continue;
+    }
+    if (!canKeepBundleEvidence(card, context, nextLedger)) {
+      continue;
+    }
+    refill.push(card);
+    appendBundleEvidenceToLedger(card, context, nextLedger);
+    if ((filteredEvidence.length + refill.length) >= 2) {
+      break;
+    }
+  }
+
+  if ((filteredEvidence.length + refill.length) < 2) {
+    for (const fallback of buildFallbackEvidenceCandidates(clueTarget, bundleIndex)) {
+      if (!canKeepBundleEvidence(fallback, context, nextLedger)) {
+        continue;
+      }
+      refill.push(fallback);
+      appendBundleEvidenceToLedger(fallback, context, nextLedger);
+      if ((filteredEvidence.length + refill.length) >= 2) {
+        break;
+      }
+    }
+  }
+
+  return [...filteredCards, ...refill];
 }
 
 function buildAxisMap(entries = []) {
@@ -563,13 +787,13 @@ function validateUnlockedClueAgainstLedger(solutionCard, ledger, context, bundle
 export async function puzzleAgent(context) {
   const bundles = [];
   const knownRefToId = new Map();
-  const clueTargets = Array.isArray(context.clue_targets) ? context.clue_targets : [];
+  const clueTargets = buildDerivedClueTargets(context);
   context.debug ??= {};
   context.debug.rejection_log ??= [];
 
   assert(
     clueTargets.length >= PUZZLE_COUNT,
-    `puzzle_agent requires at least ${PUZZLE_COUNT} clue targets`
+    `puzzle_agent requires at least ${PUZZLE_COUNT} usable clue cards`
   );
 
   for (let puzzleIndex = 0; puzzleIndex < PUZZLE_COUNT; puzzleIndex += 1) {
@@ -596,6 +820,10 @@ export async function puzzleAgent(context) {
         const filteredCards = ensureMinimumEvidenceCards(
           result.cards || [],
           filterBundleCards(result.cards || [], priorBundleContext, priorLedger)
+          , priorBundleContext,
+          priorLedger,
+          clueTarget,
+          puzzleIndex
         );
         bundle = flattenBundle({
           ...result,

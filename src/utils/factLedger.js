@@ -95,13 +95,6 @@ function addSignatureRecord(ledger, record) {
   });
 }
 
-function buildPseudoCard(text, title = '') {
-  return {
-    card_title: title,
-    card_contents: text
-  };
-}
-
 export function buildPressureEntriesFromText(text, context) {
   const suspectIds = findMentionedSuspectIds(text, context?.case_state);
   const axes = extractAxes(text);
@@ -148,61 +141,6 @@ export function buildFactLedger(context) {
       raw_text: `${card.card_title || ''} ${card.card_contents || ''}`.trim()
     });
     pressureEntries.push(...buildPressureEntriesFromText(`${card.card_title || ''} ${card.card_contents || ''}`, context));
-  }
-
-  for (const target of Array.isArray(context?.clue_targets) ? context.clue_targets : []) {
-    const signature = buildEvidenceSignature(buildPseudoCard(target?.fact, target?.target_id || 'clue_target'), context);
-    addSignatureRecord(ledger, {
-      signature,
-      source_agent: 'clue_target_agent',
-      card_type: 'clue_target',
-      source_id: target?.target_id,
-      source_title: target?.target_id,
-      raw_text: target?.fact,
-      act: target?.act
-    });
-    pressureEntries.push(...buildPressureEntriesFromText(target?.fact, context));
-  }
-
-  for (const bundle of Array.isArray(context?.puzzle_bundles) ? context.puzzle_bundles : []) {
-    const visibleEvidence = Array.isArray(bundle?.visible_evidence)
-      ? bundle.visible_evidence
-      : (Array.isArray(bundle?.cards) ? bundle.cards : []);
-    for (const card of visibleEvidence) {
-      const signature = buildEvidenceSignature(card, context);
-      addSignatureRecord(ledger, {
-        signature,
-        source_agent: 'puzzle_agent',
-        card_type: String(card?.card_type || 'puzzle_evidence').trim(),
-        source_id: card?.card_id || bundle?.bundle_id,
-        source_title: card?.card_title || bundle?.bundle_id,
-        raw_text: `${card?.card_title || ''} ${card?.card_contents || ''}`.trim(),
-        act: bundle?.act
-      });
-      pressureEntries.push(...buildPressureEntriesFromText(`${card?.card_title || ''} ${card?.card_contents || ''}`, context));
-    }
-
-    for (const textField of [
-      { key: 'clue_target', cardType: 'bundle_target' },
-      { key: 'solution_summary', cardType: 'bundle_solution' },
-      { key: 'unlocked_clue', cardType: 'bundle_unlock' }
-    ]) {
-      const rawText = String(bundle?.[textField.key] || '').trim();
-      if (!rawText) {
-        continue;
-      }
-      const signature = buildEvidenceSignature(buildPseudoCard(rawText, `${bundle?.bundle_id || 'bundle'}_${textField.key}`), context);
-      addSignatureRecord(ledger, {
-        signature,
-        source_agent: 'puzzle_agent',
-        card_type: textField.cardType,
-        source_id: bundle?.bundle_id,
-        source_title: `${bundle?.bundle_id || 'bundle'}_${textField.key}`,
-        raw_text: rawText,
-        act: bundle?.act
-      });
-      pressureEntries.push(...buildPressureEntriesFromText(rawText, context));
-    }
   }
 
   for (const record of records) {

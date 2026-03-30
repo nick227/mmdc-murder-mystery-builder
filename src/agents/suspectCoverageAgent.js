@@ -26,6 +26,17 @@ const SECRET_SCHEMA = {
   }
 };
 const MAX_PROFILE_HEAL_ATTEMPTS = 3;
+const MOTIVE_PATTERN = /\b(debt|jealous|blackmail|threat|inheritance|fortune|power|legacy|revenge|fear|expose|silence|desperate|resentment|reputation|career|fame|role|endorsement|criticized|rival|rivalry|ambition|leverage)\b/i;
+
+function validateRegeneratedSecrets(cards, characterName) {
+  const contents = (Array.isArray(cards) ? cards : []).map((card) => String(card?.card_contents || '').trim());
+  if (contents.length < 2) {
+    throw new Error(`suspect_coverage_agent regenerated too few secrets for ${characterName}`);
+  }
+  if (!contents.some((text) => MOTIVE_PATTERN.test(text))) {
+    throw new Error(`suspect_coverage_agent regenerated secrets still missing explicit motive for ${characterName}`);
+  }
+}
 
 function replaceSecretsForCharacter(context, characterId, cards) {
   const remaining = (Array.isArray(context.cards) ? context.cards : []).filter((card) =>
@@ -58,11 +69,12 @@ async function regenerateSecretsForCharacter(context, targetName, reason) {
     schema: SECRET_SCHEMA
   });
 
+  validateRegeneratedSecrets(result.cards || [], targetName);
   replaceSecretsForCharacter(context, String(character.card_id).trim(), result.cards || []);
   context.debug.warning_log.push({
     stage: 'suspect_coverage_agent',
-    reason: 'regenerated_duplicate_profile_secrets',
-    message: `Regenerated secrets for ${targetName} to break duplicate deduction profile`,
+    reason: 'regenerated_profile_secrets',
+    message: `Regenerated secrets for ${targetName}: ${reason}`,
     character: targetName
   });
   return true;
@@ -80,14 +92,19 @@ export async function suspectCoverageAgent(context) {
       .map((entry) => entry.name)
       .filter(Boolean);
 
-    if (!missingMotive.length) {
+    const needsMotiveCompetition = report.issues.some((issue) => issue.code === 'insufficient_motive_competition');
+
+    if (!missingMotive.length && !needsMotiveCompetition) {
       break;
     }
 
+    const targetName = missingMotive[0]
+      || (Array.isArray(report?.required_early_suspects) ? report.required_early_suspects[0] : '')
+      || '';
     const healed = await regenerateSecretsForCharacter(
       context,
-      missingMotive[0],
-      `Add a concrete motive for ${missingMotive[0]}. The secrets must state why this suspect would want the victim silenced or the treasure controlled.`
+      targetName,
+      `Add a concrete motive for ${targetName}. The secrets must state plainly why this suspect wanted the victim silenced or the treasure stolen/controlled.`
     );
     if (!healed || attempt >= MAX_PROFILE_HEAL_ATTEMPTS) {
       break;
@@ -106,7 +123,7 @@ export async function suspectCoverageAgent(context) {
   }
 
   const blockingIssues = report.issues.filter((issue) =>
-    ['underused_suspects', 'missing_material_suspect_hooks', 'insufficient_access_competition'].includes(issue.code)
+    ['underused_suspects', 'missing_material_suspect_hooks', 'insufficient_access_competition', 'insufficient_motive_competition'].includes(issue.code)
   );
   if (blockingIssues.length) {
     throw new Error(`suspect_coverage_agent blocking issues: ${blockingIssues.map((issue) => issue.code).join(', ')}`);

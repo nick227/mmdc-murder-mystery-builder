@@ -1,17 +1,17 @@
-// schemas/clueSchema.js
-
-export const clueSchema = {
+const clueSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['card_title', 'card_contents', 'location_ref', 'act', 'trail_role'],
+  required: ['card_title', 'card_contents', 'clue_type', 'suspect_name', 'clue_weight'],
+  description: 'A clue card providing an observable fact about the mystery.',
   properties: {
     card_title: { type: 'string' },
     card_contents: { type: 'string' },
-    location_ref: { type: ['string', 'null'] },
-    act: { type: 'integer', enum: [1, 2, 3] },
-    trail_role: {
+    clue_type: { type: 'string' },
+    suspect_name: { type: 'string', description: 'The primary suspect this clue relates to.' },
+    clue_weight: {
       type: 'string',
-      enum: ['red_herring', 'ambiguous', 'killer_aligned']
+      enum: ['low', 'mid', 'high'],
+      description: 'Evidential strength. Distribute evenly: low, mid, high.'
     }
   }
 };

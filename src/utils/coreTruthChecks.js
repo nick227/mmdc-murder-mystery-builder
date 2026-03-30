@@ -68,13 +68,6 @@ function isExplicitlyExcluded(name, exclusionReasons) {
   return false;
 }
 
-function hasAccessMotiveOpportunityProfile(textBlob) {
-  const text = String(textBlob || '');
-  return hasPattern(text, ACCESS_PATTERNS)
-    && hasPattern(text, MOTIVE_PATTERNS)
-    && hasPattern(text, OPPORTUNITY_PATTERNS);
-}
-
 function axisPresence(textBlob) {
   const text = String(textBlob || '');
   return {
@@ -124,25 +117,27 @@ export function validateUniqueKiller(coreTruth, context, playableCharacters = ge
     coreTruth?.murder?.method
   ].join(' ');
 
-  if (!hasAccessMotiveOpportunityProfile(killerProfileText)) {
+  const killerAxes = axisPresence(killerProfileText);
+  const killerAxisCount = ['access', 'motive', 'opportunity'].filter((axis) => killerAxes[axis]).length;
+  if (killerAxisCount < 2) {
     return 'alternate_killer_not_excluded: declared killer lacks a clear access+motive+opportunity profile';
   }
-  const killerAxes = axisPresence(killerProfileText);
 
-  const alternateKillers = playableCharacters.filter((character) => {
+  const ambiguousAlternate = playableCharacters.find((character) => {
     if (normalizeText(character.name) === normalizedKiller) {
       return false;
     }
-    if (isExplicitlyExcluded(character.name, exclusions)) {
+    const exclusionText = [...exclusions.values()].find((reason) => normalizeText(reason).includes(normalizeText(character.name))) || '';
+    const alternateAxes = axisPresence([character.contents, exclusionText].filter(Boolean).join(' '));
+    const differingAxes = ['access', 'motive', 'opportunity'].filter((axis) => killerAxes[axis] !== alternateAxes[axis]);
+    if (differingAxes.length >= 2) {
       return false;
     }
-    const alternateAxes = axisPresence(character.contents);
-    const sharedAxes = ['access', 'motive', 'opportunity'].filter((axis) => killerAxes[axis] === true && alternateAxes[axis] === true);
-    return sharedAxes.length >= 2;
+    return !isExplicitlyExcluded(character.name, exclusions);
   });
 
-  if (alternateKillers.length) {
-    return `alternate_killer_not_excluded: ${alternateKillers.map((character) => character.name).join(', ')}`;
+  if (ambiguousAlternate) {
+    return `alternate_killer_not_excluded: ${ambiguousAlternate.name}`;
   }
 
   return null;

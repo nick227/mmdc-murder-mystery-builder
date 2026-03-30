@@ -7,7 +7,7 @@ function normalizeText(value) {
 }
 
 const OBJECT_KEYWORDS = [
-  'scroll', 'glove', 'scarf', 'quill', 'dagger', 'fabric', 'marks', 'floorboard', 'stone',
+  'quill and parchment', 'quill case', 'journal', 'diary', 'locket', 'vial', 'scroll', 'sonnet', 'parchment', 'glove', 'scarf', 'quill', 'dagger', 'fabric', 'marks', 'floorboard', 'stone',
   'rope', 'letter', 'crown', 'folio', 'mask', 'cache', 'compartment', 'prop'
 ];
 
@@ -66,6 +66,21 @@ function findReferencedSuspects(text, caseState) {
   );
 }
 
+function stripSuspectMentions(text, suspects = []) {
+  let normalized = normalizeText(text);
+  for (const suspect of suspects) {
+    for (const variant of [suspect?.name, suspect?.title]) {
+      const value = normalizeText(variant);
+      if (!value) {
+        continue;
+      }
+      const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      normalized = normalized.replace(new RegExp(`\\b${escaped}\\b`, 'gi'), ' ');
+    }
+  }
+  return normalized.replace(/\s+/g, ' ').trim();
+}
+
 function buildFact({ card, statement, subject, index, time, location }) {
   return {
     fact_id: `${String(card?.card_id || 'card').trim()}_fact_${String(index + 1).padStart(3, '0')}`,
@@ -80,7 +95,10 @@ function buildFact({ card, statement, subject, index, time, location }) {
 
 function findKeyword(text, keywords) {
   const normalized = normalizeText(text);
-  return keywords.find((keyword) => normalized.includes(keyword)) || null;
+  return keywords.find((keyword) => {
+    const escaped = String(keyword).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(normalized);
+  }) || null;
 }
 
 function fallbackSignatureFragment(text) {
@@ -102,7 +120,11 @@ export function buildEvidenceSignature(card, context) {
   const location = detectLocation(text, context?.cards) || 'unknown_location';
   const suspects = findReferencedSuspects(text, context?.case_state);
   const subject = suspects.length === 1 ? String(suspects[0].suspect_id || '').trim() : 'scene';
-  const object = findKeyword(text, OBJECT_KEYWORDS) || fallbackSignatureFragment(title || contents);
+  const scrubbedTitle = stripSuspectMentions(title, suspects);
+  const scrubbedContents = stripSuspectMentions(contents, suspects);
+  const object = findKeyword(scrubbedTitle, OBJECT_KEYWORDS)
+    || findKeyword(scrubbedContents, OBJECT_KEYWORDS)
+    || fallbackSignatureFragment(title || contents);
   const property = findKeyword(text, PROPERTY_KEYWORDS) || 'plain';
 
   return [subject || 'scene', object, property, location].join('|');

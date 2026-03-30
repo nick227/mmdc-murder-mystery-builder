@@ -2,59 +2,42 @@ import assert from 'node:assert/strict';
 import { clueTargetAgent } from '../agents/clueTargetAgent.js';
 
 const context = {
-  storyBlurb: 'Shakespeare garden party murder mystery.',
-  coreTruth: {
-    murder: {
-      victim: 'Sir Malcolm',
-      location: 'Rose Arbor',
-      method: 'ceremonial rope'
-    },
-    treasure: {
-      object: 'Bard\'s Quill',
-      hiding_place: 'Willow Stage'
-    }
-  },
-  world: 'Garden party at the manor.',
   cards: [
-    { card_id: 'location_1', card_type: 'location', card_title: 'Rose Arbor', card_contents: 'A quiet rose-lined alcove.' },
-    { card_id: 'location_2', card_type: 'location', card_title: 'Willow Stage', card_contents: 'A small outdoor stage by the willow.' },
-    { card_id: 'item_1', card_type: 'item', card_title: 'Bard\'s Quill', card_contents: 'A treasured writing quill.' },
-    { card_id: 'item_2', card_type: 'item', card_title: 'Ceremonial Rope', card_contents: 'A decorative rope from the stage.' },
-    { card_id: 'character_1', card_type: 'character', card_title: 'Lady Anne, The Patroness' },
-    { card_id: 'character_2', card_type: 'character', card_title: 'Lord Pembroke, The Host' },
-    { card_id: 'character_3', card_type: 'character', card_title: 'Master Fenton, The Actor' }
+    { card_id: 'c1', card_type: 'clue', card_title: 'Low A', card_contents: 'Lord Pembroke was noted near Rose Arbor.', clue_type: 'location', clue_weight: 'low', suspect_name: 'Lord Pembroke' },
+    { card_id: 'c2', card_type: 'clue', card_title: 'Mid A', card_contents: 'Lady Anne moved through Willow Stage shortly before the alarm.', clue_type: 'movement', clue_weight: 'mid', suspect_name: 'Lady Anne' },
+    { card_id: 'c3', card_type: 'clue', card_title: 'Low B', card_contents: 'Master Fenton handled the Bard Quill near Rose Arbor.', clue_type: 'object', clue_weight: 'low', suspect_name: 'Master Fenton' },
+    { card_id: 'c6', card_type: 'clue', card_title: 'Mid B', card_contents: 'Mistress Viola was seen near the Lantern Walk.', clue_type: 'location', clue_weight: 'mid', suspect_name: 'Mistress Viola' },
+    { card_id: 'c4', card_type: 'clue', card_title: 'High A', card_contents: 'Lady Anne retained the master key to the study.', clue_type: 'access', clue_weight: 'high', suspect_name: 'Lady Anne' },
+    { card_id: 'c5', card_type: 'clue', card_title: 'High B', card_contents: 'Lady Anne controlled the locked route to the archive.', clue_type: 'access', clue_weight: 'high', suspect_name: 'Lady Anne' }
   ],
   case_state: {
+    killer_id: 'lady_anne',
     suspects: [
       { suspect_id: 'lady_anne', name: 'Lady Anne', title: 'Lady Anne' },
       { suspect_id: 'lord_pembroke', name: 'Lord Pembroke', title: 'Lord Pembroke' },
-      { suspect_id: 'master_fenton', name: 'Master Fenton', title: 'Master Fenton' }
+      { suspect_id: 'master_fenton', name: 'Master Fenton', title: 'Master Fenton' },
+      { suspect_id: 'mistress_viola', name: 'Mistress Viola', title: 'Mistress Viola' }
     ]
-  },
-  suspect_coverage: {
-    required_early_suspects: ['Lady Anne', 'Lord Pembroke', 'Master Fenton']
-  },
-  debug: {
-    warning_log: [],
-    rejection_log: []
   }
 };
 
-let llmCallCount = 0;
+const result = await clueTargetAgent(structuredClone(context));
 
-const result = await clueTargetAgent(structuredClone(context), {
-  stopAfterSlot: 2,
-  isClueTargetAnchored: () => true,
-  callJson: async () => {
-    llmCallCount += 1;
-    throw new Error('callJson should not be used for slots 1-3');
-  }
-});
+const killerClues = result.cards.filter((card) =>
+  card.card_type === 'clue'
+  && card.clue_weight === 'high'
+  && card.suspect_name === 'Lady Anne'
+);
+assert.equal(killerClues.length, 2);
 
-assert.equal(llmCallCount, 0);
-assert.equal(result.clue_targets.length, 2);
-assert.match(result.clue_targets[0].fact, /Lady Anne/i);
-assert.match(result.clue_targets[1].fact, /Lord Pembroke/i);
-assert.notEqual(result.clue_targets[0].category, result.clue_targets[1].category);
+const nonKillerClues = result.cards.filter((card) =>
+  card.card_type === 'clue'
+  && card.clue_weight !== 'high'
+  && card.suspect_name
+  && card.suspect_name !== 'Lady Anne'
+);
+assert.equal(nonKillerClues.length, 3);
+assert.equal(result.cards.filter((card) => card.card_type === 'clue' && !card.suspect_name).length, 0);
+assert.equal('clue_targets' in result, false);
 
 console.log('clueTargetSlotInjection.test passed');

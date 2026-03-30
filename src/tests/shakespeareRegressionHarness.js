@@ -82,6 +82,7 @@ function analyzeRun(context, lastStepName) {
       || structuralCodes.has('duplicate_evidence_weighting'),
     underused_suspects: playabilityCodes.has('underused_suspects')
       || structuralCodes.has('dead_suspect_slots'),
+    one_suspect_gravity: structuralCodes.has('one_suspect_gravity'),
     early_suspect_collapse: earlyCollapseReasons.length > 0
       || structuralCodes.has('early_killer_leak')
       || playabilityCodes.has('suspect_pool_collapses_by_bundle_three'),
@@ -95,6 +96,9 @@ function analyzeRun(context, lastStepName) {
   }
   if (flags.underused_suspects) {
     failReasons.push('underused_suspects');
+  }
+  if (flags.one_suspect_gravity) {
+    failReasons.push('one_suspect_gravity');
   }
   if (flags.early_suspect_collapse) {
     failReasons.push(...(earlyCollapseReasons.length ? earlyCollapseReasons : ['early_suspect_collapse']));
@@ -185,6 +189,7 @@ async function main() {
     issue_counts: {
       duplicate_evidence_weighting: 0,
       underused_suspects: 0,
+      one_suspect_gravity: 0,
       early_suspect_collapse: 0,
       final_bundle_redundant_confirmation: 0
     },
@@ -196,11 +201,8 @@ async function main() {
     const runResult = await runSingleRegression(index + 1, options);
     runs.push(runResult);
 
-    const passed = !runResult.counts.duplicate_evidence
-      && !runResult.counts.underused_suspects
-      && !runResult.counts.early_suspect_collapse
-      && !runResult.counts.final_bundle_redundancy
-      && !runResult.worker_error;
+    const passed = runResult.structural_status === 'ready'
+      && runResult.playability_status === 'ready_for_playtest';
 
     if (passed) {
       summary.passed_runs += 1;
@@ -213,6 +215,9 @@ async function main() {
     }
     if (runResult.counts.underused_suspects) {
       summary.issue_counts.underused_suspects += 1;
+    }
+    if (runResult.counts.one_suspect_gravity) {
+      summary.issue_counts.one_suspect_gravity += 1;
     }
     if (runResult.counts.early_suspect_collapse) {
       summary.issue_counts.early_suspect_collapse += 1;

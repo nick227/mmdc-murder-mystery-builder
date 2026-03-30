@@ -1,17 +1,18 @@
-import { buildFactLedger } from '../utils/factLedger.js';
 import { buildEvidenceSignature } from '../utils/evidenceFacts.js';
 
-function normalizeText(value) {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+const CLUE_WEIGHT_ORDER = {
+  low: 0,
+  mid: 1,
+  high: 2
+};
 
 function tokenSet(value) {
   return new Set(
-    normalizeText(value)
+    String(value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
       .split(' ')
       .filter((token) => token.length >= 4)
   );
@@ -38,34 +39,23 @@ function clueText(card) {
   return `${card?.card_title || ''} ${card?.card_contents || ''}`.trim();
 }
 
+function cluePriority(card) {
+  const weight = String(card?.clue_weight || '').trim().toLowerCase();
+  return CLUE_WEIGHT_ORDER[weight] ?? -1;
+}
+
 export async function postClueDedupAgent(context) {
   context.debug ??= {};
   context.debug.warning_log ??= [];
 
   const cards = Array.isArray(context.cards) ? context.cards : [];
-  const clues = cards.filter((card) => card?.card_type === 'clue');
+  const clues = cards
+    .filter((card) => card?.card_type === 'clue')
+    .slice()
+    .sort((a, b) => cluePriority(b) - cluePriority(a));
   if (!clues.length) {
     return context;
   }
-
-  const ledger = buildFactLedger({
-    ...context,
-    cards: cards.filter((card) => card?.card_type !== 'clue')
-  });
-  const itemTexts = ledger.records
-    .filter((record) => record?.source_agent === 'item_agent')
-    .map((record) => ({
-      source: record?.source_title || record?.source_id || 'item',
-      text: String(record?.raw_text || '').trim(),
-      signature: String(record?.signature || '').trim()
-    }))
-    .filter((entry) => entry.text || entry.signature);
-  const targetTexts = (Array.isArray(context.clue_targets) ? context.clue_targets : [])
-    .map((target) => ({
-      source: target?.target_id || 'clue_target',
-      text: String(target?.fact || '').trim()
-    }))
-    .filter((entry) => entry.text);
 
   const kept = [];
   const removals = [];
@@ -79,42 +69,6 @@ export async function postClueDedupAgent(context) {
         card_id: clue?.card_id || null,
         card_title: clue?.card_title || '',
         reason: 'empty_clue_text'
-      });
-      continue;
-    }
-
-    const duplicateTarget = targetTexts.find((entry) => overlapScore(text, entry.text) > 0.7);
-    if (duplicateTarget) {
-      removals.push({
-        card_id: clue?.card_id || null,
-        card_title: clue?.card_title || '',
-        reason: 'overlaps_clue_target',
-        matched_source: duplicateTarget.source
-      });
-      continue;
-    }
-
-    const duplicateItem = itemTexts.find((entry) => overlapScore(text, entry.text) > 0.7);
-    if (duplicateItem) {
-      removals.push({
-        card_id: clue?.card_id || null,
-        card_title: clue?.card_title || '',
-        reason: 'overlaps_item_fact',
-        matched_source: duplicateItem.source
-      });
-      continue;
-    }
-
-    const duplicateItemSignature = signature
-      ? itemTexts.find((entry) => entry.signature && entry.signature === signature)
-      : null;
-    if (duplicateItemSignature) {
-      removals.push({
-        card_id: clue?.card_id || null,
-        card_title: clue?.card_title || '',
-        reason: 'overlaps_item_signature',
-        matched_source: duplicateItemSignature.source,
-        matched_signature: signature
       });
       continue;
     }
