@@ -8,7 +8,7 @@ function buildSuspectRoster(context) {
   })).filter((entry) => entry.suspectId && entry.displayName);
 }
 
-function annotateClueCard(clue, suspectEntry) {
+function annotateClueCard(clue) {
   return {
     ...clue
   };
@@ -73,7 +73,7 @@ export async function clueTargetAgent(context) {
     }
     const suspectEntry = assignedByClue.get(card);
     if (suspectEntry) {
-      nextCards[index] = annotateClueCard(card, suspectEntry);
+      nextCards[index] = annotateClueCard(card);
     }
   }
 

@@ -1,3 +1,4 @@
+/* global structuredClone */
 import assert from 'node:assert/strict';
 import { clueAgent } from '../agents/clueAgent.js';
 

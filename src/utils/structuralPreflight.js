@@ -2,7 +2,6 @@ import { getCardsByType, getCharacterCards } from './cards.js';
 import { buildFactLedger, buildPressureEntriesFromText, extractAxes } from './factLedger.js';
 import {
   addPressure,
-  addPressureFromText,
   createSuspectPressureMap,
   getPressureBalance
 } from './suspectPressureMap.js';
@@ -60,23 +59,6 @@ function getSuspectIdByName(suspects, value) {
 function getClueSuspectIds(card, suspects) {
   const suspectId = getSuspectIdByName(suspects, card?.suspect_name);
   return suspectId ? [suspectId] : [];
-}
-
-function addAssignedPressureFromText(map, suspectId, text, { weight = 'weak', source = 'unknown' } = {}) {
-  const normalizedSuspectId = String(suspectId || '').trim();
-  if (!normalizedSuspectId) {
-    return;
-  }
-
-  for (const axis of extractAxes(text)) {
-    addPressure(map, {
-      suspect_id: normalizedSuspectId,
-      axis,
-      weight,
-      source,
-      raw_text: text
-    });
-  }
 }
 
 function addIssue(issues, severity, code, message, details = {}) {
