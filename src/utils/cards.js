@@ -52,6 +52,9 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (card?.location_ref !== undefined || previous.location_ref !== undefined) {
       merged.location_ref = card?.location_ref ?? previous.location_ref;
     }
+    if (card?.game_card_type !== undefined || previous.game_card_type !== undefined) {
+      merged.game_card_type = card?.game_card_type ?? previous.game_card_type;
+    }
     if (card?.bundle_id !== undefined || previous.bundle_id !== undefined) {
       merged.bundle_id = card?.bundle_id ?? previous.bundle_id;
     }
@@ -99,6 +102,12 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     }
     if (card?.derived_facts !== undefined || previous.derived_facts !== undefined) {
       merged.derived_facts = card?.derived_facts ?? previous.derived_facts;
+    }
+    if (('target_character' in card) || ('target_character' in previous)) {
+      merged.target_character = ('target_character' in card) ? card.target_character : previous.target_character;
+    }
+    if (('target_character_id' in card) || ('target_character_id' in previous)) {
+      merged.target_character_id = ('target_character_id' in card) ? card.target_character_id : previous.target_character_id;
     }
 
     return merged;
@@ -148,6 +157,9 @@ export function pushCards(context, type, entries) {
     if (e.location_ref !== undefined) {
       card.location_ref = e.location_ref;
     }
+    if (e.game_card_type !== undefined) {
+      card.game_card_type = e.game_card_type;
+    }
     if (e.bundle_id !== undefined) {
       card.bundle_id = e.bundle_id;
     }
@@ -195,6 +207,12 @@ export function pushCards(context, type, entries) {
     }
     if (e.derived_facts !== undefined) {
       card.derived_facts = e.derived_facts;
+    }
+    if ('target_character' in e) {
+      card.target_character = e.target_character;
+    }
+    if ('target_character_id' in e) {
+      card.target_character_id = e.target_character_id;
     }
 
     return card;
