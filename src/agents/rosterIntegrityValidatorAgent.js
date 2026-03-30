@@ -59,6 +59,21 @@ function getCharacterAliases(title) {
     if (commaParts[1].startsWith('The ')) {
       aliases.add(commaParts[1].slice(4));
     }
+    for (const phrase of extractAllowedWorldPhrases(commaParts[1])) {
+      aliases.add(phrase);
+    }
+  }
+  const dashParts = normalizedTitle.split(/[—–-]/).map((part) => part.trim()).filter(Boolean);
+  if (dashParts.length >= 2) {
+    for (const subtitle of dashParts.slice(1)) {
+      aliases.add(subtitle);
+      if (subtitle.startsWith('The ')) {
+        aliases.add(subtitle.slice(4));
+      }
+      for (const phrase of extractAllowedWorldPhrases(subtitle)) {
+        aliases.add(phrase);
+      }
+    }
   }
   if (honorificStripped && honorificStripped !== normalized) {
     aliases.add(honorificStripped);
@@ -261,6 +276,9 @@ export async function rosterIntegrityValidatorAgent(context) {
   const foundationCards = (Array.isArray(context.cards) ? context.cards : []).filter((card) =>
     ['person', 'location'].includes(card?.card_type)
   );
+  const reusableTitlePhrases = (Array.isArray(context.cards) ? context.cards : [])
+    .filter((card) => !['character', 'person', 'location'].includes(String(card?.card_type || '').trim()))
+    .flatMap((card) => extractAllowedWorldPhrases(card?.card_title));
   const worldPeople = (Array.isArray(context?.worldEntities?.people) ? context.worldEntities.people : [])
     .map((entry) => normalizeName(entry?.name))
     .filter(Boolean);
@@ -287,7 +305,7 @@ export async function rosterIntegrityValidatorAgent(context) {
     }
   }
 
-  for (const name of [...personNames, ...worldPeople, ...worldLocations, ...storyWorldPhrases]) {
+  for (const name of [...personNames, ...worldPeople, ...worldLocations, ...storyWorldPhrases, ...reusableTitlePhrases]) {
     for (const alias of getEntityAliases(name)) {
       allowed.add(alias);
     }

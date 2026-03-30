@@ -115,6 +115,27 @@ async function run() {
 
   {
     const context = baseContext([
+      { card_id: 'c1', card_type: 'character', card_title: 'Lillian Monroe — The Silent Editor with a Sharp Eye and Sharper Secrets', card_contents: '...' },
+      { card_id: 'c2', card_type: 'character', card_title: 'Harold Finch — The Loyal Butler with a Veil of Mystery', card_contents: '...' },
+      { card_id: 'i1', card_type: 'item', card_title: 'Jeweled Necklace', card_contents: '...' },
+      {
+        card_id: 'g1',
+        card_type: 'game_card',
+        card_title: 'Item Combination Puzzle: Necklace Disappearance Timing',
+        card_contents: 'Sharp Eye matters here. The Jeweled Necklace appears again in Necklace Disappearance Timing.'
+      }
+    ]);
+
+    const out = await rosterIntegrityValidatorAgent(context);
+    const warnings = out.debug.warning_log.filter((w) => w.stage === 'roster_integrity');
+    assert(
+      warnings.length === 0,
+      'expected no roster integrity warning for item titles, puzzle title phrases, or character subtitle fragments reused in text'
+    );
+  }
+
+  {
+    const context = baseContext([
       { card_id: 'c1', card_type: 'character', card_title: 'Luna Silverfang', card_contents: '...' },
       { card_id: 'c2', card_type: 'character', card_title: 'Victor Ash', card_contents: '...' },
       { card_id: 'x2', card_type: 'item', card_title: 'Vial', card_contents: 'Lady Morgana was seen clutching it while Marcellus, the Assistant Curator, watched from the doorway.' }
