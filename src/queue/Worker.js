@@ -1,5 +1,6 @@
 
 import { steps } from '../pipeline/steps/index.js';
+import { retitleExistingRunDir } from '../storage/runDir.js';
 import { writeOutput } from '../storage/output.js';
 import { saveJobs } from '../storage/store.js';
 import { section } from '../cli/logger.js';
@@ -133,6 +134,16 @@ export async function runWorker(queue, hooks = {}) {
 
         job.context = normalizeContext(next);
         syncJobIdentity(job);
+
+        if (step.name === 'story_metadata_agent' && job.context?.runDir) {
+          const title = String(job.context.story_title || '').trim();
+          if (title) {
+            const { id, dir } = retitleExistingRunDir(job.context.runDir, title);
+            job.context.runDir = dir;
+            job.context.runId = id;
+            syncJobIdentity(job);
+          }
+        }
 
         validateContext(job.context, { allowPartial: true });
 

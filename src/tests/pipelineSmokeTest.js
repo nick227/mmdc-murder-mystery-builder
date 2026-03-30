@@ -20,6 +20,15 @@ function assert(condition, msg) {
 function validateContext(context, stepName) {
   assert(context, `${stepName}: context missing`);
 
+  if (stepName === 'story_metadata_agent') {
+    assert(context.story_title, 'story_title missing');
+    assert(context.story_description, 'story_description missing');
+    assert(context.story_rating, 'story_rating missing');
+    assert(context.story_themes, 'story_themes missing');
+    const meta = getCardsByType(context.cards, 'story_meta');
+    assert(meta.length === 4, 'expected 4 story_meta cards');
+  }
+
   if (stepName === 'story_blurb_agent') {
     assert(context.storyBlurb, 'storyBlurb missing');
   }

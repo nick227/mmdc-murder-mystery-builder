@@ -1,4 +1,5 @@
 import { storyBlurbAgent } from '../../agents/storyBlurbAgent.js';
+import { storyMetadataAgent } from '../../agents/storyMetadataAgent.js';
 
 import { worldBuildingAgent } from '../../agents/worldBuildingAgent.js';
 
@@ -46,6 +47,8 @@ import { bundleStructureValidatorAgent } from '../../agents/bundleStructureValid
 import { mvpQualityGateAgent } from '../../agents/mvpQualityGateAgent.js';
 
 export const steps = [
+  { name: 'story_metadata_agent', run: storyMetadataAgent },
+
   { name: 'story_blurb_agent', run: storyBlurbAgent },
 
   { name: 'world_building_agent', run: worldBuildingAgent },

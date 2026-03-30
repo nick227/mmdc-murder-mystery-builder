@@ -110,7 +110,7 @@ async function main() {
       process.exit(1);
     }
 
-    const run = createRunDir();
+    const run = createRunDir('pending');
     const job = queue.createJob({
       runId: run.id,
       runDir: run.dir,
@@ -126,7 +126,7 @@ async function main() {
     console.log('Players:', playerCount);
     console.log('Prompt :', userPrompt);
     console.log('Style :', storyStyle);
-    console.log('Output :', run.dir);
+    console.log('Output :', run.dir, '(folder renames after story title is generated)');
     console.log('────────────────────────────────────────');
 
     await runWorker(queue, {
@@ -143,8 +143,9 @@ async function main() {
       }
     });
 
+    const outDir = job.context?.runDir || run.dir;
     console.log('────────────────────────────────────────');
-    console.log(`Done. Inspect: ${run.dir}`);
+    console.log(`Done. Inspect: ${outDir}`);
     console.log('────────────────────────────────────────');
     return;
   }
@@ -184,7 +185,7 @@ async function main() {
       process.exit(1);
     }
 
-    const run = createRunDir();
+    const run = createRunDir('pending');
     let latestContext = null;
     const job = queue.createJob({
       runId: run.id,
@@ -199,7 +200,7 @@ async function main() {
     console.log('Run ID :', run.id);
     console.log('Output :', run.dir);
 
-    const resultPath = path.join(run.dir, 'result.json');
+    const resultPathInitial = path.join(run.dir, 'result.json');
     try {
       await runWorker(queue, {
         targetJobId: job.id,
@@ -218,13 +219,15 @@ async function main() {
         }
       });
     } catch (error) {
-      if (!fs.existsSync(resultPath)) {
-        if (!latestContext) {
-          throw error;
-        }
+      const finalDir = job.context?.runDir || run.dir;
+      const resultPathFinal = path.join(finalDir, 'result.json');
+      if (!fs.existsSync(resultPathFinal) && !fs.existsSync(resultPathInitial) && !latestContext) {
+        throw error;
       }
     }
 
+    const finalDir = job.context?.runDir || run.dir;
+    const resultPath = path.join(finalDir, 'result.json');
     const context = fs.existsSync(resultPath)
       ? JSON.parse(fs.readFileSync(resultPath, 'utf8'))
       : latestContext;
@@ -244,7 +247,7 @@ async function main() {
       process.exit(1);
     }
 
-    const run = createRunDir();
+    const run = createRunDir('pending');
     const audits = [];
     let latestContext = null;
     const job = queue.createJob({
@@ -286,14 +289,15 @@ async function main() {
       // Keep the partial audit output; caller asked for iterative diagnostics.
     }
 
-    const auditPath = path.join(run.dir, 'step_audit.json');
+    const finalDir = job.context?.runDir || run.dir;
+    const auditPath = path.join(finalDir, 'step_audit.json');
     fs.writeFileSync(auditPath, JSON.stringify(audits, null, 2));
-    if (latestContext && !fs.existsSync(path.join(run.dir, 'result.json'))) {
-      fs.writeFileSync(path.join(run.dir, 'result.json'), JSON.stringify(latestContext, null, 2));
+    if (latestContext && !fs.existsSync(path.join(finalDir, 'result.json'))) {
+      fs.writeFileSync(path.join(finalDir, 'result.json'), JSON.stringify(latestContext, null, 2));
     }
 
     if (jsonMode) {
-      console.log(JSON.stringify({ run_id: run.id, run_dir: run.dir, audits }, null, 2));
+      console.log(JSON.stringify({ run_id: job.context?.runId || run.id, run_dir: finalDir, audits }, null, 2));
     } else {
       console.log(formatStepAudits(audits));
       console.log(`Audit JSON: ${auditPath}`);

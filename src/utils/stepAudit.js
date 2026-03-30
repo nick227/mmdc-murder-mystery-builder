@@ -75,6 +75,7 @@ function addFinding(findings, category, severity, code, message, details = {}) {
 }
 
 const STEP_ORDER = [
+  'story_metadata_agent',
   'story_blurb_agent',
   'world_building_agent',
   'characters_builder_agent',
