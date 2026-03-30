@@ -70,6 +70,12 @@ export function validateContext(context, options = {}) {
       if (card.card_type !== undefined) {
         assert(typeof card.card_type === 'string', `context.cards[${index}].card_type must be a string`);
       }
+      if (card.game_card_type !== undefined && card.game_card_type !== null) {
+        assert(
+          ['performance', 'conversation', 'search', 'flavor', 'accusation', 'alibi', 'trade', 'revelation'].includes(card.game_card_type),
+          `context.cards[${index}].game_card_type must be a supported game card type`
+        );
+      }
       if (card.card_title !== undefined) {
         assert(typeof card.card_title === 'string', `context.cards[${index}].card_title must be a string`);
       }

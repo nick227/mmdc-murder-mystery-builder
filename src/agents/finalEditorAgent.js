@@ -2,6 +2,8 @@ import { callJson } from '../llm/client.js';
 import { buildFinalEditorPrompt } from '../prompts/finalEditorPrompt.js';
 import { getStoryBlurb } from '../utils/context.js';
 
+const GAME_CARD_TYPES = new Set(['performance', 'conversation', 'search', 'flavor', 'accusation', 'alibi', 'trade', 'revelation']);
+
 export function applyFinalEditorResult(existingCards, editedCards) {
   const safeExistingCards = Array.isArray(existingCards) ? existingCards : [];
   const safeEditedCards = Array.isArray(editedCards) ? editedCards : [];
@@ -18,12 +20,16 @@ export function applyFinalEditorResult(existingCards, editedCards) {
     const nextAct = edited.act === 1 || edited.act === 2 || edited.act === 3
       ? edited.act
       : (card.act === 1 || card.act === 2 || card.act === 3 ? card.act : ((index % 3) + 1));
+    const nextGameCardType = GAME_CARD_TYPES.has(String(edited?.game_card_type || '').trim())
+      ? String(edited.game_card_type).trim()
+      : card?.game_card_type;
 
     return {
       ...card,
       card_title: String(edited.card_title || card.card_title || '').trim(),
       card_contents: String(edited.card_contents || card.card_contents || '').trim(),
-      act: nextAct
+      act: nextAct,
+      ...(nextGameCardType !== undefined ? { game_card_type: nextGameCardType } : {})
     };
   });
 }
@@ -47,11 +53,15 @@ export async function finalEditorAgent(context) {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['card_title', 'card_contents', 'act'],
+          required: ['card_title', 'card_contents', 'act', 'game_card_type'],
           properties: {
             card_title: { type: 'string' },
             card_contents: { type: 'string' },
-            act: { type: 'integer', enum: [1, 2, 3] }
+            act: { type: 'integer', enum: [1, 2, 3] },
+            game_card_type: {
+              type: ['string', 'null'],
+              enum: ['performance', 'conversation', 'search', 'flavor', 'accusation', 'alibi', 'trade', 'revelation', null]
+            }
           }
         }
       }

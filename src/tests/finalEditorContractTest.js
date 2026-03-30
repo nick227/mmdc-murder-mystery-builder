@@ -79,31 +79,36 @@ function makeEditedCards() {
       card_type: 'puzzle',
       card_title: 'Archive Access Puzzle Revised',
       card_contents: 'Compare the route sketch and watch log.',
-      act: 2
+      act: 2,
+      game_card_type: null
     },
     {
       card_type: 'item',
       card_title: 'Route Sketch Revised',
       card_contents: 'A cleaner map of the service halls.',
-      act: 2
+      act: 2,
+      game_card_type: null
     },
     {
       card_type: 'item',
       card_title: 'Service Hall Badge Log Revised',
       card_contents: 'A revised badge record for the side corridor.',
-      act: 2
+      act: 2,
+      game_card_type: null
     },
     {
       card_type: 'solution',
       card_title: 'Archive Access Contradiction Revised',
       card_contents: 'The route timing does not work.',
-      act: 3
+      act: 3,
+      game_card_type: null
     },
     {
       card_type: 'item',
       card_title: 'Watch Log Revised',
       card_contents: 'A revised corridor activity log.',
-      act: 1
+      act: 1,
+      game_card_type: null
     }
   ];
 }
@@ -149,6 +154,68 @@ function run() {
       () => applyFinalEditorResult(makeCards(), changedIds),
       /preserve card count/
     );
+  }
+
+  {
+    const existingCards = [
+      {
+        card_id: 'game-1',
+        card_type: 'game_card',
+        game_card_type: 'conversation',
+        card_title: 'Question the Broker',
+        card_contents: 'Ask Victor where he was after the toast.',
+        act: 2
+      },
+      {
+        card_id: 'speech-1',
+        card_type: 'host_speech',
+        card_title: 'Act 1 Opening',
+        card_contents: 'Welcome everyone.',
+        act: 1
+      }
+    ];
+    const editedCards = [
+      {
+        card_title: 'Question the Broker Revised',
+        card_contents: 'Ask Victor to account for the minutes after the toast.',
+        act: 3,
+        game_card_type: null
+      },
+      {
+        card_title: 'Act 1 Opening Revised',
+        card_contents: 'Welcome to the evening.',
+        act: 1,
+        game_card_type: null
+      }
+    ];
+
+    const nextCards = applyFinalEditorResult(existingCards, editedCards);
+    assert(nextCards[0].game_card_type === 'conversation', 'final editor should preserve game_card_type when edited output omits it');
+    assert(!('game_card_type' in nextCards[1]), 'final editor should not add game_card_type to non-game cards');
+  }
+
+  {
+    const existingCards = [
+      {
+        card_id: 'game-2',
+        card_type: 'game_card',
+        game_card_type: 'conversation',
+        card_title: 'Question the Host',
+        card_contents: 'Ask Janet why she left early.',
+        act: 2
+      }
+    ];
+    const editedCards = [
+      {
+        card_title: 'Question the Host Revised',
+        card_contents: 'Ask Janet to explain why she left the bar early.',
+        act: 3,
+        game_card_type: 'accusation'
+      }
+    ];
+
+    const nextCards = applyFinalEditorResult(existingCards, editedCards);
+    assert(nextCards[0].game_card_type === 'accusation', 'final editor should accept a valid replacement game_card_type');
   }
 
   console.log('FINAL EDITOR CONTRACT TEST PASSED');

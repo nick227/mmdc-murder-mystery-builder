@@ -8,6 +8,7 @@ export function buildFinalEditorPrompt({ storyBlurb, trails, narratives, ambigui
       'Return JSON only.',
       'Preserve card order and card count.',
       'You may edit only card_title, card_contents, and act.',
+      'Preserve each card\'s existing game_card_type. Use null for cards that do not already have one.',
       'Do not add, remove, or reorder cards.',
       'Do not remove required card types.'
     ].join(' '),
@@ -35,7 +36,8 @@ Return:
     {
       "card_title": "",
       "card_contents": "",
-      "act": 1
+      "act": 1,
+      "game_card_type": null
     }
   ]
 }
