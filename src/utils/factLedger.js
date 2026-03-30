@@ -1,3 +1,4 @@
+import { isEvidenceLedgerCard } from './cards.js';
 import { buildEvidenceSignature } from './evidenceFacts.js';
 
 function normalizeText(value) {
@@ -128,7 +129,7 @@ export function buildFactLedger(context) {
   };
 
   for (const card of Array.isArray(context?.cards) ? context.cards : []) {
-    if (!['item', 'clue'].includes(card?.card_type)) {
+    if (!isEvidenceLedgerCard(card)) {
       continue;
     }
     const signature = buildEvidenceSignature(card, context);

@@ -8,6 +8,12 @@ export function getCharacterCards(cards = []) {
   return getCardsByType(cards, 'character');
 }
 
+/** Clue/item cards only: fact ledger, duplicate detection, pressure scoring, canonical derived_facts (excludes story_meta and other packaging types). */
+export function isEvidenceLedgerCard(card) {
+  const t = String(card?.card_type || '').trim();
+  return t === 'clue' || t === 'item';
+}
+
 export function mergeCardMetadata(previousCards = [], nextCards = []) {
   const previousById = new Map(
     (Array.isArray(previousCards) ? previousCards : [])

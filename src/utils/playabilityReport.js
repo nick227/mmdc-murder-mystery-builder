@@ -1,3 +1,4 @@
+import { isEvidenceLedgerCard } from './cards.js';
 import { getSolution } from './context.js';
 
 function normalizeName(value) {
@@ -346,7 +347,7 @@ function collectDeductionBalanceIssues(context, issues) {
 
   const evidenceTexts = Array.isArray(context?.cards)
     ? context.cards
-      .filter((card) => ['clue', 'item'].includes(card?.card_type))
+      .filter((card) => isEvidenceLedgerCard(card))
       .map((card) => `${card?.card_title || ''} ${card?.card_contents || ''}`.toLowerCase())
     : [];
   const decisivePattern = /\b(fingerprint|prints|blood|rope|dagger|weapon|poison|found hidden|checked out|carrying|present in|had access)\b/i;

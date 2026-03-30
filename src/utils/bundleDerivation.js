@@ -1,3 +1,5 @@
+import { isEvidenceLedgerCard } from './cards.js';
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -28,7 +30,7 @@ function isContinuousPresenceStatement(statement) {
 function getBundleVisibleEvidenceCards(context, bundleId) {
   return (Array.isArray(context?.cards) ? context.cards : []).filter((card) =>
     card?.bundle_id === bundleId
-    && ['clue', 'item'].includes(card.card_type)
+    && isEvidenceLedgerCard(card)
     && card.hidden_until_solved !== true
   );
 }
@@ -40,7 +42,7 @@ function getBundleFacts(context, bundleId) {
 
 function getBundleEvidenceTexts(context, bundleId) {
   return getBundleVisibleEvidenceCards(context, bundleId)
-    .filter((card) => ['clue', 'item'].includes(card.card_type))
+    .filter((card) => isEvidenceLedgerCard(card))
     .map((card) => ({
       card_id: card.card_id,
       text: String(card.card_contents || '').trim()
