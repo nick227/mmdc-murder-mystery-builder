@@ -168,27 +168,34 @@ function extractAllowedWorldPhrases(text) {
 
 function isImperativeGamePhrase(phrase) {
   const imperativeStarts = new Set([
+    'Accuse',
     'Address',
     'Ask',
     'Bring',
     'Challenge',
     'Confront',
+    'Coax',
     'Demand',
     'Discuss',
     'Encourage',
     'Engage',
     'Force',
+    'Interrogate',
     'Invite',
     'Mention',
     'Note',
+    'Offer',
     'Present',
     'Press',
+    'Probe',
     'Push',
     'Recall',
     'Require',
     'Reveal',
     'Question',
-    'Directly'
+    'Directly',
+    'Trade',
+    'Urge'
   ]);
   const discoursePhrases = new Set(['Meanwhile', 'However', 'Instead']);
 

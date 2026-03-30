@@ -48,6 +48,28 @@ async function run() {
 
   {
     const context = baseContext([
+      { card_id: 'c1', card_type: 'character', card_title: 'Hecate Morwen', card_contents: '...' },
+      { card_id: 'c2', card_type: 'character', card_title: 'Janus Vale', card_contents: '...' },
+      { card_id: 'l1', card_type: 'location', card_title: 'The Forum', card_contents: '...' },
+      {
+        card_id: 'g1',
+        card_type: 'game_card',
+        card_title: 'Social pressure',
+        card_contents:
+          'Offer Hecate a trade. Interrogate Hecate about the alibi. Accuse Hecate in front of Janus Vale.'
+      }
+    ]);
+
+    const out = await rosterIntegrityValidatorAgent(context);
+    const warnings = out.debug.warning_log.filter((w) => w.stage === 'roster_integrity');
+    assert(
+      warnings.length === 0,
+      'expected no roster integrity warning for verb-led two-word phrases before cast names'
+    );
+  }
+
+  {
+    const context = baseContext([
       { card_id: 'c1', card_type: 'character', card_title: 'Mistress Viola, The Ambitious Thespian', card_contents: '...' },
       { card_id: 'c2', card_type: 'character', card_title: 'Master Giles Thorncroft, The Silent Gardener', card_contents: '...' },
       { card_id: 'p1', card_type: 'person', card_title: 'Lord Pembroke', card_contents: '...' },
