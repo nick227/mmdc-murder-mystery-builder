@@ -3,7 +3,7 @@ import { buildCoreTruthPrompt } from '../prompts/coreTruthPrompt.js';
 import { coreTruthSchema } from '../schemas/coreTruthSchema.js';
 import { getCharacterCards } from '../utils/cards.js';
 import { getStoryBlurb } from '../utils/context.js';
-import { validateUniqueKiller, validateVictimType } from '../utils/coreTruthChecks.js';
+import { patchCoreTruthAlternateExclusions, validateUniqueKiller, validateVictimType } from '../utils/coreTruthChecks.js';
 
 const MAX_RETRIES = 2;
 
@@ -43,6 +43,8 @@ export async function coreTruthAgent(context) {
       schemaName: 'core_truth',
       schema: coreTruthSchema
     });
+
+    patchCoreTruthAlternateExclusions(context.coreTruth, context);
 
     const deterministicIssues = [
       validateVictimType(context.coreTruth, context),

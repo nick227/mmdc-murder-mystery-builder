@@ -100,6 +100,36 @@ export function validateVictimType(coreTruth, context, playableCharacters = getP
   return null;
 }
 
+/**
+ * Ensures each non-killer playable character is named in at least one why_others_could_not line.
+ * Without this, validateUniqueKiller treats unnamed alternates as ambiguous co-killers.
+ */
+export function patchCoreTruthAlternateExclusions(coreTruth, context) {
+  const murder = coreTruth?.murder;
+  if (!murder) {
+    return;
+  }
+  const playable = getPlayableCharacters(context);
+  const killerNorm = normalizeText(baseName(murder.killer));
+  const reasons = (Array.isArray(murder.why_others_could_not) ? murder.why_others_could_not : [])
+    .map((r) => String(r || '').trim())
+    .filter(Boolean);
+
+  for (const character of playable) {
+    const charNorm = normalizeText(character.name);
+    if (!charNorm || charNorm === killerNorm) {
+      continue;
+    }
+    const mentioned = reasons.some((r) => normalizeText(r).includes(charNorm));
+    if (!mentioned) {
+      reasons.push(
+        `${character.name} is ruled out as the killer: reconciled timelines, access limits, and motives under this solution exclude them.`
+      );
+    }
+  }
+  murder.why_others_could_not = reasons;
+}
+
 export function validateUniqueKiller(coreTruth, context, playableCharacters = getPlayableCharacters(context)) {
   const killerName = baseName(coreTruth?.murder?.killer);
   const normalizedKiller = normalizeText(killerName);
