@@ -3,6 +3,7 @@ import { storyBlurbAgent } from '../../agents/storyBlurbAgent.js';
 import { worldBuildingAgent } from '../../agents/worldBuildingAgent.js';
 
 import { coreTruthAgent } from '../../agents/coreTruthAgent.js';
+import { treasureHuntAgent } from '../../agents/treasureHuntAgent.js';
 import { coreTruthValidatorAgent } from '../../agents/coreTruthValidatorAgent.js';
 import { caseStateBuilderAgent } from '../../agents/caseStateBuilderAgent.js';
 
@@ -52,6 +53,7 @@ export const steps = [
   { name: 'characters_builder_agent', run: charactersBuilderAgent },
 
   { name: 'core_truth_agent', run: coreTruthAgent },
+  { name: 'treasure_hunt_agent', run: treasureHuntAgent },
   { name: 'core_truth_validator_agent', run: coreTruthValidatorAgent },
   { name: 'case_state_builder_agent', run: caseStateBuilderAgent },
 

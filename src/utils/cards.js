@@ -109,6 +109,9 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (('target_character_id' in card) || ('target_character_id' in previous)) {
       merged.target_character_id = ('target_character_id' in card) ? card.target_character_id : previous.target_character_id;
     }
+    if (card?.is_treasure !== undefined || previous.is_treasure !== undefined) {
+      merged.is_treasure = card?.is_treasure ?? previous.is_treasure;
+    }
 
     return merged;
   });
@@ -213,6 +216,9 @@ export function pushCards(context, type, entries) {
     }
     if ('target_character_id' in e) {
       card.target_character_id = e.target_character_id;
+    }
+    if (e.is_treasure !== undefined) {
+      card.is_treasure = e.is_treasure;
     }
 
     return card;
