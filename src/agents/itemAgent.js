@@ -2,6 +2,7 @@ import { callJson } from '../llm/client.js';
 import { buildItemsPromptForCharacter } from '../prompts/itemsPrompt.js';
 import { cardsArraySchema } from '../schemas/cardsSchema.js';
 import { getCardsByType, getCharacterCards, pushCards } from '../utils/cards.js';
+import { getStoryBlurb } from '../utils/context.js';
 
 const ITEMS_PER_CHARACTER = 3;
 const MAX_ATTEMPTS = 2;
@@ -81,9 +82,16 @@ export async function itemAgent(context) {
 
     try {
       for (const player of players) {
+        const otherNames = players
+          .map((p) => p.name)
+          .filter((n) => n && n !== player.name)
+          .join(', ');
         const prompt = buildItemsPromptForCharacter({
+          storyTitle: String(context?.story_title || '').trim(),
+          storyBlurb: getStoryBlurb(context),
           characterName: player.name,
           characterBio: player.bio,
+          otherCharacterNamesCsv: otherNames,
           usedItemTitlesCsv: usedCsv,
           itemCount: ITEMS_PER_CHARACTER
         });
