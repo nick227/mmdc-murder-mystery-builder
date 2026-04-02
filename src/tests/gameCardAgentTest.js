@@ -1,4 +1,4 @@
-import { buildGameCardsPrompt } from '../prompts/gameCardsPrompt.js';
+import { buildGameCardsPromptForPlayer } from '../prompts/gameCardsPrompt.js';
 import { actedCardSchema } from '../schemas/cardsSchema.js';
 
 function assert(condition, message) {
@@ -15,6 +15,19 @@ function makeCaseState() {
       { suspect_id: 'marco_flint', card_id: 'char-2', name: 'Marco Flint', title: 'Marco Flint, The Bartender', is_killer: false },
       { suspect_id: 'sylvia_dunn', card_id: 'char-3', name: 'Sylvia Dunn', title: 'Sylvia Dunn, The Singer', is_killer: false },
       { suspect_id: 'owen_pike', card_id: 'char-4', name: 'Owen Pike', title: 'Owen Pike, The Promoter', is_killer: false }
+    ]
+  };
+}
+
+function makeCaseStateEight() {
+  return {
+    killer_name: 'Janet Vale',
+    suspects: [
+      ...makeCaseState().suspects,
+      { suspect_id: 'nia_ross', card_id: 'char-5', name: 'Nia Ross', title: 'Nia Ross, The DJ', is_killer: false },
+      { suspect_id: 'leo_vance', card_id: 'char-6', name: 'Leo Vance', title: 'Leo Vance, Security', is_killer: false },
+      { suspect_id: 'ada_wu', card_id: 'char-7', name: 'Ada Wu', title: 'Ada Wu, Coat Check', is_killer: false },
+      { suspect_id: 'ben_knox', card_id: 'char-8', name: 'Ben Knox', title: 'Ben Knox, The Regular', is_killer: false }
     ]
   };
 }
@@ -38,34 +51,29 @@ function makeSecrets() {
 
 async function run() {
   {
-    const prompt = buildGameCardsPrompt({
+    const prompt = buildGameCardsPromptForPlayer({
       storyBlurb: 'A nightclub murder unfolds over three acts.',
+      characterName: 'Janet Vale',
+      characterRole: 'The Club Manager',
+      characterBio: 'Runs the VIP list and knows every regular by drink order.',
+      storyHint: 'Janet insists the midnight headcount was correct.',
+      playerIndex: 0,
       playerCount: 4,
-      narratives: {
-        a: { suspect: 'Janet Vale' },
-        b: { suspect: 'Marco Flint' },
-        c: { suspect: 'Sylvia Dunn' }
-      },
-      caseState: makeCaseState(),
-      secretCards: makeSecrets()
+      rejectionReasons: []
     });
 
-    assert(prompt.user.includes('Write exactly 20 game cards.'), 'prompt should use exact five-cards-per-player count');
-    assert(prompt.user.includes('Janet Vale'), 'prompt should include suspect and killer names');
-    assert(prompt.user.includes('Marco Flint'), 'prompt should include full cast names');
-    assert(prompt.user.includes('- Janet Vale: The Club Manager'), 'prompt should summarize cast compactly');
-    assert(prompt.user.includes('Janet hid the bar ledger after the fight.'), 'prompt should include secret card contents');
-    assert(prompt.user.includes('- Janet Vale: Janet hid the bar ledger after the fight.'), 'prompt should map secrets back to character names');
-    assert(!prompt.user.includes('Breadcrumbs:'), 'prompt should not include trails');
-    assert(!prompt.user.includes('"suspect_id"'), 'prompt should avoid raw cast JSON dumps');
-    assert(prompt.user.includes('Act 1: 40% of cards.'), 'prompt should include act 1 pacing guidance');
-    assert(prompt.user.includes('Act 2: 20% of cards.'), 'prompt should include act 2 pacing guidance');
-    assert(prompt.user.includes('Act 3: 40% of cards.'), 'prompt should include act 3 pacing guidance');
-    assert(prompt.user.includes('performance'), 'prompt should enumerate performance card type');
-    assert(prompt.user.includes('revelation'), 'prompt should enumerate revelation card type');
-    assert(prompt.user.includes('No repeated premise.'), 'prompt should include anti-duplication guidance');
-    assert(prompt.user.includes('Quality priorities:'), 'prompt should include story-quality guidance');
-    assert(prompt.user.includes('Do not force every card to carry a major clue.'), 'prompt should leave room for lighter social cards');
+    assert(prompt.user.includes('Write exactly 5 game cards'), 'per-player prompt should ask for five cards');
+    assert(prompt.user.includes('Janet Vale'), 'prompt should name the focal character');
+    assert(prompt.user.includes('The Club Manager'), 'prompt should include role');
+    assert(prompt.user.includes('VIP list'), 'prompt should include bio');
+    assert(prompt.user.includes('Player 1 of 4'), 'prompt should show player index');
+    assert(prompt.user.includes('exactly 2 cards with act 1'), 'prompt should fix act mix');
+    assert(prompt.user.includes('exactly 1 card with act 2'), 'prompt should fix act mix');
+    assert(prompt.user.includes('exactly 2 cards with act 3'), 'prompt should fix act mix');
+    assert(prompt.user.includes('performance'), 'prompt should mention performance type');
+    assert(!prompt.user.includes('Killer identity:'), 'prompt should not dump killer block');
+    assert(!prompt.user.includes('Character secrets:'), 'prompt should not dump secrets roster');
+    assert(prompt.system.includes('improvisation'), 'system should emphasize live play');
   }
 
   {
@@ -83,8 +91,8 @@ async function run() {
       playerCount: 4,
       storyBlurb: 'A nightclub murder unfolds over three acts.',
       narratives: {
-        a: { suspect: 'Janet Vale' },
-        b: { suspect: 'Marco Flint' },
+        a: { suspect: 'Janet Vale', claim: 'Janet was counting receipts at the bar.' },
+        b: { suspect: 'Marco Flint', claim: 'Marco was polishing glasses.' },
         c: { suspect: 'Sylvia Dunn' }
       },
       case_state: makeCaseState(),
@@ -94,8 +102,21 @@ async function run() {
     const result = await gameCardAgent(context);
     const gameCards = result.cards.filter((card) => card.card_type === 'game_card');
 
-    assert(gameCards.length === 20, 'game card agent should generate exactly five cards per player');
-    assert(gameCards.every((card) => card.game_card_type === 'performance' || card.game_card_type === 'conversation' || card.game_card_type === 'search' || card.game_card_type === 'flavor' || card.game_card_type === 'accusation' || card.game_card_type === 'alibi' || card.game_card_type === 'trade' || card.game_card_type === 'revelation'), 'game card agent should emit valid game card types');
+    assert(gameCards.length === 20, 'game card agent should generate five cards per player');
+    assert(
+      gameCards.every(
+        (card) =>
+          card.game_card_type === 'performance' ||
+          card.game_card_type === 'conversation' ||
+          card.game_card_type === 'search' ||
+          card.game_card_type === 'flavor' ||
+          card.game_card_type === 'accusation' ||
+          card.game_card_type === 'alibi' ||
+          card.game_card_type === 'trade' ||
+          card.game_card_type === 'revelation'
+      ),
+      'game card agent should emit valid game card types'
+    );
     assert(gameCards.every((card) => !('location_ref' in card)), 'game cards should not emit location_ref');
     assert(gameCards.every((card) => [1, 2, 3].includes(card.act)), 'game cards should stay within acts 1-3');
   }
@@ -111,13 +132,13 @@ async function run() {
         b: { suspect: 'Marco Flint' },
         c: { suspect: 'Sylvia Dunn' }
       },
-      case_state: makeCaseState(),
+      case_state: makeCaseStateEight(),
       cards: makeSecrets()
     };
 
     const result = await gameCardAgent(context);
     const gameCards = result.cards.filter((card) => card.card_type === 'game_card');
-    assert(gameCards.length === 40, 'game card agent should scale to five cards per player at larger core sizes');
+    assert(gameCards.length === 40, 'game card agent should scale to five cards per player when roster has eight suspects');
   }
 
   console.log('GAME CARD AGENT TEST PASSED');
