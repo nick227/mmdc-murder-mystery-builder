@@ -9,7 +9,7 @@ export const simpleCardsSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['card_title', 'card_contents', 'location_ref'],
+        required: ['card_title', 'card_contents'],
         properties: {
           card_title: { type: 'string' },
           card_contents: { type: 'string' },
