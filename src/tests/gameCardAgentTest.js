@@ -65,21 +65,18 @@ async function run() {
     assert(prompt.user.includes('Janet Vale'), 'prompt should name the focal character');
     assert(prompt.user.includes('The Club Manager'), 'prompt should include role');
     assert(prompt.user.includes('VIP list'), 'prompt should include bio');
-    assert(prompt.user.includes('Player 1 of 4'), 'prompt should show player index');
-    assert(prompt.user.includes('Premise: A nightclub murder'), 'prompt should include premise in one line');
-    assert(prompt.user.includes('act (1, 2, or 3'), 'prompt should mention act without strict counts');
-    assert(prompt.user.includes('performance'), 'prompt should mention performance type');
+    assert(prompt.user.includes('Story: A nightclub murder'), 'prompt should include story blurb in one line');
     assert(!prompt.user.includes('Killer identity:'), 'prompt should not dump killer block');
     assert(!prompt.user.includes('Character secrets:'), 'prompt should not dump secrets roster');
     assert(prompt.system.includes('improvisation'), 'system should emphasize live play');
   }
 
   {
-    assert(actedCardSchema.required.includes('game_card_type'), 'acted card schema should require game_card_type');
     assert(!actedCardSchema.required.includes('location_ref'), 'acted card schema should not require location_ref');
     assert(!('location_ref' in actedCardSchema.properties), 'acted card schema should not expose location_ref');
-    assert(Array.isArray(actedCardSchema.properties.game_card_type.enum), 'acted card schema should define game card type enum');
-    assert(actedCardSchema.properties.game_card_type.enum.length === 8, 'acted card schema should support all eight game card types');
+    assert(!actedCardSchema.required.includes('act'), 'acted card schema should not require act');
+    assert(!('act' in actedCardSchema.properties), 'acted card schema should not expose act');
+    assert(!('game_card_type' in actedCardSchema.properties), 'acted card schema should not expose game_card_type');
   }
 
   {
@@ -101,22 +98,9 @@ async function run() {
     const gameCards = result.cards.filter((card) => card.card_type === 'game_card');
 
     assert(gameCards.length === 20, 'game card agent should generate five cards per player');
-    assert(
-      gameCards.every(
-        (card) =>
-          card.game_card_type === 'performance' ||
-          card.game_card_type === 'conversation' ||
-          card.game_card_type === 'search' ||
-          card.game_card_type === 'flavor' ||
-          card.game_card_type === 'accusation' ||
-          card.game_card_type === 'alibi' ||
-          card.game_card_type === 'trade' ||
-          card.game_card_type === 'revelation'
-      ),
-      'game card agent should emit valid game card types'
-    );
     assert(gameCards.every((card) => !('location_ref' in card)), 'game cards should not emit location_ref');
-    assert(gameCards.every((card) => [1, 2, 3].includes(card.act)), 'game cards should stay within acts 1-3');
+    assert(gameCards.every((card) => !('act' in card)), 'game cards should not emit act');
+    assert(gameCards.every((card) => !('game_card_type' in card)), 'game cards should not emit game_card_type');
   }
 
   {

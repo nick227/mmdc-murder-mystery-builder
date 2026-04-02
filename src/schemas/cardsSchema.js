@@ -13,15 +13,10 @@ export const cardSchema = {
 export const actedCardSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['game_card_type', 'card_title', 'card_contents', 'act'],
+  required: ['card_title', 'card_contents'],
   properties: {
-    game_card_type: {
-      type: 'string',
-      enum: ['performance', 'conversation', 'search', 'flavor', 'accusation', 'alibi', 'trade', 'revelation']
-    },
     card_title: { type: 'string' },
-    card_contents: { type: 'string' },
-    act: { type: ['number','null'] }
+    card_contents: { type: 'string' }
   }
 };
 

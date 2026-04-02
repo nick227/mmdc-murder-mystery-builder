@@ -58,9 +58,6 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (card?.location_ref !== undefined || previous.location_ref !== undefined) {
       merged.location_ref = card?.location_ref ?? previous.location_ref;
     }
-    if (card?.game_card_type !== undefined || previous.game_card_type !== undefined) {
-      merged.game_card_type = card?.game_card_type ?? previous.game_card_type;
-    }
     if (card?.bundle_id !== undefined || previous.bundle_id !== undefined) {
       merged.bundle_id = card?.bundle_id ?? previous.bundle_id;
     }
@@ -129,15 +126,19 @@ export function pushCards(context, type, entries) {
   }
 
   const normalized = entries.map((e, i) => {
+    const cardType = e.card_type || type;
     const card = {
       card_id: e.card_id || crypto.randomUUID(),
-      card_type: e.card_type || type,
+      card_type: cardType,
       card_title: String(e.card_title || '').trim(),
-      card_contents: String(e.card_contents || '').trim(),
-      act: (e.act === 1 || e.act === 2 || e.act === 3)
-        ? e.act
-        : ((i % 3) + 1)
+      card_contents: String(e.card_contents || '').trim()
     };
+
+    if (cardType !== 'game_card') {
+      card.act = (e.act === 1 || e.act === 2 || e.act === 3)
+        ? e.act
+        : ((i % 3) + 1);
+    }
 
     if (e.linked_character !== undefined) {
       card.linked_character = e.linked_character;
@@ -165,9 +166,6 @@ export function pushCards(context, type, entries) {
     }
     if (e.location_ref !== undefined) {
       card.location_ref = e.location_ref;
-    }
-    if (e.game_card_type !== undefined) {
-      card.game_card_type = e.game_card_type;
     }
     if (e.bundle_id !== undefined) {
       card.bundle_id = e.bundle_id;

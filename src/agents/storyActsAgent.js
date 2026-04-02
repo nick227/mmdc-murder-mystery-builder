@@ -1,6 +1,6 @@
 import { callJson } from '../llm/client.js';
 import { buildStoryActsPrompt } from '../prompts/storyActsPrompt.js';
-import { simpleCardsSchema } from '../schemas/simpleCardsSchema.js';
+import { actedSimpleCardsSchema } from '../schemas/simpleCardsSchema.js';
 import { getCardsByType, getCharacterCards, pushCards } from '../utils/cards.js';
 import { getStoryBlurb } from '../utils/context.js';
 
@@ -21,7 +21,7 @@ export async function storyActsAgent(context) {
       result = await callJson({
         ...prompt,
         schemaName: 'story_acts',
-        schema: simpleCardsSchema
+        schema: actedSimpleCardsSchema
       });
       lastError = null;
       break;

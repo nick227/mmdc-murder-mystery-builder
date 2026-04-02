@@ -125,8 +125,7 @@ export async function gameCardAgent(context) {
         characterRole: player.role,
         characterBio: player.bio,
         playerIndex: p,
-        playerCount: players.length,
-        rejectionReasons
+        playerCount: players.length
       });
 
       const result = await callJson({

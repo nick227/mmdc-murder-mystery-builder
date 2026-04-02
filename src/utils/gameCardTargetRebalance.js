@@ -75,12 +75,6 @@ function resolveTargetId(roster, name) {
 
 function hydrateTargets(cards, roster) {
   for (const card of Array.isArray(cards) ? cards : []) {
-    if (card?.game_card_type === 'flavor') {
-      delete card.target_character;
-      delete card.target_character_id;
-      continue;
-    }
-
     const existing = String(card?.target_character || '').trim();
     if (existing && roster.some((r) => r.name === existing)) {
       card.target_character = existing;
@@ -103,9 +97,6 @@ function buildTargetCounts(cards, roster) {
   const names = roster.map((r) => r.name);
   const counts = Object.fromEntries(names.map((n) => [n, 0]));
   for (const card of Array.isArray(cards) ? cards : []) {
-    if (card?.game_card_type === 'flavor') {
-      continue;
-    }
     const t = String(card?.target_character || '').trim();
     if (t && counts[t] !== undefined) {
       counts[t] += 1;
@@ -137,9 +128,6 @@ function pickRecipient(counts, roster) {
 function pickCardIndexToMove(cards, fromName) {
   for (let i = cards.length - 1; i >= 0; i -= 1) {
     const card = cards[i];
-    if (card?.game_card_type === 'flavor') {
-      continue;
-    }
     if (String(card?.target_character || '').trim() === fromName) {
       return i;
     }
@@ -149,7 +137,7 @@ function pickCardIndexToMove(cards, fromName) {
 
 /**
  * Deterministic post-LLM repair: cap named targets at 2 per character without
- * changing titles, contents, types, or acts. Only target_character fields change.
+ * changing titles or contents. Only target_character fields change.
  */
 export function rebalanceGameCardTargets(cards, caseState) {
   const list = Array.isArray(cards) ? cards : [];
@@ -186,15 +174,12 @@ export function rebalanceGameCardTargets(cards, caseState) {
   return list;
 }
 
-/** Metrics for validation (explicit target_character only; flavor excluded). */
+/** Metrics for validation (explicit target_character only). */
 export function collectGameCardTargetMetrics(cards, roster) {
   const primaryTargetCounts = Object.fromEntries(roster.map((r) => [r.name, 0]));
   let namedPrimaryTargetCardCount = 0;
 
   for (const card of Array.isArray(cards) ? cards : []) {
-    if (card?.game_card_type === 'flavor') {
-      continue;
-    }
     const t = String(card?.target_character || '').trim();
     if (t && primaryTargetCounts[t] !== undefined) {
       primaryTargetCounts[t] += 1;

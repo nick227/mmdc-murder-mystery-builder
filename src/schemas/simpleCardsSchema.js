@@ -12,8 +12,7 @@ export const simpleCardsSchema = {
         required: ['card_title', 'card_contents'],
         properties: {
           card_title: { type: 'string' },
-          card_contents: { type: 'string' },
-          location_ref: { type: ['string', 'null'] }
+          card_contents: { type: 'string' }
         }
       }
     }
