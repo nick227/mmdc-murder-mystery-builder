@@ -13,6 +13,70 @@ function normalizeText(value) {
     .trim();
 }
 
+/** Killer tokens must appear in order within the playable name tokens (handles nicknames in the middle). */
+function tokenSubsequenceMatch(needleTokens, haystackTokens) {
+  let i = 0;
+  for (const t of needleTokens) {
+    while (i < haystackTokens.length && haystackTokens[i] !== t) {
+      i += 1;
+    }
+    if (i >= haystackTokens.length) {
+      return false;
+    }
+    i += 1;
+  }
+  return true;
+}
+
+/**
+ * Map a model-supplied killer string onto canonical playable `baseName(card_title)` when the string is a
+ * clear variant (shortened name, missing middle nicknames). Returns null if ambiguous or unmatched.
+ */
+export function resolveKillerToPlayableName(rawKiller, playableCharacters) {
+  const list = Array.isArray(playableCharacters) ? playableCharacters : [];
+  if (!list.length) {
+    return null;
+  }
+
+  const killerBase = baseName(rawKiller);
+  const normalizedKiller = normalizeText(killerBase);
+  const killerTokens = normalizedKiller.split(' ').filter(Boolean);
+  if (!killerTokens.length) {
+    return null;
+  }
+
+  const exact = list.find((c) => normalizeText(c.name) === normalizedKiller);
+  if (exact) {
+    return exact.name;
+  }
+
+  const subsequenceMatches = list.filter((c) => {
+    const charTokens = normalizeText(c.name).split(' ').filter(Boolean);
+    return tokenSubsequenceMatch(killerTokens, charTokens);
+  });
+  if (subsequenceMatches.length === 1) {
+    return subsequenceMatches[0].name;
+  }
+
+  const forwardContains = list.filter((c) => {
+    const nc = normalizeText(c.name);
+    return nc.includes(normalizedKiller) && normalizedKiller.length >= 5;
+  });
+  if (forwardContains.length === 1) {
+    return forwardContains[0].name;
+  }
+
+  const reverseContains = list.filter((c) => {
+    const nc = normalizeText(c.name);
+    return normalizedKiller.includes(nc) && nc.length >= 5;
+  });
+  if (reverseContains.length === 1) {
+    return reverseContains[0].name;
+  }
+
+  return null;
+}
+
 function baseName(value) {
   return String(value || '').split(',')[0].trim();
 }

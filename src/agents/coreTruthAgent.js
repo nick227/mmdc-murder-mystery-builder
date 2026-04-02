@@ -3,7 +3,13 @@ import { buildCoreTruthPrompt } from '../prompts/coreTruthPrompt.js';
 import { coreTruthSchema } from '../schemas/coreTruthSchema.js';
 import { getCharacterCards } from '../utils/cards.js';
 import { getStoryBlurb } from '../utils/context.js';
-import { patchCoreTruthAlternateExclusions, validateUniqueKiller, validateVictimType } from '../utils/coreTruthChecks.js';
+import {
+  getPlayableCharacters,
+  patchCoreTruthAlternateExclusions,
+  resolveKillerToPlayableName,
+  validateUniqueKiller,
+  validateVictimType
+} from '../utils/coreTruthChecks.js';
 
 const MAX_RETRIES = 2;
 
@@ -43,6 +49,11 @@ export async function coreTruthAgent(context) {
       schemaName: 'core_truth',
       schema: coreTruthSchema
     });
+
+    const resolvedKiller = resolveKillerToPlayableName(context.coreTruth.murder.killer, getPlayableCharacters(context));
+    if (resolvedKiller) {
+      context.coreTruth.murder.killer = resolvedKiller;
+    }
 
     patchCoreTruthAlternateExclusions(context.coreTruth, context);
 
