@@ -1,64 +1,55 @@
 import { callJson } from '../llm/client.js';
-import { buildItemsPrompt } from '../prompts/itemsPrompt.js';
+import { buildItemsPromptForCharacter } from '../prompts/itemsPrompt.js';
 import { cardsArraySchema } from '../schemas/cardsSchema.js';
 import { getCardsByType, getCharacterCards, pushCards } from '../utils/cards.js';
-import { getStoryBlurb } from '../utils/context.js';
-import { buildEvidenceSignature } from '../utils/evidenceFacts.js';
-import { buildFactLedger, findSameDirectionConflicts, hasDuplicateSignature } from '../utils/factLedger.js';
 
-const MIN_ITEM_COUNT = 4;
-const MAX_ATTEMPTS = 3;
+const ITEMS_PER_CHARACTER = 3;
+const MAX_ATTEMPTS = 2;
 
-function cloneLedger(ledger) {
-  return {
-    signatures: new Set(ledger.signatures),
-    pressureEntries: [...ledger.pressureEntries]
-  };
+function normalizeTitle(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-function filterItemCards(rawCards, context, ledger) {
-  const nextLedger = cloneLedger(ledger);
-  const acceptedCards = [];
-  const rejected = [];
+function usedTitlesCsvFromContext(context) {
+  const existing = getCardsByType(context.cards, 'item');
+  const titles = existing
+    .map((c) => String(c?.card_title || '').trim())
+    .filter(Boolean);
+  return titles.join(', ');
+}
 
-  for (const [index, raw] of (rawCards || []).entries()) {
-    const card = {
-      ...raw,
-      act: raw.act ?? ((index % 3) + 1)
-    };
-    const text = `${card.card_title || ''} ${card.card_contents || ''}`.trim();
-    const signature = buildEvidenceSignature(card, context);
-
-    if (hasDuplicateSignature(signature, nextLedger)) {
-      rejected.push({
-        card_title: card.card_title,
-        signature,
-        reason: 'duplicate_fact_signature'
-      });
+function assertNoDuplicateTitles(items) {
+  const seen = new Set();
+  for (const card of items) {
+    const key = normalizeTitle(card?.card_title);
+    if (!key) {
       continue;
     }
-
-    const conflicts = findSameDirectionConflicts(signature, text, nextLedger, context);
-    if (conflicts.length) {
-      rejected.push({
-        card_title: card.card_title,
-        signature,
-        reason: 'same_direction_pressure_conflict',
-        conflicts
-      });
-      continue;
+    if (seen.has(key)) {
+      throw new Error(`item_agent produced duplicate item title: "${card.card_title}"`);
     }
-
-    if (signature) {
-      nextLedger.signatures.add(signature);
-    }
-    acceptedCards.push(card);
+    seen.add(key);
   }
+}
 
-  return {
-    acceptedCards,
-    rejected
-  };
+function assertItemsPerCharacter(items, characterNames) {
+  const counts = new Map(characterNames.map((n) => [n, 0]));
+  for (const card of items) {
+    const who = String(card?.linked_character || '').trim();
+    if (!who || !counts.has(who)) {
+      throw new Error(`item_agent produced an item with missing/unknown linked_character: "${who || '(missing)'}"`);
+    }
+    counts.set(who, (counts.get(who) || 0) + 1);
+  }
+  for (const [who, count] of counts.entries()) {
+    if (count !== ITEMS_PER_CHARACTER) {
+      throw new Error(`item_agent must produce exactly ${ITEMS_PER_CHARACTER} items for ${who}; got ${count}`);
+    }
+  }
 }
 
 export async function itemAgent(context) {
@@ -66,59 +57,78 @@ export async function itemAgent(context) {
   context.debug.rejection_log ??= [];
   context.debug.warning_log ??= [];
 
-  let acceptedCards = [];
-  let bestResult = { acceptedCards: [], rejected: [] };
+  const characters = getCharacterCards(context.cards || []);
+  const playerCount = context.playerCount || 4;
+  if (characters.length < playerCount) {
+    throw new Error(`item_agent requires at least ${playerCount} character cards`);
+  }
+
+  const players = characters.slice(0, playerCount).map((card) => ({
+    name: String(card?.card_title || '').split(',')[0].trim(),
+    bio: String(card?.card_contents || '').trim()
+  }));
+
+  let best = [];
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-    const prompt = buildItemsPrompt({
-      storyBlurb: getStoryBlurb(context),
-      trails: context.trails,
-      narratives: context.narratives,
-      characters: getCharacterCards(context.cards),
-      people: getCardsByType(context.cards, 'person'),
-      locations: getCardsByType(context.cards, 'location'),
-      existingItems: getCardsByType(context.cards, 'item'),
-      rejectionReasons: context.debug.rejection_log
-        .filter((entry) => entry?.stage === 'item_agent')
-        .map((entry) => entry.reason)
-        .slice(-4)
-    });
+    const items = [];
+    let usedCsv = usedTitlesCsvFromContext(context);
+    const usedNormalized = new Set(
+      usedCsv
+        .split(',')
+        .map((t) => normalizeTitle(t))
+        .filter(Boolean)
+    );
 
-    const result = await callJson({
-      ...prompt,
-      schemaName: 'items',
-      schema: cardsArraySchema(4, 12)
-    });
+    try {
+      for (const player of players) {
+        const prompt = buildItemsPromptForCharacter({
+          characterName: player.name,
+          characterBio: player.bio,
+          usedItemTitlesCsv: usedCsv,
+          itemCount: ITEMS_PER_CHARACTER
+        });
 
-    const ledger = buildFactLedger(context);
-    const filtered = filterItemCards(result.cards || [], context, ledger);
-    acceptedCards = filtered.acceptedCards;
-    if (acceptedCards.length > bestResult.acceptedCards.length) {
-      bestResult = filtered;
+        const result = await callJson({
+          ...prompt,
+          schemaName: 'items',
+          schema: cardsArraySchema(ITEMS_PER_CHARACTER, ITEMS_PER_CHARACTER)
+        });
+
+        for (const raw of result.cards || []) {
+          const title = String(raw?.card_title || '').trim();
+          const key = normalizeTitle(title);
+          if (key && usedNormalized.has(key)) {
+            throw new Error(`item_agent produced duplicate title "${title}" already in used list`);
+          }
+          usedNormalized.add(key);
+          usedCsv = `${usedCsv}${usedCsv ? ', ' : ''}${title}`;
+
+          items.push({
+            ...raw,
+            linked_character: player.name
+          });
+        }
+      }
+
+      assertNoDuplicateTitles(items);
+      assertItemsPerCharacter(items, players.map((p) => p.name));
+      return pushCards(context, 'item', items);
+    } catch (error) {
+      best = items.length > best.length ? items : best;
+      context.debug.rejection_log.push({
+        stage: 'item_agent',
+        attempt,
+        reason: String(error?.message || error),
+        used_titles: usedCsv
+      });
     }
-
-    if (acceptedCards.length >= MIN_ITEM_COUNT) {
-      break;
-    }
-
-    context.debug.rejection_log.push({
-      stage: 'item_agent',
-      attempt,
-      reason: 'duplicate_or_same_direction_items_removed',
-      remaining_count: acceptedCards.length,
-      rejected_cards: filtered.rejected.slice(0, 6)
-    });
   }
 
-  if (acceptedCards.length < MIN_ITEM_COUNT) {
-    context.debug.warning_log.push({
-      stage: 'item_agent',
-      reason: 'fact_signature_filter_exhausted',
-      message: `item_agent kept only ${bestResult.acceptedCards.length} items after fact-signature rejection; using best-effort output.`,
-      accepted_count: bestResult.acceptedCards.length,
-      rejected_cards: bestResult.rejected.slice(0, 6)
-    });
-    acceptedCards = bestResult.acceptedCards;
-  }
+  context.debug.warning_log.push({
+    stage: 'item_agent',
+    reason: 'best_effort_items',
+    message: `item_agent failed strict per-character item generation; emitting best-effort set (${best.length} items).`
+  });
 
-  return pushCards(context, 'item', acceptedCards);
+  return pushCards(context, 'item', best);
 }

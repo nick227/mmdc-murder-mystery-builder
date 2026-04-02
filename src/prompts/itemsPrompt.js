@@ -1,49 +1,36 @@
-export function buildItemsPrompt({ storyBlurb, trails, narratives, characters, people, locations, existingItems, rejectionReasons = [] }) {
+export function buildItemsPromptForCharacter({
+  characterName,
+  characterBio = '',
+  usedItemTitlesCsv = '',
+  itemCount = 3
+}) {
+  const name = String(characterName || '').trim();
+  const bio = String(characterBio || '').trim();
+  const used = String(usedItemTitlesCsv || '').trim();
+  const count = Number(itemCount) || 3;
+
   return {
     system: [
-      'You write item cards for a murder mystery.',
-      'Write observable facts only.',
-      'Do not perform deduction.',
-      'Do not explain reasoning.',
-      'Items should describe inspectable objects, not interpretations.',
-      'Prefer recurring world entities and seeded investigation nouns over inventing brand-new important objects.'
+      'You write short item cards for a murder mystery party.',
+      'Items are physical, inspectable objects that can be held or examined during play.',
+      'Write observable facts only (no deductions, no conclusions).',
+      'Keep each item compact and playable.'
     ].join(' '),
     user: `
-Write item cards from the breadcrumb objects and suspect narratives below.
+Character (owns these items):
+- name: ${name}
+${bio ? `- bio: ${bio}` : ''}
 
-Story blurb:
-${storyBlurb}
+Used item titles (do NOT reuse these):
+${used || '(none)'}
 
-Breadcrumbs:
-${JSON.stringify(trails, null, 2)}
-
-Suspect narratives:
-${JSON.stringify(narratives, null, 2)}
-
-Playable characters:
-${JSON.stringify(characters || [], null, 2)}
-
-World people:
-${JSON.stringify(people || [], null, 2)}
-
-World locations:
-${JSON.stringify(locations || [], null, 2)}
-
-Existing item cards:
-${JSON.stringify(existingItems || [], null, 2)}
-
-Recent invalid-generation reasons to avoid:
-${JSON.stringify(rejectionReasons || [], null, 2)}
+Write exactly ${count} item cards for this character.
 
 Rules:
-- items must be physical or inspectable things
-- item descriptions should focus on what the item is and where it was found
-- include location_ref when a supplied known location is the item's primary anchor
-- do not repeat witness testimony that belongs in clue cards
-- avoid decorative filler
-- do not state conclusions
-- prefer items tied to the supplied locations, people, and recurring treasure/mechanism nouns when suitable
-- do not restate the same suspect + axis + object/location fact in slightly different wording
+- Each card needs: card_title, card_contents, location_ref (use null if not tied to a single location).
+- card_title must be short and specific (avoid generic titles like "Letter" or "Key").
+- Do not repeat titles from the used list. Do not create near-duplicates.
+- Do not mention "this proves" or "therefore" or state who the killer is.
 `.trim()
   };
 }
