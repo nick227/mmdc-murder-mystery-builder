@@ -69,6 +69,24 @@ function analyzeGameCards(cards, caseState) {
   const roster = buildSuspectRoster(caseState);
   const { primaryTargetCounts, namedPrimaryTargetCardCount } = collectGameCardTargetMetrics(cards, roster);
 
+  const perPlayerCounts = new Map();
+  for (const card of Array.isArray(cards) ? cards : []) {
+    if (card?.card_type && card.card_type !== 'game_card') {
+      continue;
+    }
+    const who = String(card?.linked_character || '').trim();
+    if (!who) {
+      issues.push('Every game card must include linked_character (the owning playable character name).');
+      continue;
+    }
+    perPlayerCounts.set(who, (perPlayerCounts.get(who) || 0) + 1);
+  }
+  for (const [who, count] of perPlayerCounts.entries()) {
+    if (count !== CARDS_PER_PLAYER) {
+      issues.push(`Each player must receive exactly ${CARDS_PER_PLAYER} game cards. ${who} currently has ${count}.`);
+    }
+  }
+
   if (roster.length && namedPrimaryTargetCardCount > roster.length * 2) {
     issues.push(
       `Only ${roster.length * 2} non-flavor cards may use a named primary target in this run; current draft uses ${namedPrimaryTargetCardCount}. Shift extras toward group bits, props, or locations.`
@@ -120,9 +138,6 @@ export async function gameCardAgent(context) {
       const batch = result.cards || [];
       for (const c of batch) {
         const entry = { ...c };
-        if (player.card_id) {
-          entry.linked_character_id = player.card_id;
-        }
         entry.linked_character = player.name;
         cards.push(entry);
       }
