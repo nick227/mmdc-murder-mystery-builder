@@ -56,7 +56,6 @@ async function run() {
       characterName: 'Janet Vale',
       characterRole: 'The Club Manager',
       characterBio: 'Runs the VIP list and knows every regular by drink order.',
-      storyHint: 'Janet insists the midnight headcount was correct.',
       playerIndex: 0,
       playerCount: 4,
       rejectionReasons: []
@@ -67,9 +66,8 @@ async function run() {
     assert(prompt.user.includes('The Club Manager'), 'prompt should include role');
     assert(prompt.user.includes('VIP list'), 'prompt should include bio');
     assert(prompt.user.includes('Player 1 of 4'), 'prompt should show player index');
-    assert(prompt.user.includes('exactly 2 cards with act 1'), 'prompt should fix act mix');
-    assert(prompt.user.includes('exactly 1 card with act 2'), 'prompt should fix act mix');
-    assert(prompt.user.includes('exactly 2 cards with act 3'), 'prompt should fix act mix');
+    assert(prompt.user.includes('Premise: A nightclub murder'), 'prompt should include premise in one line');
+    assert(prompt.user.includes('act (1, 2, or 3'), 'prompt should mention act without strict counts');
     assert(prompt.user.includes('performance'), 'prompt should mention performance type');
     assert(!prompt.user.includes('Killer identity:'), 'prompt should not dump killer block');
     assert(!prompt.user.includes('Character secrets:'), 'prompt should not dump secrets roster');

@@ -64,50 +64,10 @@ function resolveGameCardPlayers(context) {
   throw new Error(`game_card_agent needs at least ${n} character cards or case_state.suspects`);
 }
 
-function narrativeHintForPlayer(narratives, playerName) {
-  const needle = String(playerName || '').trim();
-  if (!needle) {
-    return '';
-  }
-  for (const narrative of Object.values(narratives || {})) {
-    const suspect = String(narrative?.suspect || '').trim();
-    if (suspect !== needle) {
-      continue;
-    }
-    const parts = [
-      String(narrative?.claim || '').trim(),
-      String(narrative?.summary || '').trim(),
-      String(narrative?.angle || '').trim()
-    ].filter(Boolean);
-    return parts[0] || '';
-  }
-  return '';
-}
-
-function analyzeGameCards(cards, caseState, playerCount) {
+function analyzeGameCards(cards, caseState) {
   const issues = [];
-  const expectedActCounts = {
-    1: playerCount * 2,
-    2: playerCount,
-    3: playerCount * 2
-  };
   const roster = buildSuspectRoster(caseState);
-  const actCounts = { 1: 0, 2: 0, 3: 0 };
   const { primaryTargetCounts, namedPrimaryTargetCardCount } = collectGameCardTargetMetrics(cards, roster);
-
-  for (const card of Array.isArray(cards) ? cards : []) {
-    if (actCounts[card?.act] !== undefined) {
-      actCounts[card.act] += 1;
-    }
-  }
-
-  for (const act of [1, 2, 3]) {
-    if (actCounts[act] !== expectedActCounts[act]) {
-      issues.push(
-        `Across the full deck use exactly ${expectedActCounts[act]} act ${act} cards; current draft has ${actCounts[act]}.`
-      );
-    }
-  }
 
   if (roster.length && namedPrimaryTargetCardCount > roster.length * 2) {
     issues.push(
@@ -127,7 +87,6 @@ function analyzeGameCards(cards, caseState, playerCount) {
 }
 
 export async function gameCardAgent(context) {
-  const playerCount = context.playerCount || 4;
   const schema = actedCardsArraySchema(CARDS_PER_PLAYER, CARDS_PER_PLAYER);
   const players = resolveGameCardPlayers(context);
   let rejectionReasons = [];
@@ -142,13 +101,11 @@ export async function gameCardAgent(context) {
       }
 
       const player = players[p];
-      const storyHint = narrativeHintForPlayer(context.narratives, player.name);
       const prompt = buildGameCardsPromptForPlayer({
         storyBlurb: getStoryBlurb(context),
         characterName: player.name,
         characterRole: player.role,
         characterBio: player.bio,
-        storyHint,
         playerIndex: p,
         playerCount: players.length,
         rejectionReasons
@@ -172,7 +129,7 @@ export async function gameCardAgent(context) {
     }
 
     cards = rebalanceGameCardTargets(cards, context.case_state);
-    rejectionReasons = analyzeGameCards(cards, context.case_state, playerCount);
+    rejectionReasons = analyzeGameCards(cards, context.case_state);
     if (!rejectionReasons.length) {
       break;
     }
