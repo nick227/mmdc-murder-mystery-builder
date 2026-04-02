@@ -86,7 +86,7 @@ export async function characterSecretAgent(context) {
           card_type: 'secret',
           card_title: c.card_title,
           card_contents: c.card_contents,
-          linked_character_id: character.card_id
+          linked_character: String(character.card_title || '').split(',')[0].trim()
         }));
 
         validateSecrets(cards, character.card_title);

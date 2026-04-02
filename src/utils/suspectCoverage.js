@@ -83,10 +83,9 @@ export function buildSuspectCoverageReport(context) {
   };
 
   for (const character of characters) {
-    const characterId = String(character?.card_id || '').trim();
     const name = baseName(character?.card_title);
     const title = String(character?.card_title || '').trim();
-    const linkedSecrets = secrets.filter((card) => String(card?.linked_character_id || '').trim() === characterId);
+    const linkedSecrets = secrets.filter((card) => baseName(card?.linked_character) === name);
     const secretCount = linkedSecrets.length;
     const narrativeCount = countNarrativeMentions(name, context?.narratives);
     const normalizedTitle = normalizeText(title);

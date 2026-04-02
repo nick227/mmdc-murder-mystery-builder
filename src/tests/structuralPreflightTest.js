@@ -32,7 +32,7 @@ const context = {
       clue_weight: 'mid',
       suspect_name: 'Mistress Viola'
     },
-    { card_id: 's1', card_type: 'secret', card_title: 'Secret', card_contents: 'Lady Anne once borrowed a passage key.', linked_character_id: 'c2' }
+    { card_id: 's1', card_type: 'secret', card_title: 'Secret', card_contents: 'Lady Anne once borrowed a passage key.', linked_character: 'Lady Anne' }
   ],
   puzzle_bundles: [
     { bundle_id: 'puzzle_bundle_001', act: 1, solution_summary: 'Mistress Viola was visibly on stage during the murder.' },

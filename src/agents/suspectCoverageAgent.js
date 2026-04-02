@@ -38,9 +38,9 @@ function validateRegeneratedSecrets(cards, characterName) {
   }
 }
 
-function replaceSecretsForCharacter(context, characterId, cards) {
+function replaceSecretsForCharacter(context, characterName, cards) {
   const remaining = (Array.isArray(context.cards) ? context.cards : []).filter((card) =>
-    !(card?.card_type === 'secret' && String(card?.linked_character_id || '').trim() === characterId)
+    !(card?.card_type === 'secret' && String(card?.linked_character || '').split(',')[0].trim() === characterName)
   );
   context.cards = [
     ...remaining,
@@ -48,7 +48,7 @@ function replaceSecretsForCharacter(context, characterId, cards) {
       card_type: 'secret',
       card_title: String(card?.card_title || 'Secret').trim(),
       card_contents: String(card?.card_contents || '').trim(),
-      linked_character_id: characterId
+      linked_character: characterName
     }))
   ];
 }
@@ -70,7 +70,7 @@ async function regenerateSecretsForCharacter(context, targetName, reason) {
   });
 
   validateRegeneratedSecrets(result.cards || [], targetName);
-  replaceSecretsForCharacter(context, String(character.card_id).trim(), result.cards || []);
+  replaceSecretsForCharacter(context, String(targetName || '').trim(), result.cards || []);
   context.debug.warning_log.push({
     stage: 'suspect_coverage_agent',
     reason: 'regenerated_profile_secrets',
