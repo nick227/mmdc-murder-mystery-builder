@@ -3,11 +3,7 @@ import { getCharacterCards, pushCards } from '../utils/cards.js';
 import { getStoryBlurb } from '../utils/context.js';
 import { buildTreasureHuntResponseSchema } from '../schemas/treasureHuntSchema.js';
 
-const WEIGHT_CYCLE = ['low', 'mid', 'high'];
-
-function displayName(cardTitle) {
-  return String(cardTitle || '').split(',')[0].trim();
-}
+const WEIGHT_CYCLE = ['low', 'mid', 'mid', 'high'];
 
 function buildPrompt({ storyBlurb, treasure, characterTitles, clueCount }) {
   const list = characterTitles.map((t) => `- ${t}`).join('\n');
@@ -79,7 +75,7 @@ export async function treasureHuntAgent(context) {
   const clueEntries = raw.map((c, i) => {
     const ch = characters[i];
     const title = String(ch?.card_title || '').trim();
-    const id = String(ch?.card_id || '').trim();
+
     return {
       card_type: 'clue',
       card_title: String(c.card_title || '').trim(),
@@ -87,10 +83,7 @@ export async function treasureHuntAgent(context) {
       act: 1,
       clue_type: 'treasure',
       clue_weight: WEIGHT_CYCLE[i % WEIGHT_CYCLE.length],
-      linked_character: title,
-      linked_character_index: i,
-      ...(id ? { linked_character_id: id } : {}),
-      suspect_name: displayName(title)
+      linked_character: title
     };
   });
 

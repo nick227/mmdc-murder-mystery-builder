@@ -34,7 +34,8 @@ const clues = ctx.cards.filter((c) => c.card_type === 'clue');
 const items = ctx.cards.filter((c) => c.card_type === 'item' && c.is_treasure);
 assert.equal(clues.length, 3);
 assert.ok(clues.every((c) => c.clue_type === 'treasure' && c.act === 1));
-assert.ok(clues.every((c) => c.linked_character && c.suspect_name));
+assert.ok(clues.every((c) => c.linked_character));
+assert.ok(clues.every((c) => c.suspect_name === undefined));
 assert.deepEqual(
   clues.map((c) => c.linked_character),
   ['Alpha One, The First', 'Beta Two, The Second', 'Gamma Three, The Third']
