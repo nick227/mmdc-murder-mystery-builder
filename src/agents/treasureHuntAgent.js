@@ -1,5 +1,5 @@
 import { callJson } from '../llm/client.js';
-import { getCardsByType, pushCards } from '../utils/cards.js';
+import { pushCards } from '../utils/cards.js';
 import { getStoryBlurb } from '../utils/context.js';
 import { treasureHuntResponseSchema } from '../schemas/treasureHuntSchema.js';
 
@@ -20,32 +20,21 @@ function textLeaksHidingPlace(text, hidingPlace) {
   return h.length >= 4 && t.includes(h);
 }
 
-function buildPrompt({ storyBlurb, treasure, locationTitles, hidingPlace }) {
-  const locList = locationTitles.length
-    ? locationTitles.map((t) => `- ${t}`).join('\n')
-    : '- (none)';
-
+function buildPrompt({ storyBlurb, treasure }) {
   return {
     system: [
-      'Treasure-hunt breadcrumbs for a murder-mystery party (parallel to the murder).',
-      'Four clue-style cards in order: act 1, then 2, then 2, then 3 — you only supply title and text; acts are fixed downstream.',
-      'In-world, concrete; never name or quote the exact hiding place below.',
-      'Use only the listed location names for places.'
+      'Write four short in-world clue cards for a parallel treasure hunt (same story).',
+      'Concrete, playable; spread the trail across the four — no single card solves the whole hunt.',
+      'Return JSON only.'
     ].join(' '),
     user: `Story:
 ${storyBlurb}
 
-Treasure (do not expose hiding_place in breadcrumbs):
+Treasure:
 object: ${String(treasure?.object || '').trim()}
 treasure_solution: ${String(treasure?.treasure_solution || '').trim()}
 
-hiding_place (FORBIDDEN in breadcrumb text — revealed on a separate card later):
-${String(hidingPlace || '').trim()}
-
-Locations (only these names for places):
-${locList}
-
-Return JSON: breadcrumbs (array of 4 { card_title, card_contents } in play order), treasure_object { card_title, card_contents } describing the hunted object, not where it is hidden.`
+Return JSON: breadcrumbs — four { card_title, card_contents } in play order; treasure_object — { card_title, card_contents } describing the physical thing sought (not a walkthrough of the finale).`
   };
 }
 
@@ -56,15 +45,9 @@ export async function treasureHuntAgent(context) {
     throw new Error('treasure_hunt_agent requires coreTruth.treasure with hiding_place');
   }
 
-  const locations = getCardsByType(context.cards, 'location');
-  const locationTitles = locations.map((c) => String(c?.card_title || '').trim()).filter(Boolean);
-  if (!locationTitles.length) {
-    throw new Error('treasure_hunt_agent requires at least one location card in context.cards');
-  }
-
   const storyBlurb = getStoryBlurb(context);
   const parsed = await callJson({
-    ...buildPrompt({ storyBlurb, treasure, locationTitles, hidingPlace }),
+    ...buildPrompt({ storyBlurb, treasure }),
     schemaName: 'treasure_hunt',
     schema: treasureHuntResponseSchema
   });
