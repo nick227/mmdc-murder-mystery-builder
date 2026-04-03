@@ -201,15 +201,16 @@ function fakeSmokeTreasureHunt(opts) {
   const solLine = user.match(/treasure_solution:\s*([^\n]+)/i);
   const title = String(objLine?.[1] || 'Smoke treasure').trim();
   const contents = String(solLine?.[1] || `The physical ${title}.`).trim();
+  const countMatch = user.match(/Clue count:\s*(\d+)/i);
+  const n = Math.min(32, Math.max(1, parseInt(String(countMatch?.[1] || '1'), 10)));
+  const clues = Array.from({ length: n }, (_, i) => ({
+    card_title: `Treasure hint ${i + 1}`,
+    card_contents: `Short concrete hint toward the treasure thread (${i + 1}).`
+  }));
 
   return {
-    tidbits: [
-      { card_title: 'Smoke tidbit 1', card_contents: 'Guests trade rumors about valuables and odd storage habits.' },
-      { card_title: 'Smoke tidbit 2', card_contents: 'Scuff patterns suggest movement between two main wings.' },
-      { card_title: 'Smoke tidbit 3', card_contents: 'A hollow sound suggests a seldom-opened compartment.' },
-      { card_title: 'Smoke tidbit 4', card_contents: 'The trail points to a quieter zone; look for disturbed dust.' }
-    ],
-    treasure_object: {
+    clues,
+    item: {
       card_title: title,
       card_contents: contents
     }

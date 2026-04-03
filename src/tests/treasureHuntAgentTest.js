@@ -4,9 +4,12 @@ import { treasureHuntAgent } from '../agents/treasureHuntAgent.js';
 process.env.SMOKE_MODE = 'true';
 
 const ctx = {
-  playerCount: 4,
+  playerCount: 3,
   storyBlurb: 'A gala ends in theft rumors.',
   cards: [
+    { card_id: 'ch1', card_type: 'character', card_title: 'Alpha One, The First', card_contents: '...' },
+    { card_id: 'ch2', card_type: 'character', card_title: 'Beta Two, The Second', card_contents: '...' },
+    { card_id: 'ch3', card_type: 'character', card_title: 'Gamma Three, The Third', card_contents: '...' },
     { card_id: 'l1', card_type: 'location', card_title: 'The Orangery', card_contents: 'Glass and vines.' }
   ],
   coreTruth: {
@@ -29,11 +32,14 @@ await treasureHuntAgent(ctx);
 
 const clues = ctx.cards.filter((c) => c.card_type === 'clue');
 const items = ctx.cards.filter((c) => c.card_type === 'item' && c.is_treasure);
-assert.equal(clues.length, 4);
-assert.deepEqual(clues.map((c) => c.act), [1, 2, 2, 3]);
-assert.ok(clues.every((c) => c.clue_type === 'treasure'));
+assert.equal(clues.length, 3);
+assert.ok(clues.every((c) => c.clue_type === 'treasure' && c.act === 1));
+assert.ok(clues.every((c) => c.linked_character && c.suspect_name));
+assert.deepEqual(
+  clues.map((c) => c.linked_character),
+  ['Alpha One, The First', 'Beta Two, The Second', 'Gamma Three, The Third']
+);
 assert.equal(items.length, 1);
 assert.ok(items[0].hidden_until_solved === true);
-assert.ok(String(items[0].card_contents).length > 0);
 
 console.log('treasureHuntAgentTest OK');

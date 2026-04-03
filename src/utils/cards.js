@@ -49,6 +49,9 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (card?.clue_weight !== undefined || previous.clue_weight !== undefined) {
       merged.clue_weight = card?.clue_weight ?? previous.clue_weight;
     }
+    if (card?.suspect_name !== undefined || previous.suspect_name !== undefined) {
+      merged.suspect_name = card?.suspect_name ?? previous.suspect_name;
+    }
     if (card?.assigned_suspect_id !== undefined || previous.assigned_suspect_id !== undefined) {
       merged.assigned_suspect_id = card?.assigned_suspect_id ?? previous.assigned_suspect_id;
     }
@@ -157,6 +160,9 @@ export function pushCards(context, type, entries) {
     }
     if (e.clue_weight !== undefined) {
       card.clue_weight = e.clue_weight;
+    }
+    if (e.suspect_name !== undefined) {
+      card.suspect_name = e.suspect_name;
     }
     if (e.assigned_suspect_id !== undefined) {
       card.assigned_suspect_id = e.assigned_suspect_id;
