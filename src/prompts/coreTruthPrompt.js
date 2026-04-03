@@ -4,7 +4,7 @@ export function buildCoreTruthPrompt({ storyBlurb, storyMeta, characters, world 
 
 murder:
 - killer: must match a playable character name exactly (from the list)
-- victim: one named victim who is NOT playable
+- victim: one named victim who is NOT playable; must be named in the World text, story concept, host pitch, or supporting people lists (exact wording as given there)
 - location: short phrase — where the murder happens
 - murder_solution: 3–6 sentences. Ground truth only: what happened, how, why, and how the killer had the opening. No player-facing tone.
 

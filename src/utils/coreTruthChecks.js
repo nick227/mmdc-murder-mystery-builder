@@ -99,6 +99,46 @@ function getKnownPeople(context) {
   );
 }
 
+/** Text sources where a victim may appear without being in structured people lists. */
+function buildCanonTextForVictimCheck(context) {
+  const chunks = [];
+  if (typeof context?.world === 'string') {
+    chunks.push(context.world);
+  }
+  if (typeof context?.storyBlurb === 'string') {
+    chunks.push(context.storyBlurb);
+  }
+  if (typeof context?.story_description === 'string') {
+    chunks.push(context.story_description);
+  }
+  if (typeof context?.story_title === 'string') {
+    chunks.push(context.story_title);
+  }
+  for (const entry of [...(context?.worldEntities?.people || []), ...(context?.storyEntities?.people || [])]) {
+    if (entry?.name) {
+      chunks.push(String(entry.name));
+    }
+    if (entry?.summary) {
+      chunks.push(String(entry.summary));
+    }
+  }
+  for (const card of context?.cards || []) {
+    if (card?.card_type === 'person') {
+      chunks.push(String(card.card_title || ''));
+      chunks.push(String(card.card_contents || ''));
+    }
+  }
+  return normalizeText(chunks.filter(Boolean).join(' '));
+}
+
+function victimNamedInCanon(context, normalizedVictim) {
+  if (!normalizedVictim || normalizedVictim.length < 3) {
+    return false;
+  }
+  const corpus = buildCanonTextForVictimCheck(context);
+  return Boolean(corpus && corpus.includes(normalizedVictim));
+}
+
 export function validateVictimType(coreTruth, context, playableCharacters = getPlayableCharacters(context)) {
   const victim = baseName(coreTruth?.murder?.victim);
   const normalizedVictim = normalizeText(victim);
@@ -116,7 +156,7 @@ export function validateVictimType(coreTruth, context, playableCharacters = getP
     return `invalid_victim_type: victim "${victim}" does not match reserved victim "${reservedVictimName}"`;
   }
   const knownPeople = getKnownPeople(context);
-  if (knownPeople.size && !knownPeople.has(normalizedVictim)) {
+  if (knownPeople.size && !knownPeople.has(normalizedVictim) && !victimNamedInCanon(context, normalizedVictim)) {
     return `invalid_victim_type: victim "${victim}" is not recognized as a world/story person`;
   }
   return null;
