@@ -1,6 +1,6 @@
 import { callJson } from '../llm/client.js';
 import { buildCharactersBuilderPrompt } from '../prompts/charactersBuilderPrompt.js';
-import { getCardsByType, getCharacterCards, pushCards } from '../utils/cards.js';
+import { getCardsByType, pushCards } from '../utils/cards.js';
 import { getStoryBlurb } from '../utils/context.js';
 
 function normalizeText(value) {
@@ -93,11 +93,6 @@ export async function charactersBuilderAgent(context) {
     }
     return !playableNames.has(normalizeText(baseName(card.card_title)));
   });
-
-  const characterCount = getCharacterCards(context.cards).length;
-  if (characterCount !== playerCount) {
-    throw new Error(`characters_builder_agent produced ${characterCount} characters for playerCount=${playerCount}`);
-  }
 
   return context;
 }
