@@ -42,6 +42,31 @@ function fakeSmokeCharacterSecrets(opts) {
   };
 }
 
+function fakeSmokeHostSpeech() {
+  return {
+    cards: [
+      {
+        card_title: 'Smoke host — opening',
+        card_contents: 'Welcome, detectives. The night is young and secrets stir beneath the chandeliers.',
+        act: 1,
+        location_ref: 'Smoke ballroom'
+      },
+      {
+        card_title: 'Smoke host — act two',
+        card_contents: 'Tighten your alibies—new whispers contradict what we thought we knew.',
+        act: 2,
+        location_ref: 'Smoke ballroom'
+      },
+      {
+        card_title: 'Smoke host — finale',
+        card_contents: 'Accusations in the air; one of you knows far more than they have admitted.',
+        act: 3,
+        location_ref: 'Smoke ballroom'
+      }
+    ]
+  };
+}
+
 function fakeSmokeCoreTruth(opts) {
   const playableCharacters = playableCharactersFromUser(opts);
   const firstCharacter = Array.isArray(playableCharacters) ? playableCharacters[0] : null;
@@ -176,7 +201,8 @@ const NAMED_SMOKE = {
   clue_targets: fakeSmokeClueTargets,
   puzzle_bundle: fakeSmokePuzzleBundle,
   treasure_hunt: fakeSmokeTreasureHunt,
-  character_secrets: fakeSmokeCharacterSecrets
+  character_secrets: fakeSmokeCharacterSecrets,
+  host_speech: fakeSmokeHostSpeech
 };
 
 export function fakeSmokeResponse(opts) {

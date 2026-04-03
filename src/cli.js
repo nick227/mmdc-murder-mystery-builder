@@ -12,6 +12,7 @@ import path from 'node:path';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { steps } from './pipeline/steps/index.js';
+import { getCardsByType, getCharacterCards } from './utils/cards.js';
 
 async function ask(question) {
   const rl = readline.createInterface({ input, output });
@@ -101,6 +102,26 @@ function inferResumeStep(context) {
   if (!context?.coreTruth) {
     return 'core_truth_agent';
   }
+
+  const charCards = getCharacterCards(context.cards || []);
+  if (charCards.length > 0) {
+    const secretN = getCardsByType(context.cards || [], 'secret').length;
+    if (secretN < charCards.length * 2) {
+      return 'character_secret_agent';
+    }
+  }
+
+  const itemCards = getCardsByType(context.cards || [], 'item');
+  if (itemCards.length === 0) {
+    return 'item_agent';
+  }
+  if (!itemCards.some((c) => c.is_treasure === true)) {
+    return 'treasure_item_agent';
+  }
+  if (getCardsByType(context.cards || [], 'host_speech').length < 3) {
+    return 'host_speech_agent';
+  }
+
   if (!hasCardType(context, 'story_clue')) {
     return 'clue_agent';
   }

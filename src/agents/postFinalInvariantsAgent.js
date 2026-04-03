@@ -1,4 +1,4 @@
-import { getCharacterCards } from '../utils/cards.js';
+import { getCardsByType, getCharacterCards } from '../utils/cards.js';
 
 function assert(condition, message) {
   if (!condition) {
@@ -20,6 +20,24 @@ export async function postFinalInvariantsAgent(context) {
   assert(
     characterCount === playerCount,
     `post_final_invariants_agent: character count ${characterCount} != playerCount ${playerCount}`
+  );
+
+  const secrets = getCardsByType(context.cards, 'secret');
+  assert(
+    secrets.length >= characterCount * 2,
+    `post_final_invariants_agent: expected at least ${characterCount * 2} secret cards; got ${secrets.length}`
+  );
+
+  const hostSpeech = getCardsByType(context.cards, 'host_speech');
+  assert(
+    hostSpeech.length >= 3,
+    `post_final_invariants_agent: expected at least 3 host_speech cards; got ${hostSpeech.length}`
+  );
+
+  const treasureItems = getCardsByType(context.cards, 'item').filter((c) => c.is_treasure === true);
+  assert(
+    treasureItems.length === 1,
+    `post_final_invariants_agent: expected exactly one is_treasure item; got ${treasureItems.length}`
   );
 
   for (const card of context.cards || []) {

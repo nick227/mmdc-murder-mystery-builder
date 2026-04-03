@@ -9,8 +9,11 @@ import { coreTruthValidatorAgent } from '../../agents/coreTruthValidatorAgent.js
 import { caseStateBuilderAgent } from '../../agents/caseStateBuilderAgent.js';
 
 import { charactersBuilderAgent } from '../../agents/charactersBuilderAgent.js';
+import { characterSecretAgent } from '../../agents/characterSecretAgent.js';
+import { hostSpeechAgent } from '../../agents/hostSpeechAgent.js';
 
 import { itemAgent } from '../../agents/itemAgent.js';
+import { treasureItemAgent } from '../../agents/treasureItemAgent.js';
 import { clueAgent } from '../../agents/clueAgent.js';
 import { puzzleAgent } from '../../agents/puzzleAgent.js';
 import { bundleFinalizeAgent } from '../../agents/bundleFinalizeAgent.js';
@@ -45,7 +48,10 @@ export const steps = [
   { name: 'core_truth_validator_agent', run: coreTruthValidatorAgent },
   { name: 'case_state_builder_agent', run: caseStateBuilderAgent },
 
+  { name: 'character_secret_agent', run: characterSecretAgent },
   { name: 'item_agent', run: itemAgent },
+  { name: 'treasure_item_agent', run: treasureItemAgent },
+  { name: 'host_speech_agent', run: hostSpeechAgent },
   { name: 'clue_agent', run: clueAgent },
   { name: 'clue_roster_validator_agent', run: clueRosterValidatorAgent },
   { name: 'clue_target_agent', run: clueTargetAgent },

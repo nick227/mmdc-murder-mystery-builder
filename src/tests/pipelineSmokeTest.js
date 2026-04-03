@@ -50,6 +50,21 @@ function validateContext(context, stepName) {
     assert(solution.killer, 'derived solution.killer missing');
   }
 
+  if (stepName === 'character_secret_agent') {
+    const chars = getCharacterCards(context.cards);
+    const secrets = getCardsByType(context.cards, 'secret');
+    assert(secrets.length >= chars.length * 2, 'expected at least two secrets per character');
+  }
+
+  if (stepName === 'treasure_item_agent') {
+    const flagged = getCardsByType(context.cards, 'item').filter((c) => c.is_treasure === true);
+    assert(flagged.length === 1, 'expected exactly one is_treasure item');
+  }
+
+  if (stepName === 'host_speech_agent') {
+    assert(getCardsByType(context.cards, 'host_speech').length >= 3, 'expected at least three host_speech cards');
+  }
+
   if (stepName === 'clue_agent') {
     const clueCards = getCardsByType(context.cards, 'clue');
     assert(clueCards.length >= 8, 'expected at least 8 clue cards');
