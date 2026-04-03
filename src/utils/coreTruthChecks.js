@@ -36,13 +36,38 @@ export function validateVictimType(coreTruth, context, playableCharacters = getP
   return null;
 }
 
+/**
+ * Killer string may be full card_title or a short display name ("Name - Role" → "Name").
+ * Playable roster uses card_title; LLMs often emit only the name part.
+ */
+export function killerMatchesPlayableRoster(killerRaw, playableCharacters) {
+  const k = String(killerRaw || '').trim();
+  if (!k) {
+    return false;
+  }
+  const kRoster = suspectRosterKey(k);
+  return playableCharacters.some((c) => {
+    const t = String(c.title || '').trim();
+    if (!t) {
+      return false;
+    }
+    if (t === k) {
+      return true;
+    }
+    if (baseName(t) === baseName(k) && baseName(k)) {
+      return true;
+    }
+    return kRoster && suspectRosterKey(t) === kRoster;
+  });
+}
+
 export function validateKillerPlayable(coreTruth, context, playableCharacters = getPlayableCharacters(context)) {
-  const killerName = baseName(coreTruth?.murder?.killer);
-  if (!killerName) {
+  const killerRaw = String(coreTruth?.murder?.killer || '').trim();
+  if (!killerRaw) {
     return 'killer_not_playable: killer is missing';
   }
-  if (!playableCharacters.some((c) => c.name === killerName)) {
-    return 'killer_not_playable: killer must match a playable character name exactly';
+  if (!killerMatchesPlayableRoster(killerRaw, playableCharacters)) {
+    return 'killer_not_playable: killer must match a playable character (full card_title or same identity as one suspect)';
   }
   return null;
 }

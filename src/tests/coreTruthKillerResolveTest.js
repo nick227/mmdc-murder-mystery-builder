@@ -14,9 +14,20 @@ assert.equal(
   'exact killer name should pass'
 );
 
+assert.ok(
+  String(validateKillerPlayable({ murder: { killer: 'Johnny Malone' } }, context) || '').includes('killer_not_playable'),
+  'wrong short name should fail'
+);
+
+const roleContext = {
+  cards: [
+    { card_id: 'x', card_type: 'character', card_title: 'Sunny Blaze - The Hippie' }
+  ]
+};
 assert.equal(
-  validateKillerPlayable({ murder: { killer: 'Johnny Malone' } }, context),
-  'killer_not_playable: killer must match a playable character name exactly'
+  validateKillerPlayable({ murder: { killer: 'Sunny Blaze' } }, roleContext),
+  null,
+  'killer short name before " - " should match card_title'
 );
 
 console.log('coreTruthKillerResolveTest: ok');

@@ -1,3 +1,5 @@
+import { suspectRosterKey } from './coreTruthChecks.js';
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -115,11 +117,18 @@ export function buildCaseState(context) {
   assert(characterCards.length > 0, 'case_state_builder_agent: no character cards available');
   assert(killerText, 'case_state_builder_agent: coreTruth.murder.killer missing');
 
+  const killerKey = suspectRosterKey(killerText);
+
   const suspects = characterCards.map((card) => {
     const displayName = extractDisplayName(card.card_title);
     const fullLabel = String(card.card_title || '').trim();
-    const isKiller = normalizeText(displayName) === normalizeText(extractDisplayName(killerText))
-      || normalizeText(fullLabel) === normalizeText(killerText);
+    const isKiller =
+      normalizeText(displayName) === normalizeText(extractDisplayName(killerText))
+      || normalizeText(fullLabel) === normalizeText(killerText)
+      || Boolean(
+        killerKey
+        && suspectRosterKey(fullLabel) === killerKey
+      );
     const suspectId = toSlug(displayName);
     const access = inferAccessLevel(displayName, whyOthersCouldNot, isKiller);
 
