@@ -87,8 +87,7 @@ export async function treasureHuntAgent(context) {
     card_title: String(b.card_title || '').trim(),
     card_contents: String(b.card_contents || '').trim(),
     act: BREADCRUMB_ACTS[i],
-    clue_type: 'rumor',
-    suspect_name: 'Guests',
+    clue_type: 'treasure',
     clue_weight: CLUE_WEIGHTS[i]
   }));
 

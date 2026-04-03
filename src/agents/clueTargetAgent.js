@@ -78,8 +78,13 @@ function buildDerivedTargetFact(clue) {
   }
 }
 
+function isMurderClueCard(card) {
+  return String(card?.clue_type || '').trim().toLowerCase() !== 'treasure';
+}
+
 function buildDerivedClueTargets(context) {
   const clueCards = getCardsByType(context?.cards, 'clue')
+    .filter(isMurderClueCard)
     .filter((card) => String(card?.card_contents || '').trim())
     .map((card) => {
       const sourceText = `${card?.card_title || ''} ${card?.card_contents || ''}`.trim();
@@ -158,6 +163,7 @@ function distributeClues(clues, roster, killerId) {
 
 export async function clueTargetAgent(context) {
   const clueCards = getCardsByType(context?.cards, 'clue');
+  const murderClues = clueCards.filter(isMurderClueCard);
   const roster = buildSuspectRoster(context);
   const killerId = String(context?.case_state?.killer_id || '').trim();
   const killerEntry = roster.find((entry) => entry.suspectId === killerId) || null;
@@ -165,11 +171,14 @@ export async function clueTargetAgent(context) {
   if (!clueCards.length) {
     throw new Error('clue_target_agent requires clue cards in context.cards');
   }
+  if (!murderClues.length) {
+    throw new Error('clue_target_agent requires at least one non-treasure clue card');
+  }
   if (!roster.length || !killerEntry) {
     throw new Error('clue_target_agent requires a playable suspect roster and killer');
   }
 
-  const { killerClues, assignments } = distributeClues(clueCards, roster, killerId);
+  const { killerClues, assignments } = distributeClues(murderClues, roster, killerId);
   const nextCards = Array.isArray(context.cards) ? [...context.cards] : [];
   const assignedByClue = new Map();
 
