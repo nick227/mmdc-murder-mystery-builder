@@ -18,7 +18,7 @@ async function call(body) {
 
   if (!res.ok) {
     const t = await res.text();
-    throw new Error('OpenAI error: ' + t);
+    throw new Error(`OpenAI error (${res.status}): ${t}`);
   }
 
   return res.json();

@@ -85,7 +85,15 @@ function isRetryable(error) {
   if (/429|rate.?limit|too many requests/i.test(msg)) {
     return true;
   }
-  if (/5\d\d|server error|service unavailable|timeout/i.test(msg)) {
+  // HTTP status from client: OpenAI error (503): …
+  if (/\(\s*5\d\d\s*\)/.test(msg)) {
+    return true;
+  }
+  if (
+    /server_error|service_unavailable|overloaded|5\d\d|server error|service unavailable|timeout|cf-ray|cloudflare/i.test(
+      msg
+    )
+  ) {
     return true;
   }
   return false;
