@@ -30,13 +30,14 @@ import { clueTargetAgent } from '../../agents/clueTargetAgent.js';
 import { structuralPreflightAgent } from '../../agents/structuralPreflightAgent.js';
 
 import { solvabilityValidatorAgent } from '../../agents/solvabilityValidatorAgent.js';
+import { gameCardAgent } from '../../agents/gameCardAgent.js';
 
 import { postFinalInvariantsAgent } from '../../agents/postFinalInvariantsAgent.js';
 import { bundleIntegrityValidatorAgent } from '../../agents/bundleIntegrityValidatorAgent.js';
 import { bundleStructureValidatorAgent } from '../../agents/bundleStructureValidatorAgent.js';
 import { mvpQualityGateAgent } from '../../agents/mvpQualityGateAgent.js';
 
-/** Core generation + structural glue + hard validators only. */
+/** Core generation + structural glue + gameplay (game_card) + validators. */
 export const steps = [
   { name: 'story_blurb_agent', run: storyBlurbAgent },
   { name: 'story_metadata_agent', run: storyMetadataAgent },
@@ -68,6 +69,8 @@ export const steps = [
   { name: 'structural_preflight_agent', run: structuralPreflightAgent },
 
   { name: 'solvability_validator_agent', run: solvabilityValidatorAgent },
+
+  { name: 'game_card_agent', run: gameCardAgent },
 
   { name: 'bundle_structure_validator_agent', run: bundleStructureValidatorAgent },
   { name: 'post_final_invariants_agent', run: postFinalInvariantsAgent },
