@@ -1,10 +1,10 @@
-/** LLM output for treasure hunt: four breadcrumbs (acts assigned in code) + one item card for the object. */
+/** LLM output: four small tidbit clues + one item card for the treasure thread. */
 export const treasureHuntResponseSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['breadcrumbs', 'treasure_object'],
+  required: ['tidbits', 'treasure_object'],
   properties: {
-    breadcrumbs: {
+    tidbits: {
       type: 'array',
       minItems: 4,
       maxItems: 4,

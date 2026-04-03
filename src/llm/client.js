@@ -195,7 +195,6 @@ function fakeSmokeClueTargets(opts) {
   };
 }
 
-/** Generic breadcrumbs only — must not echo hiding_place (validated in treasure_hunt_agent). */
 function fakeSmokeTreasureHunt(opts) {
   const user = String(opts?.user || '');
   const objLine = user.match(/object:\s*([^\n]+)/i);
@@ -204,11 +203,11 @@ function fakeSmokeTreasureHunt(opts) {
   const contents = String(solLine?.[1] || `The physical ${title}.`).trim();
 
   return {
-    breadcrumbs: [
-      { card_title: 'Smoke breadcrumb 1', card_contents: 'Guests trade rumors about valuables and odd storage habits.' },
-      { card_title: 'Smoke breadcrumb 2', card_contents: 'Scuff patterns suggest movement between two main wings.' },
-      { card_title: 'Smoke breadcrumb 3', card_contents: 'A hollow sound suggests a seldom-opened compartment.' },
-      { card_title: 'Smoke breadcrumb 4', card_contents: 'The trail points to a quieter zone; look for disturbed dust.' }
+    tidbits: [
+      { card_title: 'Smoke tidbit 1', card_contents: 'Guests trade rumors about valuables and odd storage habits.' },
+      { card_title: 'Smoke tidbit 2', card_contents: 'Scuff patterns suggest movement between two main wings.' },
+      { card_title: 'Smoke tidbit 3', card_contents: 'A hollow sound suggests a seldom-opened compartment.' },
+      { card_title: 'Smoke tidbit 4', card_contents: 'The trail points to a quieter zone; look for disturbed dust.' }
     ],
     treasure_object: {
       card_title: title,
