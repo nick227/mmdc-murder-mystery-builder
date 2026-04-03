@@ -5,20 +5,16 @@ import { buildTreasureHuntResponseSchema } from '../schemas/treasureHuntSchema.j
 
 const WEIGHT_CYCLE = ['low', 'mid', 'mid', 'high'];
 
-function buildPrompt({ storyBlurb, treasure, characterTitles, clueCount }) {
-  const list = characterTitles.map((t) => `- ${t}`).join('\n');
+function buildPrompt({ storyBlurb, treasure, clueCount }) {
   return {
     system: 'Generate treasure hunt clues. Return JSON only.',
     user: `Generate treasure hunt clues.
 
 Rules:
-- EXACTLY ${clueCount} clues — one per character, same order as listed.
-- Use ONLY these characters (by name; do not invent others):
-${list}
-
-- Each clue is a short concrete statement hinting toward the treasure thread.
-- Ground hints in treasure_solution; do not reveal the full solution in one line.
-- Do not output linked_character fields; order matches the list above.
+- Generate EXACTLY ${clueCount} treasure clues.
+- Clues should collectively hint at the treasure_solution.
+- No single clue should reveal it.
+- Return JSON only.
 
 Treasure:
 object: ${String(treasure?.object || '').trim()}
@@ -26,8 +22,6 @@ treasure_solution: ${String(treasure?.treasure_solution || '').trim()}
 
 Story:
 ${storyBlurb}
-
-Also generate one final treasure item description (the physical thing and why it matters — not a spoiler dump).
 
 Clue count: ${clueCount}
 
@@ -60,7 +54,6 @@ export async function treasureHuntAgent(context) {
     ...buildPrompt({
       storyBlurb,
       treasure,
-      characterTitles,
       clueCount: n
     }),
     schemaName: 'treasure_hunt',
@@ -80,7 +73,6 @@ export async function treasureHuntAgent(context) {
       card_type: 'clue',
       card_title: String(c.card_title || '').trim(),
       card_contents: String(c.card_contents || '').trim(),
-      act: 1,
       clue_type: 'treasure',
       clue_weight: WEIGHT_CYCLE[i % WEIGHT_CYCLE.length],
       linked_character: title
@@ -94,7 +86,6 @@ export async function treasureHuntAgent(context) {
     card_type: 'item',
     card_title: String(it.card_title || object || 'Treasure').trim(),
     card_contents: body,
-    act: 1,
     is_treasure: true,
     hidden_until_solved: true
   };

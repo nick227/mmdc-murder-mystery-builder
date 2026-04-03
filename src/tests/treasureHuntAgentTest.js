@@ -33,7 +33,12 @@ await treasureHuntAgent(ctx);
 const clues = ctx.cards.filter((c) => c.card_type === 'clue');
 const items = ctx.cards.filter((c) => c.card_type === 'item' && c.is_treasure);
 assert.equal(clues.length, 3);
-assert.ok(clues.every((c) => c.clue_type === 'treasure' && c.act === 1));
+assert.ok(clues.every((c) => c.clue_type === 'treasure'));
+assert.deepEqual(
+  clues.map((c) => c.act),
+  [1, 2, 3],
+  'act from pushCards default when omitted'
+);
 assert.ok(clues.every((c) => c.linked_character));
 assert.ok(clues.every((c) => c.suspect_name === undefined));
 assert.deepEqual(
