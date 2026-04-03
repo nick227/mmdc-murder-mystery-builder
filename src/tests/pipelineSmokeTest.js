@@ -19,13 +19,6 @@ function validateContext(context, stepName) {
     assert(context.storyBlurb, 'storyBlurb missing');
   }
 
-  if (stepName === 'story_metadata_agent') {
-    assert(context.story_title, 'story_title missing');
-    assert(context.story_description, 'story_description missing');
-    assert(context.story_rating, 'story_rating missing');
-    assert(context.story_themes, 'story_themes missing');
-  }
-
   if (stepName === 'world_building_agent') {
     assert(context.world, 'world missing');
   }
@@ -98,11 +91,6 @@ function validateContext(context, stepName) {
         assert(bundleRefs.has(unlockRef), `bundle ${bundle.bundle_id} unlock card_ref missing from output`);
       }
     }
-  }
-
-  if (stepName === 'suspect_coverage_agent') {
-    assert(context.suspect_coverage, 'suspect_coverage missing');
-    assert(Array.isArray(context.suspect_coverage.issues), 'suspect_coverage issues missing');
   }
 
   if (stepName === 'bundle_integrity_validator_agent') {

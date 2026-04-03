@@ -58,14 +58,6 @@ function buildLearningSummary(summary) {
     });
   }
 
-  if (recurring.some((issue) => issue.code === 'final_bundle_too_decisive')) {
-    actions.push({
-      priority: 4,
-      code: 'final_bundle_too_decisive',
-      action: 'Reduce final-bundle answer leakage by rewriting climax clues as confirmatory rather than standalone proof.'
-    });
-  }
-
   if (!actions.length) {
     actions.push({
       priority: 1,

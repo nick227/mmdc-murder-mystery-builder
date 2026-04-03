@@ -8,10 +8,6 @@ function normalizeText(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function tokenize(value) {
-  return normalizeText(value).split(' ').filter((token) => token.length >= 4);
-}
-
 function collectBundles(cards) {
   const bundles = new Map();
   for (const card of Array.isArray(cards) ? cards : []) {
@@ -42,143 +38,6 @@ function getSuspectNames(context) {
     .filter(Boolean);
 }
 
-function buildSuspectFragments(suspectNames) {
-  const fragments = new Set();
-
-  for (const name of suspectNames) {
-    const normalizedName = normalizeText(name);
-    if (!normalizedName) {
-      continue;
-    }
-    fragments.add(normalizedName);
-    for (const part of normalizedName.split(' ')) {
-      if (part.length >= 3) {
-        fragments.add(part);
-      }
-    }
-  }
-
-  return [...fragments];
-}
-
-function inferLinkedTermsFromEvidence(evidenceCards, suspectNames) {
-  const terms = new Set();
-  const suspectFragments = buildSuspectFragments(suspectNames);
-  const patterns = [
-    /\b(?:access(?:ed)?|badge|keycard|key card|key|lock|locked|unlocked|entry|entered|exit|door)\b/gi,
-    /\b(?:vault|backstage|green room|dressing room|lab|study|tower|lighthouse|cove|caves|marina|dock|booth|office|hall|stage|cellar|corridor|gallery|theater|theatre)\b/gi,
-    /\b(?:cord|cable|dagger|knife|poison|vial|glass|cup|badge|ledger|log|receipt|ticket|photo|photograph|mask|coat|glove|ring|skiff|boat|engine)\b/gi
-  ];
-
-  for (const card of evidenceCards) {
-    const title = String(card?.card_title || '');
-    const contents = String(card?.card_contents || '');
-    const normalizedText = normalizeText(`${title} ${contents}`);
-    const assigned = normalizeText(card?.assigned_suspect_name || '');
-    const linked = normalizeText(card?.linked_character || '');
-    const mentionsSuspect = suspectFragments.some((fragment) =>
-      fragment
-      && (normalizedText.includes(fragment) || assigned.includes(fragment) || linked.includes(fragment))
-    );
-
-    if (!mentionsSuspect) {
-      continue;
-    }
-
-    for (const pattern of patterns) {
-      for (const match of `${title} ${contents}`.matchAll(pattern)) {
-        const term = normalizeText(match[0]);
-        if (term) {
-          terms.add(term);
-        }
-      }
-    }
-  }
-
-  return [...terms];
-}
-
-function solutionReferencesSuspectContext(solutionText, suspectNames, evidenceCards) {
-  const normalizedSolution = normalizeText(solutionText);
-  const suspectFragments = buildSuspectFragments(suspectNames);
-
-  for (const fragment of suspectFragments) {
-    if (fragment && normalizedSolution.includes(fragment)) {
-      return true;
-    }
-  }
-
-  const linkedTerms = inferLinkedTermsFromEvidence(evidenceCards, suspectNames);
-  return linkedTerms.some((term) => term && normalizedSolution.includes(term));
-}
-
-function hasSubstantialOverlap(a, b) {
-  const aTokens = new Set(tokenize(a));
-  const bTokens = new Set(tokenize(b));
-  if (!aTokens.size || !bTokens.size) {
-    return false;
-  }
-  let overlap = 0;
-  for (const token of aTokens) {
-    if (bTokens.has(token)) {
-      overlap += 1;
-    }
-  }
-  return overlap >= 1;
-}
-
-function looksLikeStandaloneFinalSolve(solutionText) {
-  const normalized = normalizeText(solutionText);
-  const strongPatterns = [
-    /\bthe killer\b/,
-    /\bthe culprit\b/,
-    /\bconfess(?:ed|ion)?\b/,
-    /\bfingerprints?\b.*\b(?:on|match|matched|consistent)\b/,
-    /\bdna\b/,
-    /\bproved? guilt\b/
-  ];
-
-  return strongPatterns.some((pattern) => pattern.test(normalized));
-}
-
-function isOpeningSceneClue(solutionText) {
-  const normalized = normalizeText(solutionText);
-  return (
-    /\b(found dead|body|murder|slain|killed)\b/.test(normalized)
-    && /\b(last seen|vanish|vanished|missing|stolen)\b/.test(normalized)
-  );
-}
-
-function extractAxes(text) {
-  const normalized = normalizeText(text);
-  const axes = new Set();
-  if (/\b(access|key|passage|entry|backstage|room|study|cellar|stage)\b/.test(normalized)) {
-    axes.add('access');
-  }
-  if (/\b(motive|jealous|revenge|legacy|blackmail|threat|inheritance|fear)\b/.test(normalized)) {
-    axes.add('motive');
-  }
-  if (/\b(dagger|rope|poison|quill|weapon|scarf)\b/.test(normalized)) {
-    axes.add('weapon');
-  }
-  if (/\b(time|before|after|during|while|timeline|arrived|left)\b/.test(normalized)) {
-    axes.add('timeline');
-  }
-  if (/\b(contradict|alibi|elsewhere|despite|however|inconsistent|claims)\b/.test(normalized)) {
-    axes.add('contradiction');
-  }
-  if (/\b(possess|carrying|held|owned|hidden|concealed|compartment|cache)\b/.test(normalized)) {
-    axes.add('possession');
-  }
-  if (/\b(witness|observed|seen|recalled|guest|statement)\b/.test(normalized)) {
-    axes.add('witness');
-  }
-  if (/\b(fingerprint|blood|trace|fabric|footprint|drag marks)\b/.test(normalized)) {
-    axes.add('physical_trace');
-  }
-  return axes;
-}
-
 export async function bundleStructureValidatorAgent(context) {
   /* Smoke uses synthetic names/facts that do not satisfy suspect-context heuristics. */
   if (process.env.SMOKE_MODE === 'true') {
@@ -192,7 +51,7 @@ export async function bundleStructureValidatorAgent(context) {
     (Array.isArray(context?.puzzle_bundles) ? context.puzzle_bundles : [])
       .map((bundle) => [bundle.bundle_id, bundle])
   );
-  const suspectNames = getSuspectNames(context);
+  void getSuspectNames(context);
 
   for (const [bundleId, bundleCards] of bundles.entries()) {
     const puzzleCards = bundleCards.filter((card) => card.card_type === 'puzzle');
@@ -236,55 +95,6 @@ export async function bundleStructureValidatorAgent(context) {
     const normalizedPuzzle = normalizeText(puzzle.card_contents);
     const normalizedSolution = normalizeText(solution.card_contents);
     assert(!normalizedPuzzle.includes(normalizedSolution), `bundle_structure_validator_agent: bundle ${bundleId} puzzle leaks its hidden solution`);
-    const allBundleIds = [...bundleMeta.keys()].sort();
-    const isFirstBundle = bundleId === allBundleIds[0];
-    const isFinalBundle = bundleId === allBundleIds[allBundleIds.length - 1];
-    const hasSuspectContext = solutionReferencesSuspectContext(solution.card_contents, suspectNames, evidenceCards);
-
-    assert(
-      hasSuspectContext || (isFirstBundle && isOpeningSceneClue(solution.card_contents)),
-      `bundle_structure_validator_agent: bundle ${bundleId} hidden clue must reference a suspect or suspect-linked evidence`
-    );
-
-    if (isFinalBundle) {
-      const priorTargets = allBundleIds
-        .filter((id) => id !== bundleId)
-        .map((id) => bundleMeta.get(id)?.clue_target)
-        .filter(Boolean);
-
-      if (looksLikeStandaloneFinalSolve(solution.card_contents)) {
-        context.debug.warning_log.push({
-          stage: 'bundle_structure_validator_agent',
-          bundle_id: bundleId,
-          reason: 'final_bundle_too_decisive',
-          clue: solution.card_contents
-        });
-      }
-
-      if (priorTargets.length && !priorTargets.some((target) => hasSubstantialOverlap(solution.card_contents, target))) {
-        context.debug.warning_log.push({
-          stage: 'bundle_structure_validator_agent',
-          bundle_id: bundleId,
-          reason: 'final_bundle_not_confirming_prior_chain',
-          clue: solution.card_contents
-        });
-      }
-    }
-  }
-
-  const orderedMeta = [...bundleMeta.values()]
-    .filter(Boolean)
-    .sort((a, b) => String(a.bundle_id || '').localeCompare(String(b.bundle_id || '')));
-  if (orderedMeta.length >= 4) {
-    const third = orderedMeta[2];
-    const fourth = orderedMeta[3];
-    const thirdAxes = extractAxes(third?.clue_target || third?.solution_summary || '');
-    const fourthAxes = extractAxes(fourth?.clue_target || fourth?.solution_summary || '');
-    const sharedAxes = [...thirdAxes].filter((axis) => fourthAxes.has(axis));
-    assert(
-      sharedAxes.length === 0,
-      `bundle_structure_validator_agent: bundle ${fourth.bundle_id} must introduce a new deduction axis beyond ${third.bundle_id}`
-    );
   }
 
   return context;

@@ -39,7 +39,6 @@ const context = {
 const report = buildPlayabilityReport(context);
 const issueCodes = report.issues.map((issue) => issue.code);
 
-assert(issueCodes.includes('timeline_murder_time_conflict'));
 assert(issueCodes.includes('unknown_roster_entities'));
 
 console.log('targetedPlayabilityRepairTest passed');

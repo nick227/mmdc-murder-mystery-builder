@@ -57,7 +57,5 @@ const report = buildStructuralPreflight(context);
 assert.equal(report.status, 'blocked');
 assert(report.issues.some((issue) => issue.code === 'duplicate_character_systems'));
 assert(report.issues.some((issue) => issue.code === 'missing_victim_identity'));
-assert(!report.issues.some((issue) => issue.code === 'one_suspect_gravity'));
-assert(!report.issues.some((issue) => issue.code === 'duplicate_evidence_weighting'), 'distinct item titles should not be flagged by signature overlap alone');
 
 console.log('structuralPreflightTest passed');

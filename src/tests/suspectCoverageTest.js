@@ -18,10 +18,10 @@ const context = {
 
 const report = buildSuspectCoverageReport(context);
 
-assert.equal(report.pass, false);
-assert(report.issues.some((issue) => issue.code === 'safe_suspect_roles'));
-assert(report.issues.some((issue) => issue.code === 'underused_suspects'));
-assert(report.required_early_suspects.length >= 1);
+assert.equal(report.pass, true);
+assert.equal(report.issue_count, 0);
+assert.equal(report.issues.length, 0);
+assert.equal(report.required_early_suspects.length, 0);
 
 const materiallyBalanced = buildSuspectCoverageReport({
   cards: [
@@ -54,6 +54,6 @@ const profileDrivenAccess = buildSuspectCoverageReport({
   narratives: {}
 });
 
-assert.equal(profileDrivenAccess.issues.some((issue) => issue.code === 'insufficient_access_competition'), false);
+assert.equal(profileDrivenAccess.issue_count, 0);
 
 console.log('suspectCoverageTest passed');

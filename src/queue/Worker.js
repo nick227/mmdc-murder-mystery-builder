@@ -124,7 +124,7 @@ async function runWithRetry(fn, retries = 2) {
 }
 
 export async function runWorker(queue, hooks = {}) {
-  const repairGateIndex = steps.findIndex((step) => step.name === 'playability_repair_agent');
+  const solvabilityGateIndex = steps.findIndex((step) => step.name === 'solvability_validator_agent');
   const stopAfterStepName = typeof hooks.stopAfterStepName === 'string' ? hooks.stopAfterStepName : null;
 
   while (true) {
@@ -164,8 +164,15 @@ export async function runWorker(queue, hooks = {}) {
         job.context = normalizeContext(next);
         syncJobIdentity(job);
 
-        if (step.name === 'story_metadata_agent' && job.context?.runDir) {
-          const title = String(job.context.story_title || '').trim();
+        if (step.name === 'world_building_agent' && job.context?.runDir) {
+          const title = String(
+            job.context.story_title ||
+              job.context.userPrompt ||
+              job.context.storyBlurb ||
+              ''
+          )
+            .trim()
+            .slice(0, 96);
           if (title) {
             const { id, dir } = retitleExistingRunDir(job.context.runDir, title);
             job.context.runDir = dir;
@@ -177,7 +184,7 @@ export async function runWorker(queue, hooks = {}) {
         validateContext(job.context, { allowPartial: true });
 
         const report = buildPlayabilityReport(job.context, {
-          partial: repairGateIndex === -1 ? false : job.stepIndex < repairGateIndex,
+          partial: solvabilityGateIndex === -1 ? false : job.stepIndex < solvabilityGateIndex,
           stepName: step.name
         });
         job.context.playability_report = report;

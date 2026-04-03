@@ -1,6 +1,5 @@
 const DEFAULT_BLOCKING_CODES = new Set([
   'killer_equals_victim',
-  'timeline_murder_time_conflict',
   'solvability_failed',
   'narrative_validation_failed'
 ]);

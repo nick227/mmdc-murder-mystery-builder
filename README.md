@@ -4,18 +4,13 @@ AI pipeline that generates fully playable social deduction murder mystery games 
 
 The system builds:
 
-* story premise
-* hidden solution
-* competing suspect narratives
-* breadcrumb trails
-* characters
-* items
-* puzzles
-* deduction clues
-* game cards
-* host scripts
+* story premise and world setup
+* playable characters
+* hidden core truth (murder + treasure), validated case state
+* items, deduction clues, and puzzle bundles (with evidence cards)
+* structural checks, solvability validation, bundle structure, and integrity gates
 
-Output is a structured, solvable mystery ready for play.
+Output is a structured, solvable mystery ready for play. The default pipeline is **core generation + structural glue + hard validators only** (no presentation layers, polish, repair, or “judge” steps). Extra narrative/host agents exist under `src/agents/` but are not wired into `steps/index.js`.
 
 ---
 
@@ -47,35 +42,43 @@ Output:
 
 # Pipeline Overview
 
-Order matters. Each stage feeds the next.
+Order is defined in `src/pipeline/steps/index.js`. Each stage feeds the next.
+
+**Story, world, roster, solution**
 
 ```
 story_blurb_agent
-solution_agent
-
-breadcrumb_trail_agent
-trail_review_agent
-
-narrative_generator_agent
-narrative_validator_agent
-
-story_acts_agent
-host_speech_agent
-
-character_profile_agent
-character_secret_agent
-
-item_agent
-puzzle_agent
-clue_agent
-
-ambiguity_balancer_agent
-solvability_validator_agent
-
-game_card_agent
-card_quality_agent
-final_editor_agent
+world_building_agent
+characters_builder_agent
+core_truth_agent
+treasure_hunt_agent
+core_truth_validator_agent
+case_state_builder_agent
 ```
+
+**Clues, puzzles, bundles**
+
+```
+item_agent
+clue_agent
+puzzle_agent
+bundle_finalize_agent
+puzzle_evidence_agent
+bundle_linker_agent
+structural_preflight_agent
+```
+
+**Validation and gate**
+
+```
+solvability_validator_agent
+bundle_structure_validator_agent
+post_final_invariants_agent
+bundle_integrity_validator_agent
+mvp_quality_gate_agent
+```
+
+Extra agent modules under `src/agents/` (e.g. final editor, playability repair) are **not** wired into this pipeline unless you add them back in `steps/index.js`.
 
 ---
 
@@ -83,20 +86,19 @@ final_editor_agent
 
 ### Deduction First
 
-Clues must combine to reveal the solution.
-No single card should solve the mystery.
+Clues must combine to reveal the solution. No single card should solve the mystery.
 
 ### Multi-Narrative Ambiguity
 
-Three competing suspect narratives remain viable until late game.
+Competing suspect narratives help keep multiple readings open until late game.
 
-### Puzzle Supported Clues
+### Puzzle-Supported Clues
 
-Clues reinforce puzzles. Puzzles gate deduction.
+Clues reinforce puzzles. Puzzles gate additional deduction where bundles are used.
 
 ### Late Killer Reveal
 
-The killer emerges only after combining multiple clues.
+The killer should emerge after combining multiple clues, not from one card.
 
 ### Social Deduction
 
@@ -106,43 +108,51 @@ Information is intentionally distributed across players.
 
 # Card Types
 
+Typical output includes types such as:
+
 ```
-story_act
-host_speech
+story_meta
+person
+location
+item
 character
 secret
-item
-puzzle
 clue
-game
+story_act
+host_speech
+puzzle
+solution
 ```
 
-All cards share:
+Many cards share:
 
 ```
+card_id
 card_title
 card_contents
-act (1-3)
+act (1–3, where applicable)
 card_type
 ```
+
+Puzzle bundle cards may also include `bundle_id`, `card_ref`, `hidden_until_solved`, and puzzle linkage fields after `bundle_linker_agent`.
 
 ---
 
 # Acts
 
-Act 1
+**Act 1**
 
 * setup
 * discovery
 * early ambiguity
 
-Act 2
+**Act 2**
 
 * contradictions
 * shifting suspicion
 * puzzle solving
 
-Act 3
+**Act 3**
 
 * elimination
 * final deduction
@@ -150,31 +160,24 @@ Act 3
 
 ---
 
-# Ambiguity Balancer
+# Validators (safety rails)
 
-Prevents early solution collapse.
+The shipped pipeline relies on **structural and identity checks**, not heuristic “story polish”:
 
-It can:
-
-* rewrite clues
-* soften certainty
-* shift cards later
-* share access between suspects
-* delay elimination
-
-This keeps:
-
-* multiple suspects viable
-* deduction required
-* pacing controlled
+* **core_truth_validator_agent** — killer/victim/playable roster consistency
+* **structural_preflight_agent** — e.g. victim named, duplicate person/character overlap
+* **solvability_validator_agent** — LLM-assisted solvability check (and optional repair when allowed)
+* **bundle_structure_validator_agent** / **bundle_integrity_validator_agent** — bundle shape, refs, and unlock wiring
+* **post_final_invariants_agent** — counts, resolved refs, no placeholder difficulty
+* **mvp_quality_gate_agent** — final quality gate from persisted reports
 
 ---
 
 # Solvability Rules
 
-The game must:
+The game should:
 
-* contain at least one puzzle
+* contain puzzle bundles when the puzzle path is used
 * contain multiple clues
 * require clue combination
 * avoid single-clue solutions
@@ -200,40 +203,21 @@ src/
 
 # Agents
 
-Agents are pure functions:
+Agents are async functions:
 
 ```
 (context) -> context
 ```
 
-They may:
-
-* add cards
-* rewrite cards
-* validate state
-* rebalance ambiguity
+They may add cards, enrich `context`, or run validation. Prefer **validators** for anything that must not break game state; use **generators** only to produce content.
 
 ---
 
 # Adding a New Agent
 
-1. Create agent
-
-```
-src/agents/myAgent.js
-```
-
-2. Add to pipeline
-
-```
-src/pipeline/steps.js
-```
-
-3. Return updated context
-
-```
-return context;
-```
+1. Create `src/agents/myAgent.js` exporting an async `(context) => context` function.
+2. Register it in **`src/pipeline/steps/index.js`** in the correct order.
+3. Return the updated `context` (and keep `normalizeContext` expectations in mind).
 
 ---
 
@@ -246,7 +230,7 @@ Generate mysteries that are:
 * socially interactive
 * narratively interesting
 * deduction driven
-* non obvious
+* non-obvious
 
 ---
 
@@ -264,16 +248,7 @@ Casino VIP murder with swapped briefcase
 
 # Output
 
-Each run generates:
-
-```
-cards.json
-story.json
-solution.json
-printable/
-```
-
-Ready for:
+Each run generates artifacts under the run directory (e.g. `result.json` and supporting files), suitable for:
 
 * print
 * tabletop play
@@ -286,6 +261,4 @@ Ready for:
 
 This system generates **deduction games**, not just stories.
 
-The story supports the clues.
-The clues support deduction.
-The deduction reveals the killer.
+The story supports the clues. The clues support deduction. The deduction reveals the killer.

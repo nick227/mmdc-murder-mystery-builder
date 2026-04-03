@@ -78,33 +78,24 @@ function analyzeRun(context, lastStepName) {
   const earlyCollapseReasons = collectEarlyCollapseReasons(context);
 
   const flags = {
-    duplicate_evidence: playabilityCodes.has('duplicate_evidence_weighting')
-      || structuralCodes.has('duplicate_evidence_weighting'),
-    underused_suspects: playabilityCodes.has('underused_suspects')
-      || structuralCodes.has('dead_suspect_slots'),
-    one_suspect_gravity: structuralCodes.has('one_suspect_gravity'),
+    structural_invalid: structural.status !== 'ready',
+    playability_blocked: playability.status === 'blocked',
+    roster_unknown_entities: playabilityCodes.has('unknown_roster_entities'),
     early_suspect_collapse: earlyCollapseReasons.length > 0
-      || structuralCodes.has('early_killer_leak')
-      || playabilityCodes.has('suspect_pool_collapses_by_bundle_three'),
-    final_bundle_redundancy: playabilityCodes.has('final_bundle_redundant_confirmation')
-      || structuralCodes.has('final_bundle_redundant_confirmation')
   };
 
   const failReasons = [];
-  if (flags.duplicate_evidence) {
-    failReasons.push('duplicate_evidence_weighting');
-  }
-  if (flags.underused_suspects) {
-    failReasons.push('underused_suspects');
-  }
-  if (flags.one_suspect_gravity) {
-    failReasons.push('one_suspect_gravity');
-  }
   if (flags.early_suspect_collapse) {
     failReasons.push(...(earlyCollapseReasons.length ? earlyCollapseReasons : ['early_suspect_collapse']));
   }
-  if (flags.final_bundle_redundancy) {
-    failReasons.push('final_bundle_redundant_confirmation');
+  if (flags.structural_invalid) {
+    failReasons.push('structural_invalid');
+  }
+  if (flags.playability_blocked) {
+    failReasons.push('playability_blocked');
+  }
+  if (flags.roster_unknown_entities) {
+    failReasons.push('unknown_roster_entities');
   }
 
   return {
@@ -187,9 +178,9 @@ async function main() {
     passed_runs: 0,
     failed_runs: 0,
     issue_counts: {
-      duplicate_evidence_weighting: 0,
-      underused_suspects: 0,
-      one_suspect_gravity: 0,
+      structural_invalid: 0,
+      playability_blocked: 0,
+      unknown_roster_entities: 0,
       early_suspect_collapse: 0,
       final_bundle_redundant_confirmation: 0
     },
@@ -210,20 +201,17 @@ async function main() {
       summary.failed_runs += 1;
     }
 
-    if (runResult.counts.duplicate_evidence) {
-      summary.issue_counts.duplicate_evidence_weighting += 1;
+    if (runResult.counts.structural_invalid) {
+      summary.issue_counts.structural_invalid += 1;
     }
-    if (runResult.counts.underused_suspects) {
-      summary.issue_counts.underused_suspects += 1;
+    if (runResult.counts.playability_blocked) {
+      summary.issue_counts.playability_blocked += 1;
     }
-    if (runResult.counts.one_suspect_gravity) {
-      summary.issue_counts.one_suspect_gravity += 1;
+    if (runResult.counts.roster_unknown_entities) {
+      summary.issue_counts.unknown_roster_entities += 1;
     }
     if (runResult.counts.early_suspect_collapse) {
       summary.issue_counts.early_suspect_collapse += 1;
-    }
-    if (runResult.counts.final_bundle_redundancy) {
-      summary.issue_counts.final_bundle_redundant_confirmation += 1;
     }
 
     for (const reason of runResult.fail_reasons) {

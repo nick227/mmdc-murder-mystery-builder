@@ -134,24 +134,6 @@ async function run() {
       puzzle_bundles: [
         {
           bundle_id: 'puzzle_bundle_001',
-          act: 1,
-          puzzle_type: 'timeline',
-          clue_target: 'The groundskeeper swept the corridor after midnight.'
-        }
-      ],
-      cards: makeContext().cards.map((card) => card.card_id === 's1'
-        ? { ...card, card_contents: 'The groundskeeper swept the corridor after midnight.' }
-        : card)
-    }),
-    /hidden clue must reference a suspect or suspect-linked evidence/
-  );
-
-  await expectFailure(
-    () => bundleStructureValidatorAgent({
-      ...makeContext(),
-      puzzle_bundles: [
-        {
-          bundle_id: 'puzzle_bundle_001',
           act: 2,
           puzzle_type: 'timeline',
           clue_target: 'Max accessed the vault at 11:54 PM.'

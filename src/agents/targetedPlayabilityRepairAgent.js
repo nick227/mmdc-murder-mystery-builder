@@ -4,12 +4,10 @@ import { mergeCardMetadata } from '../utils/cards.js';
 import { buildTargetedPlayabilityRepairPrompt } from '../prompts/targetedPlayabilityRepairPrompt.js';
 
 const ISSUE_SCOPE_MAP = new Map([
-  ['timeline_murder_time_conflict', 'timeline'],
   ['timeline_argument_conflict', 'timeline'],
   ['timeline_argument_end_mismatch', 'timeline'],
   ['unknown_roster_entities', 'roster'],
-  ['encoding_artifacts', 'encoding'],
-  ['final_bundle_too_decisive', 'pacing']
+  ['missing_victim_identity', 'identity']
 ]);
 
 function getRepairScopes(report) {

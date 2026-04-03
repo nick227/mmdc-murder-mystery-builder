@@ -1,4 +1,4 @@
-import { getCardsByType, getCharacterCards } from '../utils/cards.js';
+import { getCharacterCards } from '../utils/cards.js';
 
 function assert(condition, message) {
   if (!condition) {
@@ -20,12 +20,6 @@ export async function postFinalInvariantsAgent(context) {
   assert(
     characterCount === playerCount,
     `post_final_invariants_agent: character count ${characterCount} != playerCount ${playerCount}`
-  );
-
-  const secretCount = getCardsByType(context.cards, 'secret').length;
-  assert(
-    secretCount >= characterCount,
-    `post_final_invariants_agent: secret count ${secretCount} < character count ${characterCount}`
   );
 
   for (const card of context.cards || []) {

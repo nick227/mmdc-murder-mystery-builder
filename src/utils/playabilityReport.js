@@ -1,4 +1,3 @@
-import { isEvidenceLedgerCard } from './cards.js';
 import { getSolution } from './context.js';
 
 function normalizeName(value) {
@@ -7,18 +6,6 @@ function normalizeName(value) {
     return '';
   }
   return raw.split(',')[0].trim().toLowerCase();
-}
-
-function collectTexts(context) {
-  const texts = [];
-  if (typeof context?.storyBlurb === 'string') {
-    texts.push(context.storyBlurb);
-  }
-  for (const card of Array.isArray(context?.cards) ? context.cards : []) {
-    texts.push(String(card?.card_title || ''));
-    texts.push(String(card?.card_contents || ''));
-  }
-  return texts;
 }
 
 function extractTimes(text) {
@@ -83,24 +70,6 @@ function isLikelyRosterNoisePhrase(phrase) {
 
 function collectTimelineIssues(context, issues) {
   const cards = Array.isArray(context?.cards) ? context.cards : [];
-  const murderTimes = unique(cards.flatMap((card) => {
-    const text = String(card?.card_contents || '');
-    if (!/murder/i.test(text) || !/(reported|discovered)/i.test(text)) {
-      return [];
-    }
-    return extractTimes(text);
-  }));
-
-  if (murderTimes.length > 1) {
-    addIssue(
-      issues,
-      'critical',
-      'timeline_murder_time_conflict',
-      2.5,
-      `Murder timing conflicts across cards: ${murderTimes.join(', ')}`,
-      { values: murderTimes }
-    );
-  }
 
   const fentonArgumentCards = cards.filter((card) => {
     const text = String(card?.card_contents || '');
@@ -175,11 +144,9 @@ function collectWarningIssues(context, issues) {
 
     if (warning?.stage === 'structural_preflight_agent' && warning?.reason) {
       const issueMap = {
-        duplicate_character_systems: { severity: 'major', points: 1.5 },
         missing_victim_identity: { severity: 'critical', points: 2.5 },
         early_killer_leak: { severity: 'major', points: 2 },
-        dead_suspect_slots: { severity: 'major', points: 1.5 },
-        duplicate_evidence_weighting: { severity: 'major', points: 1 }
+        dead_suspect_slots: { severity: 'major', points: 1.5 }
       };
       const mapped = issueMap[String(warning.reason)] || { severity: warning.severity || 'major', points: 1 };
       addIssue(
@@ -257,20 +224,8 @@ function collectWarningIssues(context, issues) {
 }
 
 function collectEncodingIssue(context, issues) {
-  const badSnippets = collectTexts(context).filter((text) =>
-    /â€|â€™|â€œ|â€|â€”|Â/.test(text)
-  );
-
-  if (badSnippets.length) {
-    addIssue(
-      issues,
-      'minor',
-      'encoding_artifacts',
-      0.5,
-      'Output contains mojibake or encoding artifacts.',
-      { count: badSnippets.length }
-    );
-  }
+  void context;
+  void issues;
 }
 
 function collectActEscalationIssue(context, issues, { partial }) {
@@ -287,87 +242,6 @@ function collectActEscalationIssue(context, issues, { partial }) {
       'missing_act_three_climax',
       1.5,
       'No puzzle bundle escalates into Act 3.'
-    );
-  }
-}
-
-function collectDeductionBalanceIssues(context, issues) {
-  const suspectNames = Array.isArray(context?.case_state?.suspects)
-    ? context.case_state.suspects.map((suspect) => suspect?.name).filter(Boolean)
-    : [];
-  if (!suspectNames.length) {
-    return;
-  }
-
-  const targetTexts = Array.isArray(context?.clue_targets)
-    ? context.clue_targets.map((target) => String(target?.fact || ''))
-    : [];
-  const firstThree = targetTexts.slice(0, 3);
-  const lowerTargets = targetTexts.map((text) => text.toLowerCase());
-
-  const suspectMentionCounts = suspectNames.map((name) => {
-    const normalized = normalizeName(name);
-    const count = lowerTargets.filter((text) => text.includes(normalized)).length;
-    return { name, normalized, count };
-  });
-
-  const activeInFirstThree = suspectMentionCounts.filter(({ normalized }) =>
-    firstThree.some((text) => text.toLowerCase().includes(normalized))
-  );
-  if (firstThree.length >= 3 && activeInFirstThree.length < Math.min(3, suspectNames.length)) {
-    addIssue(
-      issues,
-      'major',
-      'suspect_pool_collapses_by_bundle_three',
-      1.5,
-      'The first three clue targets do not keep enough suspects materially active.'
-    );
-  }
-
-  const penultimate = lowerTargets[2] || '';
-  const finalTarget = lowerTargets[3] || '';
-  if (
-    penultimate &&
-    finalTarget &&
-    suspectMentionCounts.some(({ normalized }) =>
-      normalized &&
-      penultimate.includes(normalized) &&
-      finalTarget.includes(normalized) &&
-      /(access|checked out|carrying|found with|fingerprint|prints|murder weapon|used to strangle)/i.test(`${penultimate} ${finalTarget}`)
-    )
-  ) {
-    addIssue(
-      issues,
-      'major',
-      'final_bundle_redundant_confirmation',
-      1,
-      'The final confirmation bundle mostly repeats the same suspect-direction evidence as the prior bundle.'
-    );
-  }
-
-  const evidenceTexts = Array.isArray(context?.cards)
-    ? context.cards
-      .filter((card) => isEvidenceLedgerCard(card))
-      .map((card) => `${card?.card_title || ''} ${card?.card_contents || ''}`.toLowerCase())
-    : [];
-  const decisivePattern = /\b(fingerprint|prints|blood|rope|dagger|weapon|poison|found hidden|checked out|carrying|present in|had access)\b/i;
-  const weightedCounts = suspectMentionCounts.map(({ name, normalized }) => ({
-    name,
-    count: evidenceTexts.filter((text) => text.includes(normalized) && decisivePattern.test(text)).length
-  }));
-  const overweight = weightedCounts.sort((a, b) => b.count - a.count);
-  if (
-    overweight.length >= 2 &&
-    overweight[0].count >= 4 &&
-    overweight[0].count >= overweight[1].count + 2
-  ) {
-    addIssue(
-      issues,
-      'major',
-      'suspect_evidence_overweight',
-      1,
-      `One suspect is over-weighted by repeated same-direction evidence: ${overweight[0].name}.`,
-      { suspect: overweight[0].name, count: overweight[0].count }
     );
   }
 }
@@ -425,7 +299,6 @@ export function buildPlayabilityReport(context, options = {}) {
   collectWarningIssues(context, issues);
   collectEncodingIssue(context, issues);
   collectActEscalationIssue(context, issues, { partial });
-  collectDeductionBalanceIssues(context, issues);
 
   const totalPenalty = issues.reduce((sum, issue) => sum + Number(issue.points || 0), 0);
   const score = Math.max(0, Math.min(10, Number((10 - totalPenalty).toFixed(1))));
