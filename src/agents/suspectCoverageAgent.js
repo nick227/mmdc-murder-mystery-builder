@@ -1,4 +1,4 @@
-import { buildSuspectCoverageReport } from '../utils/suspectCoverage.js';
+import { buildSuspectCoverageReport, collectSignalTypes } from '../utils/suspectCoverage.js';
 import { callJson } from '../llm/client.js';
 import { buildCharacterSecretsPrompt } from '../prompts/characterSecretsPrompt.js';
 import { getCharacterCards } from '../utils/cards.js';
@@ -25,16 +25,22 @@ const SECRET_SCHEMA = {
     }
   }
 };
-const MAX_PROFILE_HEAL_ATTEMPTS = 3;
+const MAX_PROFILE_HEAL_ATTEMPTS = 6;
 const MOTIVE_PATTERN = /\b(debt|jealous|blackmail|threat|inheritance|fortune|power|legacy|revenge|fear|expose|silence|desperate|resentment|reputation|career|fame|role|endorsement|criticized|rival|rivalry|ambition|leverage)\b/i;
 
-function validateRegeneratedSecrets(cards, characterName) {
+function validateRegeneratedSecrets(cards, characterName, { requireAccessSignal = false } = {}) {
   const contents = (Array.isArray(cards) ? cards : []).map((card) => String(card?.card_contents || '').trim());
   if (contents.length < 2) {
     throw new Error(`suspect_coverage_agent regenerated too few secrets for ${characterName}`);
   }
   if (!contents.some((text) => MOTIVE_PATTERN.test(text))) {
     throw new Error(`suspect_coverage_agent regenerated secrets still missing explicit motive for ${characterName}`);
+  }
+  if (requireAccessSignal) {
+    const types = collectSignalTypes(contents);
+    if (!types.includes('access')) {
+      throw new Error(`suspect_coverage_agent regenerated secrets still missing access/location hook for ${characterName}`);
+    }
   }
 }
 
@@ -53,7 +59,7 @@ function replaceSecretsForCharacter(context, characterName, cards) {
   ];
 }
 
-async function regenerateSecretsForCharacter(context, targetName, reason) {
+async function regenerateSecretsForCharacter(context, targetName, reason, validateOpts = {}) {
   const character = getCharacterCards(context.cards).find((entry) => String(entry?.card_title || '').split(',')[0].trim() === targetName);
   if (!character?.card_id) {
     return false;
@@ -69,7 +75,7 @@ async function regenerateSecretsForCharacter(context, targetName, reason) {
     schema: SECRET_SCHEMA
   });
 
-  validateRegeneratedSecrets(result.cards || [], targetName);
+  validateRegeneratedSecrets(result.cards || [], targetName, validateOpts);
   replaceSecretsForCharacter(context, String(targetName || '').trim(), result.cards || []);
   context.debug.warning_log.push({
     stage: 'suspect_coverage_agent',
@@ -87,26 +93,46 @@ export async function suspectCoverageAgent(context) {
   let report = null;
   for (let attempt = 1; attempt <= MAX_PROFILE_HEAL_ATTEMPTS; attempt += 1) {
     report = buildSuspectCoverageReport(context);
-    const missingMotive = (Array.isArray(report?.suspect_signals) ? report.suspect_signals : [])
+    const signals = Array.isArray(report?.suspect_signals) ? report.suspect_signals : [];
+
+    const missingMotive = signals
       .filter((entry) => !(Array.isArray(entry?.signal_types) ? entry.signal_types : []).includes('motive'))
       .map((entry) => entry.name)
       .filter(Boolean);
 
-    const needsMotiveCompetition = report.issues.some((issue) => issue.code === 'insufficient_motive_competition');
+    const missingAccess = signals
+      .filter((entry) => !(Array.isArray(entry?.signal_types) ? entry.signal_types : []).includes('access'))
+      .map((entry) => entry.name)
+      .filter(Boolean);
 
-    if (!missingMotive.length && !needsMotiveCompetition) {
+    const needsMotiveCompetition = report.issues.some((issue) => issue.code === 'insufficient_motive_competition');
+    const needsAccessCompetition = report.issues.some((issue) => issue.code === 'insufficient_access_competition');
+
+    if (!missingMotive.length && !needsMotiveCompetition && !missingAccess.length && !needsAccessCompetition) {
       break;
     }
 
-    const targetName = missingMotive[0]
-      || (Array.isArray(report?.required_early_suspects) ? report.required_early_suspects[0] : '')
-      || '';
-    const healed = await regenerateSecretsForCharacter(
-      context,
-      targetName,
-      `Add a concrete motive for ${targetName}. The secrets must state plainly why this suspect wanted the victim silenced or the treasure stolen/controlled.`
-    );
-    if (!healed || attempt >= MAX_PROFILE_HEAL_ATTEMPTS) {
+    let targetName = '';
+    let reason = '';
+    let validateOpts = {};
+
+    if (missingMotive.length || needsMotiveCompetition) {
+      targetName =
+        missingMotive[0] || (Array.isArray(report?.required_early_suspects) ? report.required_early_suspects[0] : '') || '';
+      reason = `Add a concrete motive for ${targetName}. The secrets must state plainly why this suspect wanted the victim silenced or the treasure stolen/controlled.`;
+    } else {
+      targetName =
+        missingAccess[0] || (Array.isArray(report?.required_early_suspects) ? report.required_early_suspects[0] : '') || '';
+      validateOpts = { requireAccessSignal: true };
+      reason = `Rewrite both secrets for ${targetName}: keep one with an explicit motive; the other must give concrete physical access (named door, key, route, room, corridor, study, vault, or backstage area) tied to the crime window. Use clear words such as key, door, corridor, or access.`;
+    }
+
+    if (!targetName) {
+      break;
+    }
+
+    const healed = await regenerateSecretsForCharacter(context, targetName, reason, validateOpts);
+    if (!healed) {
       break;
     }
   }

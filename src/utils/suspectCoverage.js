@@ -47,7 +47,8 @@ function getNarrativeTextsForName(name, narratives) {
 
 const SIGNAL_PATTERNS = {
   motive: /\b(debt|jealous|blackmail|threat|inheritance|fortune|power|legacy|revenge|fear|expose|silence|desperate|resentment|reputation|career|fame|role|endorsement|criticized|rivalry)\b/i,
-  access: /\b(access|key|backstage|cellar|study|vault|alcove|garden|room|entry|prop|storage|route|passage)\b/i,
+  access:
+    /\b(access|key|keys|backstage|cellar|study|vault|alcove|garden|room|entry|entries|door|doors|gate|gates|prop|storage|route|passage|corridor|hallway|foyer|lobby|wing|dock|pier|stairs|stairwell|ladder|tunnel|elevator|loading|quarters)\b/i,
   movement: /\b(moving|arrived|left|walked|crossed|approached|departed|whereabouts|route|entering|entered|slipping|slipped)\b/i,
   location: /\b(near|at|inside|outside|beside|within|through|around|alcove|maze|amphitheater|stage|garden)\b/i,
   object: /\b(rope|dagger|poison|weapon|scarf|quill|blood|fingerprint|print|ledger|letter|glove|key)\b/i,
@@ -56,7 +57,7 @@ const SIGNAL_PATTERNS = {
   contradiction: /\b(contradict|claims|despite|though|however|alibi|elsewhere|denied|inconsistent)\b/i
 };
 
-function collectSignalTypes(texts = []) {
+export function collectSignalTypes(texts = []) {
   const types = new Set();
   for (const text of texts) {
     const value = String(text || '');
