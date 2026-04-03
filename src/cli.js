@@ -101,7 +101,7 @@ function inferResumeStep(context) {
   if (!hasCardType(context, 'story_clue')) {
     return 'clue_agent';
   }
-  return 'post_clue_dedup_agent';
+  return null;
 }
 
 function printPlayabilityReport(report) {
@@ -157,6 +157,11 @@ async function main() {
       const sourceDir = path.dirname(sourcePath);
       const context = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
       const resumedStep = overrideStep || inferResumeStep(context);
+      if (!resumedStep) {
+        console.log('Run appears complete.');
+        console.log('Nothing to resume.');
+        return;
+      }
       const stepIndex = steps.findIndex((step) => step.name === resumedStep);
       if (stepIndex < 0) {
         throw new Error(`Unknown step for --step: ${resumedStep}`);
@@ -173,7 +178,7 @@ async function main() {
 
       console.log('────────────────────────────────────────');
       console.log('Resuming Murder Mystery Build');
-      console.log('From :', sourcePath);
+      console.log('File :', sourcePath);
       console.log('Step :', resumedStep);
       console.log('Output :', sourceDir);
       console.log('────────────────────────────────────────');
