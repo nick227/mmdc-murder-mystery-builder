@@ -20,6 +20,12 @@ Output is a structured, solvable mystery ready for play. The default pipeline is
 node src/cli.js start "Shady motel party murder with a missing fortune" 4
 ```
 
+On Windows, `npm start` runs the CLI with **`SMOKE_MODE` cleared** (real OpenAI), then prompts for story text, player count, and style:
+
+```bash
+npm start
+```
+
 Arguments:
 
 ```
@@ -31,6 +37,8 @@ Example:
 ```bash
 node src/cli.js start "Luxury yacht murder during a storm" 5
 ```
+
+Use `npm run smoke` for a deterministic pipeline smoke test (mock LLM).
 
 Output:
 
@@ -56,14 +64,18 @@ core_truth_validator_agent
 case_state_builder_agent
 ```
 
-**Clues, puzzles, bundles**
+**Clues, targets, puzzles, bundles**
 
 ```
 item_agent
 clue_agent
+clue_roster_validator_agent
+clue_target_agent
 puzzle_agent
+puzzle_draft_canon_validator_agent
 bundle_finalize_agent
 puzzle_evidence_agent
+bundle_visible_canon_validator_agent
 bundle_linker_agent
 structural_preflight_agent
 ```
@@ -78,7 +90,7 @@ bundle_integrity_validator_agent
 mvp_quality_gate_agent
 ```
 
-Extra agent modules under `src/agents/` (e.g. final editor, playability repair) are **not** wired into this pipeline unless you add them back in `steps/index.js`.
+That is **23 steps** total, in order. Extra agent modules under `src/agents/` (e.g. final editor, playability repair) are **not** wired in unless you register them in `steps/index.js`.
 
 ---
 
@@ -94,7 +106,18 @@ Competing suspect narratives help keep multiple readings open until late game.
 
 ### Puzzle-Supported Clues
 
-Clues reinforce puzzles. Puzzles gate additional deduction where bundles are used.
+Clues reinforce puzzles. Puzzles gate additional deduction where bundles are used. **`clue_target_agent`** derives frozen puzzle answer facts from murder clue cards; **`bundle_finalize_agent`** stamps each bundle’s hidden **solution** text to that fact so metadata and cards stay aligned.
+
+### Canonical murder facts (drift control)
+
+`coreTruth.murder` is authoritative for **killer**, **victim**, and **location** (exact strings). Later steps must not swap identities arbitrarily:
+
+* **clue_roster_validator_agent** — every murder clue’s `suspect_name` matches a playable suspect (`baseName` roster) **or** the canonical victim when the clue centers on the deceased.
+* **puzzle_draft_canon_validator_agent** / **bundle_visible_canon_validator_agent** — puzzle bundle evidence and puzzle card text (before/after evidence expansion) must contain the **exact** victim and location substrings from `coreTruth`.
+* **bundle_structure_validator_agent** — bundle shape, acts, types, clue-target vs hidden solution match, and **no** wrong playable suspect named on bundle solution cards vs canonical killer.
+* **`puzzle_evidence_agent`** only rewrites visible bundle evidence; it does not modify hidden solution cards.
+
+Deterministic checks are skipped when **`SMOKE_MODE=true`**.
 
 ### Late Killer Reveal
 
@@ -162,14 +185,19 @@ Puzzle bundle cards may also include `bundle_id`, `card_ref`, `hidden_until_solv
 
 # Validators (safety rails)
 
-The shipped pipeline relies on **structural and identity checks**, not heuristic “story polish”:
+The shipped pipeline relies on **structural and identity checks**, plus **canonical string** checks for victim/location in bundles. It does not rely on heuristic “story polish” for correctness.
 
-* **core_truth_validator_agent** — killer/victim/playable roster consistency
+* **core_truth_validator_agent** — killer/victim/playable roster consistency (deterministic issues)
+* **clue_roster_validator_agent** — murder clue `suspect_name` ∈ roster or canonical victim
+* **puzzle_draft_canon_validator_agent** — puzzle drafts reference exact victim + location
+* **bundle_visible_canon_validator_agent** — same after **puzzle_evidence_agent**
 * **structural_preflight_agent** — e.g. victim named, duplicate person/character overlap
-* **solvability_validator_agent** — LLM-assisted solvability check (and optional repair when allowed)
-* **bundle_structure_validator_agent** / **bundle_integrity_validator_agent** — bundle shape, refs, and unlock wiring
+* **solvability_validator_agent** — LLM-assisted solvability judgment; **LLM repair is skipped** when puzzle bundle cards are present so stamped bundle text is not wholesale-replaced
+* **bundle_structure_validator_agent** / **bundle_integrity_validator_agent** — bundle shape, refs, unlock wiring, solution vs `puzzle_bundles[].clue_target`
 * **post_final_invariants_agent** — counts, resolved refs, no placeholder difficulty
 * **mvp_quality_gate_agent** — final quality gate from persisted reports
+
+**LLM HTTP errors:** transient OpenAI **5xx** / **`server_error`** responses are retried per step with backoff (see `src/queue/Worker.js`).
 
 ---
 
@@ -192,7 +220,7 @@ src/
   agents/
   prompts/
   schemas/
-  utils/
+  utils/          # includes canonFacts.js, canonValidate.js, caseState, cards, etc.
   pipeline/
   llm/
   queue/
