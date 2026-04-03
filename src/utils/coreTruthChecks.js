@@ -1,6 +1,22 @@
 import { getCharacterCards } from './cards.js';
 
-const NON_PERSON_VICTIM_PATTERNS = /\b(statue|bust|portrait|effigy|idol|artifact|relic|object|prop|quill|folio|ring|locket|mask|scroll|jewel|ruby)\b/i;
+/** Weak heuristic only — never blocks; logs a warning (many false positives, e.g. person surnames). */
+const NON_PERSON_VICTIM_HEURISTIC = /\b(statue|bust|portrait|effigy|idol|artifact|relic|object|prop|quill|folio|ring|locket|mask|scroll|jewel|ruby)\b/i;
+
+function warnVictimObjectHeuristic(victim, context) {
+  if (!NON_PERSON_VICTIM_HEURISTIC.test(String(victim || ''))) {
+    return;
+  }
+  context.debug ??= {};
+  context.debug.warning_log ??= [];
+  context.debug.warning_log.push({
+    stage: 'core_truth_checks',
+    code: 'victim_name_object_prop_heuristic',
+    message:
+      `Victim name "${victim}" matched a weak object/prop word list; confirm murder.victim is a person, not an artifact nickname edge case.`,
+    severity: 'warning'
+  });
+}
 
 function normalizeText(value) {
   return String(value || '')
@@ -145,9 +161,7 @@ export function validateVictimType(coreTruth, context, playableCharacters = getP
   if (!victim) {
     return 'invalid_victim_type: victim must be an explicitly named person';
   }
-  if (NON_PERSON_VICTIM_PATTERNS.test(victim)) {
-    return `invalid_victim_type: victim "${victim}" is an object/prop, not a person`;
-  }
+  warnVictimObjectHeuristic(victim, context);
   if (playableCharacters.some((character) => normalizeText(character.name) === normalizedVictim)) {
     return `invalid_victim_type: victim "${victim}" is a playable suspect`;
   }
