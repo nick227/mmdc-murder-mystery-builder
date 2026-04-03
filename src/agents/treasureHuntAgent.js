@@ -3,7 +3,6 @@ import { getCardsByType, pushCards } from '../utils/cards.js';
 import { getStoryBlurb } from '../utils/context.js';
 import { treasureHuntResponseSchema } from '../schemas/treasureHuntSchema.js';
 
-const SMOKE = process.env.SMOKE_MODE === 'true';
 const BREADCRUMB_ACTS = [1, 2, 2, 3];
 const CLUE_WEIGHTS = ['low', 'mid', 'high', 'mid'];
 
@@ -19,40 +18,6 @@ function textLeaksHidingPlace(text, hidingPlace) {
   const h = normalizeLoose(hidingPlace);
   const t = normalizeLoose(text);
   return h.length >= 4 && t.includes(h);
-}
-
-function smokeBreadcrumbs(locations, treasure) {
-  const titles = locations.map((l) => String(l?.card_title || '').trim()).filter(Boolean);
-  const a = titles[0] || 'the main hall';
-  const b = titles[1] || titles[0] || 'the east gallery';
-  const c = titles[2] || titles[0] || 'the service passage';
-  const obj = String(treasure?.object || 'the prize').trim();
-  const objBody = String(treasure?.treasure_solution || `The ${obj}: the physical treasure everyone is hunting.`).trim();
-
-  return {
-    breadcrumbs: [
-      {
-        card_title: 'Whispers about a hiding spot',
-        card_contents: `Guests mention odd drafts and old storage habits near ${a}, nothing concrete yet.`
-      },
-      {
-        card_title: 'Physical tell',
-        card_contents: `Scuff marks and disturbed dust patterns point toward routes connecting ${a} and ${b}.`
-      },
-      {
-        card_title: 'Structural detail',
-        card_contents: `Paneling near ${b} sounds hollow; staff recall rarely opened compartments in that corner.`
-      },
-      {
-        card_title: 'Almost there',
-        card_contents: `The trail tightens: combine the hollow panel clue with the quieter wing around ${c}; the cache sits in plain sight once you look with fresh eyes.`
-      }
-    ],
-    treasure_object: {
-      card_title: obj,
-      card_contents: objBody
-    }
-  };
 }
 
 function buildPrompt({ storyBlurb, treasure, locationTitles, hidingPlace }) {
@@ -98,13 +63,11 @@ export async function treasureHuntAgent(context) {
   }
 
   const storyBlurb = getStoryBlurb(context);
-  const parsed = SMOKE
-    ? smokeBreadcrumbs(locations, treasure)
-    : await callJson({
-      ...buildPrompt({ storyBlurb, treasure, locationTitles, hidingPlace }),
-      schemaName: 'treasure_hunt',
-      schema: treasureHuntResponseSchema
-    });
+  const parsed = await callJson({
+    ...buildPrompt({ storyBlurb, treasure, locationTitles, hidingPlace }),
+    schemaName: 'treasure_hunt',
+    schema: treasureHuntResponseSchema
+  });
 
   const crumbs = Array.isArray(parsed?.breadcrumbs) ? parsed.breadcrumbs : [];
   if (crumbs.length !== 4) {

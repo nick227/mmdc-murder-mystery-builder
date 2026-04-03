@@ -117,6 +117,9 @@ function fakeSmokeResponse(opts) {
   if (schemaName === 'puzzle_bundle') {
     return fakeSmokePuzzleBundle(opts);
   }
+  if (schemaName === 'treasure_hunt') {
+    return fakeSmokeTreasureHunt(opts);
+  }
   return null;
 }
 
@@ -189,6 +192,28 @@ function fakeSmokeClueTargets(opts) {
         difficulty_hint: 'hard'
       }
     ]
+  };
+}
+
+/** Generic breadcrumbs only — must not echo hiding_place (validated in treasure_hunt_agent). */
+function fakeSmokeTreasureHunt(opts) {
+  const user = String(opts?.user || '');
+  const objLine = user.match(/object:\s*([^\n]+)/i);
+  const solLine = user.match(/treasure_solution:\s*([^\n]+)/i);
+  const title = String(objLine?.[1] || 'Smoke treasure').trim();
+  const contents = String(solLine?.[1] || `The physical ${title}.`).trim();
+
+  return {
+    breadcrumbs: [
+      { card_title: 'Smoke breadcrumb 1', card_contents: 'Guests trade rumors about valuables and odd storage habits.' },
+      { card_title: 'Smoke breadcrumb 2', card_contents: 'Scuff patterns suggest movement between two main wings.' },
+      { card_title: 'Smoke breadcrumb 3', card_contents: 'A hollow sound suggests a seldom-opened compartment.' },
+      { card_title: 'Smoke breadcrumb 4', card_contents: 'The trail points to a quieter zone; look for disturbed dust.' }
+    ],
+    treasure_object: {
+      card_title: title,
+      card_contents: contents
+    }
   };
 }
 
