@@ -25,6 +25,15 @@ export function getCanonicalMurderStrings(coreTruth) {
   };
 }
 
+/** Structured murder location + victim for cards (from coreTruth only — not model-generated). */
+export function getMurderCanonRef(coreTruth) {
+  const { victim, location } = getCanonicalMurderStrings(coreTruth);
+  return {
+    victim: String(victim || '').trim(),
+    location: String(location || '').trim()
+  };
+}
+
 export function getCanonicalSuspectBaseNameSet(context) {
   const set = new Set();
   const suspects = Array.isArray(context?.case_state?.suspects) ? context.case_state.suspects : [];

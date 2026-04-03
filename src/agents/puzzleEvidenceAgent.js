@@ -1,7 +1,7 @@
 import { callJson } from '../llm/client.js';
 import { buildPuzzleEvidencePrompt } from '../prompts/puzzleEvidencePrompt.js';
 import { getStoryBlurb } from '../utils/context.js';
-import { sanitizeBundleCardContents } from '../utils/clueTextSanitize.js';
+import { truncateBundleCardContents } from '../utils/clueTextSanitize.js';
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -120,11 +120,11 @@ export async function puzzleEvidenceAgent(context) {
     }
   }
 
-  context.cards = sanitizeBundlePlayerFacingCards(nextCards);
+  context.cards = truncateBundlePlayerFacingCards(nextCards);
   return context;
 }
 
-function sanitizeBundlePlayerFacingCards(cards) {
+function truncateBundlePlayerFacingCards(cards) {
   return (Array.isArray(cards) ? cards : []).map((card) => {
     if (!card?.bundle_id) {
       return card;
@@ -132,13 +132,13 @@ function sanitizeBundlePlayerFacingCards(cards) {
     if (card.card_type === 'clue' && card.hidden_until_solved !== true) {
       return {
         ...card,
-        card_contents: sanitizeBundleCardContents(card.card_contents, 'clue')
+        card_contents: truncateBundleCardContents(card.card_contents, 'clue')
       };
     }
     if (card.card_type === 'puzzle') {
       return {
         ...card,
-        card_contents: sanitizeBundleCardContents(card.card_contents, 'puzzle')
+        card_contents: truncateBundleCardContents(card.card_contents, 'puzzle')
       };
     }
     return card;

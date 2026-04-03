@@ -1,19 +1,8 @@
-/** Player-facing bundle text: no internal canon labels; tight word limits. */
+/** Player-facing bundle text: tight word limits (murder canon lives in murder_canon, not prose). */
 
 export const MAX_BUNDLE_EVIDENCE_WORDS = 100;
 export const MAX_BUNDLE_PUZZLE_WORDS = 100;
 export const MAX_STANDALONE_CLUE_WORDS = 100;
-
-/** Remove internal labels only; keep the victim/location text so canon substring checks still pass. */
-export function stripCanonicalMetaLines(text) {
-  const lines = String(text || '').split(/\r?\n/);
-  const out = lines.map((line) =>
-    String(line)
-      .replace(/^\s*Canonical\s+victim\s*:\s*/i, '')
-      .replace(/^\s*Canonical\s+location\s*:\s*/i, '')
-  );
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
-}
 
 export function truncateToWordCount(text, maxWords) {
   const n = Math.max(1, Number(maxWords) || 100);
@@ -27,10 +16,8 @@ export function truncateToWordCount(text, maxWords) {
 /**
  * Evidence + puzzle cards in puzzle bundles (player-visible).
  */
-export function sanitizeBundleCardContents(cardContents, cardType) {
-  let t = stripCanonicalMetaLines(cardContents);
+export function truncateBundleCardContents(cardContents, cardType) {
   const max =
     cardType === 'puzzle' ? MAX_BUNDLE_PUZZLE_WORDS : MAX_BUNDLE_EVIDENCE_WORDS;
-  t = truncateToWordCount(t, max);
-  return t;
+  return truncateToWordCount(cardContents, max);
 }

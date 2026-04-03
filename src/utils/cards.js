@@ -124,6 +124,9 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (card?.meta !== undefined || previous.meta !== undefined) {
       merged.meta = card?.meta ?? previous.meta;
     }
+    if (card?.murder_canon !== undefined || previous.murder_canon !== undefined) {
+      merged.murder_canon = card?.murder_canon ?? previous.murder_canon;
+    }
 
     return merged;
   });
@@ -241,6 +244,9 @@ export function pushCards(context, type, entries) {
     }
     if (e.meta !== undefined) {
       card.meta = e.meta;
+    }
+    if (e.murder_canon !== undefined) {
+      card.murder_canon = e.murder_canon;
     }
 
     return card;

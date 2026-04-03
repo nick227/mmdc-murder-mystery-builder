@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
 import { pushCards } from '../utils/cards.js';
+import { getMurderCanonRef } from '../utils/canonFacts.js';
 import { FACT_BINDING_ORDER, isAllowedFactBinding } from '../utils/truthTrailReachability.js';
 
 const VALID_ACTS = new Set([1, 2, 3]);
@@ -81,7 +82,7 @@ function toInternalCards(rawCards, bundleIndex, frozenSolutionFact, factBinding)
   return [...evidenceCards, solutionCard, puzzleCard];
 }
 
-export function flattenBundle(bundleDraft, index, externalRefToId = new Map()) {
+export function flattenBundle(bundleDraft, index, externalRefToId = new Map(), murderCanonRef = null) {
   const bundleId = String(bundleDraft?.bundle_id || '').trim() || `puzzle_bundle_${String(index + 1).padStart(3, '0')}`;
   const clueTarget = bundleDraft?.clue_target || null;
   const puzzleType = String(
@@ -118,6 +119,9 @@ export function flattenBundle(bundleDraft, index, externalRefToId = new Map()) {
     };
     if (card.meta && typeof card.meta === 'object') {
       base.meta = card.meta;
+    }
+    if (murderCanonRef && typeof murderCanonRef === 'object') {
+      base.murder_canon = { ...murderCanonRef };
     }
     return base;
   });
@@ -158,9 +162,10 @@ export async function bundleFinalizeAgent(context) {
 
   const bundles = [];
   const knownRefToId = new Map();
+  const murderCanonRef = getMurderCanonRef(context.coreTruth);
 
   for (let index = 0; index < drafts.length; index += 1) {
-    const bundle = flattenBundle(drafts[index], index, knownRefToId);
+    const bundle = flattenBundle(drafts[index], index, knownRefToId, murderCanonRef);
     bundles.push(bundle);
     for (const card of bundle.cards) {
       if (card?.card_ref) {

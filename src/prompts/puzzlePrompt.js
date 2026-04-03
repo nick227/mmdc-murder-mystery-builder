@@ -84,15 +84,14 @@ Make one ${puzzleType} puzzle bundle for this story:
 
 ${storyBlurb}
 
-<<<CANON_VICTIM>>>
-${String(canonicalVictim || '').trim()}
-<<<CANON_LOCATION>>>
-${String(canonicalLocation || '').trim()}
+Story reference (victim and scene — weave into in-world prose if natural; do not paste as labeled headers):
+Victim: ${String(canonicalVictim || '').trim()}
+Location: ${String(canonicalLocation || '').trim()}
 
-Every evidence seed card and the puzzle card must include the victim string and the location string above as plain substrings somewhere in the natural in-world text.
+The pipeline attaches structured murder_canon (victim + location) to cards after you respond — you must NOT output a murder_canon field and must NOT use internal labels like "Canonical victim:" or "Canonical location:" in card text.
 
 Player-facing rules (critical):
-- Do NOT use labels like "Canonical victim:", "Canonical location:", "Victim:", "READ-ONLY", or any internal/meta header. Write only what characters would read in-world (logs, maps, questions).
+- Write only what characters would read in-world (logs, maps, questions).
 - Evidence seeds: short stubs only (each card_contents under ~80 words); they will be expanded later.
 
 Target clue fact: ${String(clueTarget?.fact || '').trim()}

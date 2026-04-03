@@ -4,11 +4,8 @@ import { buildCluesPrompt } from '../prompts/cluesPrompt.js';
 import { cluesArraySchema } from '../schemas/clueSchema.js';
 import { getCardsByType, getCharacterCards } from '../utils/cards.js';
 import { getStoryBlurb, getStoryMetaForPrompts } from '../utils/context.js';
-import {
-  stripCanonicalMetaLines,
-  truncateToWordCount,
-  MAX_STANDALONE_CLUE_WORDS
-} from '../utils/clueTextSanitize.js';
+import { truncateToWordCount, MAX_STANDALONE_CLUE_WORDS } from '../utils/clueTextSanitize.js';
+import { getMurderCanonRef } from '../utils/canonFacts.js';
 
 const DEFAULT_CLUES_PER_PLAYER = 3;
 const SMOKE = process.env.SMOKE_MODE === 'true';
@@ -55,14 +52,13 @@ export async function clueAgent(context, options = {}) {
     throw new Error(`clue_agent produced ${clues.length} clues; expected at least ${totalClues}`);
   }
 
+  const murderCanon = getMurderCanonRef(context.coreTruth);
   const cards = clues.slice(0, totalClues).map((clue) => ({
     card_id: crypto.randomUUID(),
     card_type: 'clue',
     card_title: clue.card_title,
-    card_contents: truncateToWordCount(
-      stripCanonicalMetaLines(clue.card_contents),
-      MAX_STANDALONE_CLUE_WORDS
-    ),
+    murder_canon: { ...murderCanon },
+    card_contents: truncateToWordCount(clue.card_contents, MAX_STANDALONE_CLUE_WORDS),
     clue_type: clue.clue_type,
     suspect_name: clue.suspect_name,
     clue_weight: clue.clue_weight

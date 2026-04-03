@@ -179,6 +179,14 @@ function fakeSmokePuzzleBundle(opts) {
   const targetFact = String(targetFactMatch?.[1] || 'A smoke clue fact.').trim();
   let canonVictim = 'Morgan Ashcroft';
   let canonLocation = 'Smoke Test Ballroom';
+  const vm = user.match(/Victim:\s*([^\n\r]+)/i);
+  const lm = user.match(/Location:\s*([^\n\r]+)/i);
+  if (vm) {
+    canonVictim = vm[1].trim();
+  }
+  if (lm) {
+    canonLocation = lm[1].trim();
+  }
   const vParts = user.split('<<<CANON_VICTIM>>>');
   if (vParts.length > 1) {
     const rest = vParts[1].split('<<<CANON_LOCATION>>>');

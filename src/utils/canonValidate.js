@@ -1,5 +1,5 @@
 import { baseName, suspectRosterKey } from './coreTruthChecks.js';
-import { getCanonicalMurderStrings, getCanonicalSuspectBaseNameSet } from './canonFacts.js';
+import { getCanonicalMurderStrings, getCanonicalSuspectBaseNameSet, getMurderCanonRef } from './canonFacts.js';
 
 export function assertMurderClueSuspectNames(context) {
   const roster = getCanonicalSuspectBaseNameSet(context);
@@ -41,39 +41,47 @@ export function assertMurderClueSuspectNames(context) {
   }
 }
 
-function draftVisibleBlob(draft) {
-  const cards = Array.isArray(draft?.cards) ? draft.cards : [];
-  const parts = [];
-  for (const c of cards) {
-    if (c?.card_type === 'solution') {
-      continue;
-    }
-    parts.push(String(c?.card_title || ''), String(c?.card_contents || ''));
+function murderCanonMatchesCard(card, expected) {
+  const mc = card?.murder_canon;
+  if (!mc || typeof mc !== 'object') {
+    return false;
   }
-  return parts.join('\n');
+  return (
+    String(mc.victim || '').trim() === expected.victim
+    && String(mc.location || '').trim() === expected.location
+  );
 }
 
 export function assertPuzzleDraftsMurderCanon(context) {
-  const { victim, location } = getCanonicalMurderStrings(context.coreTruth);
-  if (!victim || !location) {
+  const expected = getMurderCanonRef(context.coreTruth);
+  if (!expected.victim || !expected.location) {
     throw new Error('canon_validate: coreTruth.murder victim or location is empty');
   }
 
   const drafts = context.puzzle_bundle_drafts || [];
-  for (let i = 0; i < drafts.length; i++) {
-    const blob = draftVisibleBlob(drafts[i]);
-    if (!blob.includes(victim)) {
-      throw new Error(`canon_validate: puzzle draft ${i + 1} is missing the exact victim string from coreTruth`);
-    }
-    if (!blob.includes(location)) {
-      throw new Error(`canon_validate: puzzle draft ${i + 1} is missing the exact location string from coreTruth`);
+  for (let i = 0; i < drafts.length; i += 1) {
+    const cards = Array.isArray(drafts[i]?.cards) ? drafts[i].cards : [];
+    for (let j = 0; j < cards.length; j += 1) {
+      const c = cards[j];
+      const t = String(c?.card_type || '').trim();
+      if (t === 'solution') {
+        continue;
+      }
+      if (t !== 'evidence' && t !== 'puzzle') {
+        continue;
+      }
+      if (!murderCanonMatchesCard(c, expected)) {
+        throw new Error(
+          `canon_validate: puzzle draft ${i + 1} card ${j + 1} (${t}) missing or invalid murder_canon (expected victim + location from coreTruth)`
+        );
+      }
     }
   }
 }
 
 export function assertBundleVisibleMurderCanon(context) {
-  const { victim, location } = getCanonicalMurderStrings(context.coreTruth);
-  if (!victim || !location) {
+  const expected = getMurderCanonRef(context.coreTruth);
+  if (!expected.victim || !expected.location) {
     throw new Error('canon_validate: coreTruth.murder victim or location is empty');
   }
 
@@ -87,16 +95,12 @@ export function assertBundleVisibleMurderCanon(context) {
       && c?.hidden_until_solved !== true
     );
     const puzzles = bundleCards.filter((c) => c?.card_type === 'puzzle');
-    const parts = [];
     for (const c of [...visibleEvidence, ...puzzles]) {
-      parts.push(String(c?.card_title || ''), String(c?.card_contents || ''));
-    }
-    const blob = parts.join('\n');
-    if (!blob.includes(victim)) {
-      throw new Error(`canon_validate: bundle ${bundleId} visible evidence/puzzle text is missing the exact victim string`);
-    }
-    if (!blob.includes(location)) {
-      throw new Error(`canon_validate: bundle ${bundleId} visible evidence/puzzle text is missing the exact location string`);
+      if (!murderCanonMatchesCard(c, expected)) {
+        throw new Error(
+          `canon_validate: bundle ${bundleId} card ${c?.card_type} ${c?.card_id || ''} missing or invalid murder_canon`
+        );
+      }
     }
   }
 }

@@ -58,11 +58,11 @@ ${storyMeta || '(none)'}
 HIDDEN murder truth (NEVER REVEAL THESE TO THE PLAYERS):
 ${formatMurderTruthForClues(coreTruth)}
 
-READ-ONLY canonical strings (use these exact substrings when naming the victim or crime scene; do not rename):
+Victim and crime scene names (use consistently in story; exact strings are also stored on each card as murder_canon by the pipeline — do not print that field or meta labels into card_contents):
 Victim: ${canonVictim}
 Location: ${canonLocation}
 
-Playable suspect base names for suspect_name (must match one base name exactly, OR the exact Victim line above when the clue centers on the deceased):
+Playable suspect base names for suspect_name (must match one base name exactly, OR the victim display name when the clue centers on the deceased):
 ${rosterBases || '(derive from Suspects list titles)'}
 
 Suspects:
@@ -82,7 +82,7 @@ Rules:
 - card_title, card_contents, clue_type, suspect_name, clue_weight
 - (clue_type must be exactly artifact, fact, or derived)
 - Do not make these clues about the treasure hunt or inheritance object; focus on the murder.
-- Each card_contents: under 100 words, in-world voice only — never prefix with "Canonical victim:", "Victim:", or other internal/meta labels.
+- Each card_contents: under 100 words, in-world voice only — no "Canonical victim:", "Victim:", or internal headers.
 
 `.trim()
   };
