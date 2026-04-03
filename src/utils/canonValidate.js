@@ -35,9 +35,15 @@ export function assertMurderClueSuspectNames(context) {
     if (victim && (sn === victim || b === victimNorm || key === victimKey)) {
       continue;
     }
-    throw new Error(
-      `canon_validate: suspect_name "${sn}" (base "${b}") is not in the playable roster or canonical victim`
-    );
+    
+    // Downgrade to warning: extra NPCs/red herrings are allowed.
+    context.debug ??= {};
+    context.debug.warning_log ??= [];
+    context.debug.warning_log.push({
+      stage: 'canon_validate',
+      reason: 'off_roster_suspect_name',
+      message: `suspect_name "${sn}" (base "${b}") is not in the playable roster or canonical victim`
+    });
   }
 }
 
