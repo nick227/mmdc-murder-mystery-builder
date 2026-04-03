@@ -155,6 +155,18 @@ function victimNamedInCanon(context, normalizedVictim) {
   return Boolean(corpus && corpus.includes(normalizedVictim));
 }
 
+function warnVictimNotRecognizedInCanon(victim, context) {
+  context.debug ??= {};
+  context.debug.warning_log ??= [];
+  context.debug.warning_log.push({
+    stage: 'core_truth_checks',
+    code: 'victim_not_in_structured_or_canon_text',
+    message:
+      `Victim "${victim}" is not in structured people lists and was not found verbatim in normalized world/concept/host copy; confirm spelling matches story text.`,
+    severity: 'warning'
+  });
+}
+
 export function validateVictimType(coreTruth, context, playableCharacters = getPlayableCharacters(context)) {
   const victim = baseName(coreTruth?.murder?.victim);
   const normalizedVictim = normalizeText(victim);
@@ -171,7 +183,7 @@ export function validateVictimType(coreTruth, context, playableCharacters = getP
   }
   const knownPeople = getKnownPeople(context);
   if (knownPeople.size && !knownPeople.has(normalizedVictim) && !victimNamedInCanon(context, normalizedVictim)) {
-    return `invalid_victim_type: victim "${victim}" is not recognized as a world/story person`;
+    warnVictimNotRecognizedInCanon(victim, context);
   }
   return null;
 }
