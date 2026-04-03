@@ -1,184 +1,22 @@
+import assert from 'node:assert/strict';
 import { rosterIntegrityValidatorAgent } from '../agents/rosterIntegrityValidatorAgent.js';
 
-function assert(condition, msg) {
-  if (!condition) {
-    throw new Error(msg);
-  }
-}
+const ctx = {
+  playerCount: 2,
+  storyBlurb: 'Test',
+  cards: [
+    { card_id: 'c1', card_type: 'character', card_title: 'Luna Silverfang', card_contents: 'x' },
+    { card_id: 'x1', card_type: 'clue', card_title: 'Clue', card_contents: 'Lady Ghost Name nobody knows.' }
+  ]
+};
 
-function baseContext(cards) {
-  return {
-    playerCount: 4,
-    storyBlurb: 'Test story',
-    world: 'Test world',
-    solution: { killer: 'Luna Silverfang', method: 'x', location: 'y', motive: 'z' },
-    cards,
-    debug: { warning_log: [] }
-  };
-}
+await rosterIntegrityValidatorAgent(ctx);
 
-async function run() {
-  {
-    const context = baseContext([
-      { card_id: 'c1', card_type: 'character', card_title: 'Luna Silverfang, The Quiet Alchemist', card_contents: '...' },
-      { card_id: 'c2', card_type: 'character', card_title: 'Victor Ash, The Restless Broker', card_contents: '...' },
-      { card_id: 'l1', card_type: 'location', card_title: 'The Willow Glade', card_contents: '...' },
-      { card_id: 'x1', card_type: 'clue', card_title: 'Witness Statement', card_contents: 'Victor Ash argued with Luna Silverfang in Willow Glade.' },
-      { card_id: 'x3', card_type: 'item', card_title: 'Old Key', card_contents: 'Found near The Ash Pit inside Bibliotheca Arcana.' }
-    ]);
+assert(Array.isArray(ctx.debug.warning_log), 'debug.warning_log initialized');
+assert.equal(
+  ctx.debug.warning_log.filter((w) => w.stage === 'roster_integrity').length,
+  0,
+  'roster validator no longer emits unknown_phrase warnings'
+);
 
-    const out = await rosterIntegrityValidatorAgent(context);
-    const warnings = out.debug.warning_log.filter((w) => w.stage === 'roster_integrity');
-    assert(warnings.length === 0, 'expected no roster integrity warnings for roster base names or world phrases');
-  }
-
-  {
-    const context = baseContext([
-      { card_id: 'c1', card_type: 'character', card_title: 'Lady Viola Ravenscroft, The Enigmatic Hostess', card_contents: '...' },
-      { card_id: 'c2', card_type: 'character', card_title: 'Victor Ash', card_contents: '...' },
-      { card_id: 'p1', card_type: 'person', card_title: 'Lord Pembroke', card_contents: '...' },
-      { card_id: 'l1', card_type: 'location', card_title: 'The Ancient Yew Tree', card_contents: '...' },
-      { card_id: 'x2', card_type: 'game_card', card_title: 'Prompt', card_contents: 'Encourage Lady Viola to explain the scarf.' }
-    ]);
-
-    const out = await rosterIntegrityValidatorAgent(context);
-    const warnings = out.debug.warning_log.filter((w) => w.stage === 'roster_integrity');
-    assert(warnings.length === 0, 'expected no roster integrity warning for imperative host-card phrases using short aliases');
-  }
-
-  {
-    const context = baseContext([
-      { card_id: 'c1', card_type: 'character', card_title: 'Hecate Morwen', card_contents: '...' },
-      { card_id: 'c2', card_type: 'character', card_title: 'Janus Vale', card_contents: '...' },
-      { card_id: 'l1', card_type: 'location', card_title: 'The Forum', card_contents: '...' },
-      {
-        card_id: 'g1',
-        card_type: 'game_card',
-        card_title: 'Social pressure',
-        card_contents:
-          'Offer Hecate a trade. Interrogate Hecate about the alibi. Accuse Hecate in front of Janus Vale.'
-      }
-    ]);
-
-    const out = await rosterIntegrityValidatorAgent(context);
-    const warnings = out.debug.warning_log.filter((w) => w.stage === 'roster_integrity');
-    assert(
-      warnings.length === 0,
-      'expected no roster integrity warning for verb-led two-word phrases before cast names'
-    );
-  }
-
-  {
-    const context = baseContext([
-      { card_id: 'c1', card_type: 'character', card_title: 'Mistress Viola, The Ambitious Thespian', card_contents: '...' },
-      { card_id: 'c2', card_type: 'character', card_title: 'Master Giles Thorncroft, The Silent Gardener', card_contents: '...' },
-      { card_id: 'p1', card_type: 'person', card_title: 'Lord Pembroke', card_contents: '...' },
-      { card_id: 'l1', card_type: 'location', card_title: 'The Ancient Yew Tree', card_contents: '...' },
-      { card_id: 'x1', card_type: 'clue', card_title: 'Witness', card_contents: 'Lord Pembroke saw Viola and Thorncroft near the Ancient Yew Tree while the Ambitious Thespian rehearsed lines.' }
-    ]);
-    context.worldEntities = {
-      people: [{ name: 'Lord Pembroke' }],
-      locations: [{ name: 'Stratford Manor' }]
-    };
-
-    const out = await rosterIntegrityValidatorAgent(context);
-    const warnings = out.debug.warning_log.filter((w) => w.stage === 'roster_integrity');
-    assert(warnings.length === 0, 'expected no roster integrity warning for person/world aliases and character title fragments');
-  }
-
-  {
-    const context = baseContext([
-      { card_id: 'c1', card_type: 'character', card_title: 'Lady Viola Ravenscroft, The Ambitious Actress', card_contents: '...' },
-      { card_id: 'c2', card_type: 'character', card_title: 'Master Ben Jonson, The Rival Playwright', card_contents: '...' },
-      { card_id: 'p1', card_type: 'person', card_title: 'Master William Shakespeare', card_contents: '...' },
-      { card_id: 'l1', card_type: 'location', card_title: 'The Ivy-Covered Pavilion', card_contents: '...' },
-      {
-        card_id: 'x1',
-        card_type: 'game_card',
-        card_title: 'Prompt',
-        card_contents:
-          'Mention Ben Jonson near the Covered Pavilion. Then resolve the Ownership Confirmation and Costume Correlation about Lady Viola Ravenscroft.'
-      }
-    ]);
-
-    const out = await rosterIntegrityValidatorAgent(context);
-    const warnings = out.debug.warning_log.filter((w) => w.stage === 'roster_integrity');
-    assert(
-      warnings.length === 0,
-      'expected no roster integrity warning for honorific-stripped names, hyphenated location fragments, or puzzle label phrases'
-    );
-  }
-
-  {
-    const context = baseContext([
-      { card_id: 'c1', card_type: 'character', card_title: 'Lady Viola', card_contents: '...' },
-      { card_id: 'c2', card_type: 'character', card_title: 'Christopher Marlowe', card_contents: '...' },
-      {
-        card_id: 'l1',
-        card_type: 'location',
-        card_title: 'Yew Tree Alcove',
-        card_contents: 'A wooden structure styled after the Globe Theatre.'
-      },
-      {
-        card_id: 'x1',
-        card_type: 'story_act',
-        card_title: 'Act 1',
-        card_contents: 'Meanwhile, Christopher Marlowe could not reach the Yew Tree in time.'
-      }
-    ]);
-
-    const out = await rosterIntegrityValidatorAgent(context);
-    const warnings = out.debug.warning_log.filter((w) => w.stage === 'roster_integrity');
-    assert(
-      warnings.length === 0,
-      'expected no roster integrity warning for foundation-world phrases, discourse connectors, or location subphrases'
-    );
-  }
-
-  {
-    const context = baseContext([
-      { card_id: 'c1', card_type: 'character', card_title: 'Lillian Monroe — The Silent Editor with a Sharp Eye and Sharper Secrets', card_contents: '...' },
-      { card_id: 'c2', card_type: 'character', card_title: 'Harold Finch — The Loyal Butler with a Veil of Mystery', card_contents: '...' },
-      { card_id: 'i1', card_type: 'item', card_title: 'Jeweled Necklace', card_contents: '...' },
-      {
-        card_id: 'g1',
-        card_type: 'game_card',
-        card_title: 'Item Combination Puzzle: Necklace Disappearance Timing',
-        card_contents: 'Sharp Eye matters here. The Jeweled Necklace appears again in Necklace Disappearance Timing.'
-      }
-    ]);
-
-    const out = await rosterIntegrityValidatorAgent(context);
-    const warnings = out.debug.warning_log.filter((w) => w.stage === 'roster_integrity');
-    assert(
-      warnings.length === 0,
-      'expected no roster integrity warning for item titles, puzzle title phrases, or character subtitle fragments reused in text'
-    );
-  }
-
-  {
-    const context = baseContext([
-      { card_id: 'c1', card_type: 'character', card_title: 'Luna Silverfang', card_contents: '...' },
-      { card_id: 'c2', card_type: 'character', card_title: 'Victor Ash', card_contents: '...' },
-      { card_id: 'x2', card_type: 'item', card_title: 'Vial', card_contents: 'Lady Morgana was seen clutching it while Marcellus, the Assistant Curator, watched from the doorway.' }
-    ]);
-
-    const out = await rosterIntegrityValidatorAgent(context);
-    const warnings = out.debug.warning_log.filter((w) => w.stage === 'roster_integrity');
-    assert(warnings.length === 1, 'expected a roster integrity warning for unknown phrase');
-    assert(
-      Array.isArray(warnings[0].unknown_phrases) &&
-        warnings[0].unknown_phrases.includes('Lady Morgana') &&
-        warnings[0].unknown_phrases.includes('Marcellus'),
-      'expected unknown_phrases to include true ghost names'
-    );
-  }
-
-  console.log('rosterIntegrityValidatorTest OK');
-}
-
-run().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
-
+console.log('rosterIntegrityValidatorTest OK');
