@@ -45,6 +45,35 @@ function syncJobIdentity(job) {
   }
 }
 
+/** Partial saves must not lose context if playability scoring throws on broken state. */
+function safePartialPlayabilityReport(context, stepName) {
+  if (context?.playability_report) {
+    return context.playability_report;
+  }
+  try {
+    return buildPlayabilityReport(context, { partial: true, stepName });
+  } catch (reportErr) {
+    return {
+      score_10: 0,
+      score_percent: 0,
+      grade: 'F',
+      pass: false,
+      status: 'blocked',
+      partial: true,
+      step_name: stepName,
+      issue_count: 1,
+      issues: [
+        {
+          severity: 'major',
+          code: 'playability_report_build_failed',
+          message: String(reportErr),
+          points: 0
+        }
+      ]
+    };
+  }
+}
+
 // FIX: added exponential backoff with jitter and retryable-error detection.
 // The old version retried immediately on every error, which meant a 429
 // rate-limit response would just get rate-limited again on the next attempt.
@@ -200,18 +229,27 @@ export async function runWorker(queue, hooks = {}) {
       job.status = 'error';
       job.error = String(error);
       saveJobs(queue.jobs);
-      if (job.context?.runDir) {
+      const failedStepName = steps[job.stepIndex]?.name ?? 'unknown_step';
+      const runDir = job.context?.runDir || job.runDir;
+      if (runDir) {
         syncJobIdentity(job);
-        writeOutput(job.context.runDir, {
-          ...job.context,
-          worker_error: String(error),
-          playability_report: job.context.playability_report || buildPlayabilityReport(job.context, {
-            partial: true,
-            stepName: steps[job.stepIndex]?.name ?? 'unknown_step'
-          })
-        });
+        const pipelineFailure = {
+          failed_step: failedStepName,
+          failed_step_index: job.stepIndex,
+          saved_at: new Date().toISOString()
+        };
+        try {
+          writeOutput(runDir, {
+            ...job.context,
+            worker_error: String(error),
+            pipeline_failure: pipelineFailure,
+            playability_report: safePartialPlayabilityReport(job.context, failedStepName)
+          });
+        } catch (writeErr) {
+          console.error('[worker] Failed to write partial result.json:', writeErr);
+        }
       }
-      hooks.onStepError?.({ stepName: steps[job.stepIndex]?.name ?? 'unknown_step', error, index: job.stepIndex, total: steps.length, job });
+      hooks.onStepError?.({ stepName: failedStepName, error, index: job.stepIndex, total: steps.length, job });
       throw error;
     }
   }
