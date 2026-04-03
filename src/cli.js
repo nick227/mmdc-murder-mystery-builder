@@ -101,6 +101,20 @@ function resolveReviewPath(inputPath) {
   return fullPath;
 }
 
+function printPartialFailureSummary(runDir, context) {
+  const failure = context?.pipeline_failure;
+  if (!failure || !runDir) {
+    return;
+  }
+  console.log('');
+  console.log(`Pipeline failed at: ${failure.failed_step || 'unknown_step'}`);
+  console.log('');
+  console.log('Partial run saved:');
+  console.log(path.join(runDir, 'result.json'));
+  console.log('');
+  console.log('You can inspect this file.');
+}
+
 async function main() {
   if (cmd === 'start') {
     const { userPrompt, playerCount, storyStyle } = await getStartInputs(args);
@@ -129,19 +143,29 @@ async function main() {
     console.log('Output :', run.dir, '(folder renames after story title is generated)');
     console.log('────────────────────────────────────────');
 
-    await runWorker(queue, {
-      targetJobId: job.id,
-      onStepStart: ({ stepName, index, total }) => {
-        console.log(`→ [${index + 1}/${total}] ${stepName}`);
-      },
-      onStepDone: ({ stepName }) => {
-        console.log(`✓ ${stepName}`);
-      },
-      onStepError: ({ stepName, error }) => {
-        console.log(`✗ ${stepName}`);
-        console.log(String(error));
+    try {
+      await runWorker(queue, {
+        targetJobId: job.id,
+        onStepStart: ({ stepName, index, total }) => {
+          console.log(`→ [${index + 1}/${total}] ${stepName}`);
+        },
+        onStepDone: ({ stepName }) => {
+          console.log(`✓ ${stepName}`);
+        },
+        onStepError: ({ stepName, error }) => {
+          console.log(`✗ ${stepName}`);
+          console.log(String(error));
+        }
+      });
+    } catch (error) {
+      const finalDir = job.context?.runDir || run.dir;
+      const resultPath = path.join(finalDir, 'result.json');
+      if (fs.existsSync(resultPath)) {
+        const context = JSON.parse(fs.readFileSync(resultPath, 'utf8'));
+        printPartialFailureSummary(finalDir, context);
       }
-    });
+      throw error;
+    }
 
     const outDir = job.context?.runDir || run.dir;
     console.log('────────────────────────────────────────');
