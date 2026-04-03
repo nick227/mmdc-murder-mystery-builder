@@ -3,7 +3,7 @@ import { callJson } from '../llm/client.js';
 import { buildCluesPrompt } from '../prompts/cluesPrompt.js';
 import { cluesArraySchema } from '../schemas/clueSchema.js';
 import { getCardsByType, getCharacterCards } from '../utils/cards.js';
-import { getStoryBlurb } from '../utils/context.js';
+import { getStoryBlurb, getStoryMetaForPrompts } from '../utils/context.js';
 
 const DEFAULT_CLUES_PER_PLAYER = 3;
 const SMOKE = process.env.SMOKE_MODE === 'true';
@@ -11,6 +11,7 @@ const SMOKE = process.env.SMOKE_MODE === 'true';
 async function generateClues(context, totalClues, numPlayers, callJsonImpl = callJson) {
   const prompt = buildCluesPrompt({
     storyBlurb: getStoryBlurb(context),
+    storyMeta: getStoryMetaForPrompts(context),
     characters: getCharacterCards(context.cards),
     locations: getCardsByType(context.cards, 'location'),
     narratives: context.narratives,

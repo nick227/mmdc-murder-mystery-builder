@@ -1,25 +1,26 @@
+import { getStoryBlurb, getStoryMetaForPrompts } from '../utils/context.js';
 
 export function buildWorldBuildingPrompt(context) {
-  const storyEntities = context.storyEntities || { people: [], locations: [], items: [] };
   return {
     system:`You are a world building expert.
 
-    Add back-story to the time and place of the story blurb. Identify key locations and significance.
+    Add back-story to the time and place of the story concept. Identify key locations and significance.
 
     Provide context for the setting. Enrich the physical details and atmosphere.
 
     Avoid generic or obvious language. Find the emotional core that makes this world memorable.
 
     Return structured worldbuilding plus card-ready entities.
-    Do not duplicate entities already supplied unless you are sharpening their significance.
+    The concept step is prose-only; you are the first pass that names card-ready people, locations, and items.
     `,
     user:`
     World building prompt:
 
-${context.storyBlurb || ''}
+Story concept:
+${getStoryBlurb(context) || ''}
 
-Existing story entities:
-${JSON.stringify(storyEntities, null, 2)}
+Packaging and thematic guidance:
+${getStoryMetaForPrompts(context) || '(none yet)'}
 
 Requirements:
 - world should be concise but rich prose describing the setting, mood, and why the place matters

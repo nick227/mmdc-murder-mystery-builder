@@ -3,11 +3,9 @@ import { buildCharactersBuilderPrompt } from '../prompts/charactersBuilderPrompt
 
 const prompt = buildCharactersBuilderPrompt({
   storyBlurb: 'A noble host is found dead beneath the willow arbor.',
-  world: 'A dramatic Shakespeare garden party.',
-  worldPeople: [
-    { name: 'Lady Viola', summary: 'The central hostess.' },
-    { name: 'Sir Edmund', summary: 'A suspicious manuscript collector.' }
-  ],
+  storyMeta: 'Theme tags: garden noir, ensemble\nWorld expansion: Lady Viola presides; Sir Edmund hoards manuscripts.',
+  world:
+    'A dramatic Shakespeare garden party. Supporting figures: Lady Viola (hostess), Sir Edmund (manuscript collector).',
   playerCount: 4
 });
 

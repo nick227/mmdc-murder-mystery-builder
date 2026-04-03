@@ -49,9 +49,9 @@ import { bundleStructureValidatorAgent } from '../../agents/bundleStructureValid
 import { mvpQualityGateAgent } from '../../agents/mvpQualityGateAgent.js';
 
 export const steps = [
-  { name: 'story_metadata_agent', run: storyMetadataAgent },
-
   { name: 'story_blurb_agent', run: storyBlurbAgent },
+
+  { name: 'story_metadata_agent', run: storyMetadataAgent },
 
   { name: 'world_building_agent', run: worldBuildingAgent },
 

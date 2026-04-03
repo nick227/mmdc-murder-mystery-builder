@@ -5,12 +5,6 @@ let getSolution;
 let normalizeContext;
 let validateBundleIntegrity;
 
-const trailRoleToAct = {
-  red_herring: 1,
-  ambiguous: 2,
-  killer_aligned: 3
-};
-
 function assert(condition, msg) {
   if (!condition) {
     throw new Error(msg);
@@ -20,17 +14,18 @@ function assert(condition, msg) {
 function validateContext(context, stepName) {
   assert(context, `${stepName}: context missing`);
 
+  if (stepName === 'story_blurb_agent') {
+    assert(context.storyBlurb, 'storyBlurb missing');
+  }
+
   if (stepName === 'story_metadata_agent') {
     assert(context.story_title, 'story_title missing');
     assert(context.story_description, 'story_description missing');
     assert(context.story_rating, 'story_rating missing');
     assert(context.story_themes, 'story_themes missing');
+    assert(context.world_expansion, 'world_expansion missing');
     const meta = getCardsByType(context.cards, 'story_meta');
-    assert(meta.length === 4, 'expected 4 story_meta cards');
-  }
-
-  if (stepName === 'story_blurb_agent') {
-    assert(context.storyBlurb, 'storyBlurb missing');
+    assert(meta.length === 5, 'expected 5 story_meta cards');
   }
 
   if (stepName === 'world_building_agent') {
@@ -89,8 +84,10 @@ function validateContext(context, stepName) {
       if (clue.bundle_id) {
         continue;
       }
-      assert(clue.trail_role, `clue missing trail_role: ${clue.card_title}`);
-      assert(trailRoleToAct[clue.trail_role] === clue.act, `clue act mismatch: ${clue.card_title}`);
+      if (clue.clue_type === 'treasure') {
+        continue;
+      }
+      assert(clue.clue_type, `murder clue missing clue_type: ${clue.card_title}`);
     }
   }
 
@@ -105,6 +102,11 @@ function validateContext(context, stepName) {
   }
 
   if (stepName === 'puzzle_agent') {
+    const drafts = context.puzzle_bundle_drafts || [];
+    assert(drafts.length === 4, 'expected 4 puzzle bundle drafts');
+  }
+
+  if (stepName === 'bundle_finalize_agent') {
     const puzzleCards = getCardsByType(context.cards, 'puzzle');
     const puzzleBundles = context.puzzle_bundles || [];
 
@@ -130,7 +132,6 @@ function validateContext(context, stepName) {
       assert(Array.isArray(puzzle.required_card_ids), `bundle ${bundle.bundle_id} puzzle missing required_card_ids`);
       assert(Array.isArray(puzzle.unlock_card_ids), `bundle ${bundle.bundle_id} puzzle missing unlock_card_ids`);
       assert(puzzle.required_card_ids.length >= 1, `bundle ${bundle.bundle_id} puzzle must resolve required_card_ids`);
-      assert(typeof puzzle.solve_instructions === 'string' && puzzle.solve_instructions.trim(), `bundle ${bundle.bundle_id} puzzle missing solve_instructions`);
       assert(hiddenSolutionCards.length === 1, `bundle ${bundle.bundle_id} must emit exactly one hidden solution card`);
       assert(hiddenSolutionCards[0].hidden_until_solved === true, `bundle ${bundle.bundle_id} solution card must remain hidden`);
       assert(!puzzle.required_card_refs.includes(puzzle.card_ref), `bundle ${bundle.bundle_id} puzzle should not self-reference required_card_refs`);

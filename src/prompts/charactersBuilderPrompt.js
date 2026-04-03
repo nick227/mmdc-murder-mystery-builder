@@ -1,4 +1,4 @@
-export function buildCharactersBuilderPrompt({ storyBlurb, world, worldPeople, playerCount }) {
+export function buildCharactersBuilderPrompt({ storyBlurb, storyMeta, world, playerCount }) {
   return {
     system: `
 Generate exactly ${playerCount} playable suspect character cards for a murder mystery party.
@@ -6,18 +6,20 @@ Generate exactly ${playerCount} playable suspect character cards for a murder my
 Output is the canonical suspect roster: each card has card_title and card_contents only.
 Distinct names, contrasting roles, worth suspecting. No killer assignment or murder mechanics.
 
+Honor theme tags and world expansion from the packaging block when shaping motives and flavor.
+
 Return JSON only.
 `.trim(),
 
     user: `
-Story:
+Story concept:
 ${storyBlurb || ''}
+
+Packaging and thematic guidance:
+${storyMeta || '(none)'}
 
 World:
 ${world || ''}
-
-World people (reuse or ignore as you like):
-${JSON.stringify(worldPeople || [], null, 2)}
 
 Player count: ${playerCount}
 `.trim()

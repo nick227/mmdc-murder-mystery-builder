@@ -2,7 +2,7 @@ import { callJson } from '../llm/client.js';
 import { buildCoreTruthPrompt } from '../prompts/coreTruthPrompt.js';
 import { coreTruthSchema } from '../schemas/coreTruthSchema.js';
 import { getCharacterCards } from '../utils/cards.js';
-import { getStoryBlurb } from '../utils/context.js';
+import { getStoryBlurb, getStoryMetaForPrompts } from '../utils/context.js';
 import {
   collectCoreTruthDeterministicIssues,
   getPlayableCharacters,
@@ -17,6 +17,7 @@ export async function coreTruthAgent(context) {
 
   const prompt = buildCoreTruthPrompt({
     storyBlurb: getStoryBlurb(context),
+    storyMeta: getStoryMetaForPrompts(context),
     characters: getCharacterCards(context.cards),
     world: context.world
   });

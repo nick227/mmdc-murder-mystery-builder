@@ -17,6 +17,7 @@ function formatMurderTruthForClues(coreTruth) {
 
 export function buildCluesPrompt({
   storyBlurb,
+  storyMeta,
   characters,
   locations,
   narratives,
@@ -41,8 +42,11 @@ Then you must generate ${totalClues} clues that are relevant to the story and th
     user: `
 Create ${totalClues} clue cards for a murder mystery game with ${numPlayers} players.
 
-Story:
+Story concept:
 ${storyBlurb}
+
+Packaging and thematic guidance:
+${storyMeta || '(none)'}
 
 HIDDEN murder truth (NEVER REVEAL THESE TO THE PLAYERS):
 ${formatMurderTruthForClues(coreTruth)}

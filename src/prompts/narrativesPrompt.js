@@ -1,4 +1,4 @@
-export function buildNarrativesPrompt({ storyBlurb, solution, trails, playerCount, characters }) {
+export function buildNarrativesPrompt({ storyBlurb, storyMeta, solution, trails, playerCount, characters }) {
   return {
     system: [
       'You generate three competing suspect narratives for a murder mystery.',
@@ -7,8 +7,11 @@ export function buildNarrativesPrompt({ storyBlurb, solution, trails, playerCoun
     user: `
 Create 3 competing suspect narratives (a, b, c). Keep them short and usable.
 
-Public blurb:
+Story concept:
 ${storyBlurb}
+
+Packaging and thematic guidance:
+${storyMeta || '(none)'}
 
 Breadcrumb scaffolding:
 ${JSON.stringify(trails, null, 2)}

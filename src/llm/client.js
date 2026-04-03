@@ -5,6 +5,7 @@ const API_BASE_URL = process.env.API_BASE_URL || 'https://api.openai.com/v1';
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 const SMOKE = process.env.SMOKE_MODE === 'true';
 let smokeCallSeq = 0;
+let smokeSecretBatchSeq = 0;
 
 async function call(body) {
   const res = await fetch(`${API_BASE_URL}/chat/completions`, {
@@ -120,7 +121,41 @@ function fakeSmokeResponse(opts) {
   if (schemaName === 'treasure_hunt') {
     return fakeSmokeTreasureHunt(opts);
   }
+  if (schemaName === 'character_secrets') {
+    return fakeSmokeCharacterSecrets();
+  }
   return null;
+}
+
+function fakeSmokeCharacterSecrets(opts) {
+  smokeSecretBatchSeq += 1;
+  const batch = smokeSecretBatchSeq;
+  const user = String(opts?.user || '');
+  const label = 'Character:';
+  const idx = user.lastIndexOf(label);
+  let name = 'smoke character';
+  if (idx !== -1) {
+    const after = user.slice(idx + label.length).trimStart();
+    const line = after.split('\n')[0]?.trim() || '';
+    if (line) {
+      name = line.replace(/\s+/g, ' ').slice(0, 80);
+    }
+  }
+
+  return {
+    cards: [
+      {
+        card_title: `Smoke motive ${batch} — ${name}`,
+        card_contents:
+          `[${batch}] Resentment over inheritance and fear of blackmail pushed ${name} to seek leverage before the will reading.`
+      },
+      {
+        card_title: `Smoke access ${batch} — ${name}`,
+        card_contents:
+          `[${batch}] ${name} had backstage access to the study, slipped inside near midnight, and were spotted by the cellar door.`
+      }
+    ]
+  };
 }
 
 function fakeSmokeCoreTruth(opts) {
@@ -232,7 +267,8 @@ function fakeSmokePuzzleBundle(opts) {
       {
         card_type: 'puzzle',
         card_title: 'Smoke Puzzle',
-        card_contents: 'Use the visible evidence to identify the single concrete fact it reveals.'
+        card_contents: 'Use the visible evidence to identify the single concrete fact it reveals.',
+        unlocked_item: 'The confirmed timeline or access fact from the evidence set.'
       },
       {
         card_type: 'solution',

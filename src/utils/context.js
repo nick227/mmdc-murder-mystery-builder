@@ -50,6 +50,32 @@ export function getStoryBlurb(context) {
   return context?.storyBlurb || context?.story_blurb || '';
 }
 
+/** Host-safe packaging + thematic/world guidance for LLM prompts (after story_metadata_agent). */
+export function getStoryMetaForPrompts(context) {
+  const lines = [];
+  const title = String(context?.story_title || '').trim();
+  const themes = String(context?.story_themes || '').trim();
+  const desc = String(context?.story_description || '').trim();
+  const rating = String(context?.story_rating || '').trim();
+  const expansion = String(context?.world_expansion || '').trim();
+  if (title) {
+    lines.push(`Title: ${title}`);
+  }
+  if (themes) {
+    lines.push(`Theme tags: ${themes}`);
+  }
+  if (rating) {
+    lines.push(`Content rating: ${rating}`);
+  }
+  if (desc) {
+    lines.push(`Host pitch: ${desc}`);
+  }
+  if (expansion) {
+    lines.push(`World expansion (honor in content):\n${expansion}`);
+  }
+  return lines.join('\n\n');
+}
+
 export function getMurderTruth(context) {
   return deriveTruths(context).murder_truth || null;
 }

@@ -1,4 +1,4 @@
-export function buildCoreTruthPrompt({ storyBlurb, characters, world }) {
+export function buildCoreTruthPrompt({ storyBlurb, storyMeta, characters, world }) {
   return {
     system: `Define the hidden canonical solution for one murder mystery. Return JSON only.
 
@@ -13,10 +13,14 @@ treasure:
 - hiding_place: a discoverable place (concrete)
 - treasure_solution: 2–4 sentences on why it matters and how players could realistically find it (without inventing new canon outside this block)
 
-Rules: one killer; killer commits the crime; victim cannot be a playable character; stay concise.`.trim(),
+Rules: one killer; killer commits the crime; victim cannot be a playable character; stay concise.
+Let theme tags and world expansion guide motive texture and why the treasure matters, without contradicting the host pitch.`.trim(),
 
-    user: `Story:
+    user: `Story concept:
 ${storyBlurb || ''}
+
+Packaging and thematic guidance:
+${storyMeta || '(none)'}
 
 Playable characters:
 ${JSON.stringify(characters || [], null, 2)}

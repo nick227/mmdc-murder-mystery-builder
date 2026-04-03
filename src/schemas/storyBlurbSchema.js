@@ -8,29 +8,12 @@ export const storyEntitySchema = {
   }
 };
 
+/** Narrative premise only; card-ready entities come from world_building + story_metadata expansion. */
 export const storyBlurbSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['storyBlurb', 'people', 'locations', 'items'],
+  required: ['storyBlurb'],
   properties: {
-    storyBlurb: { type: 'string' },
-    people: {
-      type: 'array',
-      minItems: 0,
-      maxItems: 4,
-      items: storyEntitySchema
-    },
-    locations: {
-      type: 'array',
-      minItems: 2,
-      maxItems: 5,
-      items: storyEntitySchema
-    },
-    items: {
-      type: 'array',
-      minItems: 1,
-      maxItems: 5,
-      items: storyEntitySchema
-    }
+    storyBlurb: { type: 'string' }
   }
 };

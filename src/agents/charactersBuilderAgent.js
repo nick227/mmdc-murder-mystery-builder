@@ -1,7 +1,7 @@
 import { callJson } from '../llm/client.js';
 import { buildCharactersBuilderPrompt } from '../prompts/charactersBuilderPrompt.js';
 import { getCardsByType, pushCards } from '../utils/cards.js';
-import { getStoryBlurb } from '../utils/context.js';
+import { getStoryBlurb, getStoryMetaForPrompts } from '../utils/context.js';
 
 function normalizeText(value) {
   return String(value || '')
@@ -58,16 +58,12 @@ function assertValidCharacters(cards, playerCount) {
 
 export async function charactersBuilderAgent(context) {
   const playerCount = context.playerCount ?? 4;
-  const worldPeople = getCardsByType(context.cards, 'person').map((card) => ({
-    name: card.card_title,
-    summary: card.card_contents
-  }));
 
   const result = await callJson({
     ...buildCharactersBuilderPrompt({
       storyBlurb: getStoryBlurb(context),
+      storyMeta: getStoryMetaForPrompts(context),
       world: context.world,
-      worldPeople,
       playerCount
     }),
     schemaName: 'characters_builder',

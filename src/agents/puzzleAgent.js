@@ -4,7 +4,7 @@ import { puzzleBundleSchema } from '../schemas/puzzleBundleSchema.js';
 import { getCardsByType, getCharacterCards } from '../utils/cards.js';
 import { getStoryBlurb } from '../utils/context.js';
 
-const PUZZLE_COUNT = 1;
+const PUZZLE_COUNT = 4;
 const PUZZLE_TYPES = ['cross_reference', 'timeline', 'item_combination', 'elimination', 'cipher'];
 
 export async function puzzleAgent(context) {

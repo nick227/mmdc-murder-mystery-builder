@@ -33,7 +33,7 @@ export const puzzleTypesContent = {
 export function buildPuzzlePrompt({
   storyBlurb,
   puzzleType,
-  clueTarget: _clueTarget,
+  clueTarget = {},
   characters: _characters = [],
   locations: _locations = [],
   priorClueTargets: _priorClueTargets = [],
@@ -75,6 +75,11 @@ Evidence seed rules:
 Make one ${puzzleType} puzzle bundle for this story:
 
 ${storyBlurb}
+
+Target clue fact: ${String(clueTarget?.fact || '').trim()}
+Target category: ${String(clueTarget?.category || '').trim()}
+
+The answer card (solution) must state exactly the target fact above, verbatim.
 
 Return only bundle content for this puzzle:
 - 2–4 evidence seed cards (structured stubs for later expansion)
