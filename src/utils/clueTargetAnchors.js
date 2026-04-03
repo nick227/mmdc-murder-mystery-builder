@@ -38,12 +38,14 @@ function coreTruthBlob(coreTruth) {
     [
       m.killer,
       m.location,
+      m.murder_solution,
+      m.summary,
       m.method,
       m.opportunity,
-      m.summary,
       ...(Array.isArray(m.why_others_could_not) ? m.why_others_could_not : []),
       t.object,
       t.hiding_place,
+      t.treasure_solution,
       t.concealment,
       t.discovery_path,
       t.significance

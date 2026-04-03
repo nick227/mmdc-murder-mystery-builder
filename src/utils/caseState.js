@@ -71,7 +71,7 @@ function deriveVictimName(context, murder) {
     return explicitVictim;
   }
 
-  const summary = String(murder?.summary || '').trim();
+  const summary = String(murder?.murder_solution || murder?.summary || '').trim();
   const killerText = String(murder?.killer || '').trim();
   const killerDisplayName = extractDisplayName(killerText);
   const killerAliases = new Set(
@@ -154,7 +154,7 @@ export function buildCaseState(context) {
       location: String(murder.location || '').trim(),
       method: String(murder.method || '').trim(),
       motive: String(murder.motive || '').trim(),
-      summary: String(murder.summary || '').trim(),
+      summary: String(murder.murder_solution || murder.summary || '').trim(),
       opportunity: String(murder.opportunity || '').trim(),
       window_start: null,
       window_end: null

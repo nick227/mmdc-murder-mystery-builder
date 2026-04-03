@@ -8,23 +8,22 @@ const context = {
   coreTruth: {
     murder: {
       killer: 'Lady Viola Ravenscroft, The Enigmatic Hostess',
+      victim: 'Christopher Marlowe',
       location: 'The garden',
-      method: 'Scarf',
-      motive: 'Legacy',
-      summary: 'Lady Viola lured the victim to the secluded spot and killed them.',
-      opportunity: 'She moved freely.'
+      murder_solution:
+        'Lady Viola used a scarf in the garden; legacy motive; she moved freely and lured the victim to the secluded spot.'
     },
     treasure: {
       object: 'Rose of Avon',
       hiding_place: 'Oak hollow',
-      concealment: 'False bark',
-      discovery_path: 'Follow the clues'
+      treasure_solution: 'Hidden under false bark; follow the clues.'
     }
   },
   storyEntities: {
     people: [
       { name: 'Lady Viola' },
-      { name: 'Master Fenton' }
+      { name: 'Master Fenton' },
+      { name: 'Christopher Marlowe' }
     ]
   },
   cards: [
@@ -69,7 +68,7 @@ const context = {
 };
 
 const caseState = buildCaseState(context);
-assert.equal(caseState.victim_name, '', 'victim derivation should not collapse to the killer alias');
+assert.equal(caseState.victim_name, 'Christopher Marlowe', 'explicit coreTruth victim should be used');
 
 const report = buildPlayabilityReport({
   ...context,

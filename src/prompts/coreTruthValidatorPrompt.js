@@ -9,15 +9,10 @@ Return JSON:
 }
 
 Check:
-- exactly one killer
-- killer is a playable character
-- victim is explicitly named
-- victim is not a playable character and not the killer
-- killer has motive, method, location, and opportunity
-- other suspects are reasonably excluded
-- treasure is a concrete object
-- hiding place is physical and discoverable
-- treasure significance aligns with motive or conflict
+- exactly one killer; killer is a playable character
+- victim is explicitly named; victim is not playable
+- murder_solution is coherent ground truth (method/motive/location covered in prose)
+- treasure object and hiding_place are concrete; treasure_solution fits the story
 
 Set pass=true only if valid; otherwise pass=false and list issues.`.trim(),
     user: `Core truth:

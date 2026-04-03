@@ -23,14 +23,15 @@ export function deriveSolution(context) {
     return undefined;
   }
 
+  const narrative = cleanedString(murderTruth.murder_solution || murderTruth.summary || '');
   const solution = {
     killer: cleanedString(murderTruth.killer),
-    method: cleanedString(murderTruth.method),
-    location: cleanedString(murderTruth.location),
-    motive: cleanedString(murderTruth.motive)
+    method: cleanedString(murderTruth.method) || narrative,
+    location: cleanedString(murderTruth.location) || narrative,
+    motive: cleanedString(murderTruth.motive) || narrative
   };
 
-  if (!solution.killer || !solution.method || !solution.location || !solution.motive) {
+  if (!solution.killer || !narrative) {
     return undefined;
   }
 

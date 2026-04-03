@@ -84,7 +84,7 @@ function buildSmokePayload(locations, treasure, hidingPlace) {
     ],
     treasure_object: {
       card_title: String(obj),
-      card_contents: String(treasure?.significance || treasure?.concealment || `The ${obj}: the physical treasure everyone is hunting.`)
+      card_contents: String(treasure?.treasure_solution || treasure?.significance || treasure?.concealment || `The ${obj}: the physical treasure everyone is hunting.`)
         .trim() || `The physical ${obj} everyone is hunting.`
     },
     hiding_place: hidingPlace
@@ -108,11 +108,9 @@ function buildPrompt({ storyBlurb, treasure, locationTitles, hidingPlace }) {
 Story:
 ${storyBlurb}
 
-Treasure object (for your reference; do not reveal the hiding place in breadcrumbs):
+Treasure (for your reference; do not reveal the hiding place in breadcrumbs):
 - object: ${String(treasure?.object || '').trim()}
-- concealment: ${String(treasure?.concealment || '').trim()}
-- significance: ${String(treasure?.significance || '').trim()}
-- discovery_path: ${String(treasure?.discovery_path || '').trim()}
+- treasure_solution: ${String(treasure?.treasure_solution || '').trim()}
 
 Exact hiding place (FORBIDDEN in breadcrumb card_contents — players learn it only from the finale card we add separately):
 ${String(hidingPlace || '').trim()}

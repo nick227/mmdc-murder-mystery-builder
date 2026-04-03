@@ -12,13 +12,16 @@ const ctx = {
     { card_id: 'l3', card_type: 'location', card_title: 'Library Annex', card_contents: 'Shelves.' }
   ],
   coreTruth: {
-    murder: { killer: 'x', method: 'y', location: 'z', motive: 'm', summary: 's', opportunity: 'o', why_others_could_not: [] },
+    murder: {
+      killer: 'x',
+      victim: 'y',
+      location: 'z',
+      murder_solution: 'The crime summary for smoke.'
+    },
     treasure: {
       object: 'The Silver Astrolabe',
       hiding_place: 'Inside the false bottom of the orangery humidor cabinet',
-      concealment: 'Wrapped in velvet',
-      significance: 'Proves lineage',
-      discovery_path: 'Follow drafts'
+      treasure_solution: 'Wrapped in velvet; proves lineage. Follow drafts.'
     }
   },
   debug: { warning_log: [] }

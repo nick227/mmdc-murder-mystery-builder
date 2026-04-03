@@ -129,23 +129,14 @@ function fakeSmokeCoreTruth(opts) {
   return {
     murder: {
       killer,
+      victim: 'Morgan Ashcroft',
       location: 'Smoke Test Ballroom',
-      method: 'Poisoned champagne flute',
-      motive: 'To seize control of the disputed inheritance',
-      summary: `${killer} poisoned the host during the toast in the Smoke Test Ballroom and staged the scene as confusion after the band started.`,
-      opportunity: `${killer} controlled the toast setup and had a private moment with the glasses before guests gathered.`,
-      why_others_could_not: [
-        'Second Smoke Character was on stage when the toast began.',
-        'Third Smoke Character was seen in the foyer greeting late arrivals.',
-        'Fourth Smoke Character had no access to the champagne service table.'
-      ]
+      murder_solution: `${killer} poisoned Morgan Ashcroft during the toast in the Smoke Test Ballroom, seized a private moment with the glasses before guests gathered, and staged confusion after the band started. Motive: control of the disputed inheritance.`
     },
     treasure: {
       object: 'The smoke test inheritance ledger',
       hiding_place: 'Inside the false bottom of the ballroom podium',
-      concealment: 'Wrapped in sheet music beneath the podium drawer',
-      significance: 'It proves who controls the estate holdings.',
-      discovery_path: 'Players can trace the podium key, the sheet music clue, and the hidden compartment.'
+      treasure_solution: 'Wrapped in sheet music beneath the podium drawer; proves who controls estate holdings. Players trace the podium key, the sheet music clue, and the hidden compartment.'
     }
   };
 }

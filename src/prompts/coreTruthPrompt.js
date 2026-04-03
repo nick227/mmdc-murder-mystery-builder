@@ -1,42 +1,19 @@
 export function buildCoreTruthPrompt({ storyBlurb, characters, world }) {
   return {
-    system: `Define the hidden core truth for a murder mystery.
+    system: `Define the hidden canonical solution for one murder mystery. Return JSON only.
 
-Return JSON only.
+murder:
+- killer: must match a playable character name exactly (from the list)
+- victim: one named victim who is NOT playable
+- location: short phrase — where the murder happens
+- murder_solution: 3–6 sentences. Ground truth only: what happened, how, why, and how the killer had the opening. No player-facing tone.
 
-Requirements:
-- choose exactly one killer
-- the killer MUST be one of the playable characters provided and must match the name exactly
-- name exactly one victim
-- the victim MUST NOT be one of the playable characters provided
-- the victim should be an established story/world person when possible, not an unnamed role like "the victim" or "the steward"
-- the killer must physically commit the murder
-- murder details must be concrete, plausible, and intentional
-- treasure details must be physically discoverable through clues
-- the treasure should connect to the motive, conflict, inheritance, leverage, or cover-up
-- concise
-- ground truth only
+treasure:
+- object: physical treasure or inheritance object
+- hiding_place: a discoverable place (concrete)
+- treasure_solution: 2–4 sentences on why it matters and how players could realistically find it (without inventing new canon outside this block)
 
-Return exactly:
-{
-  "murder": {
-    "killer": "exact playable character name",
-    "victim": "explicit victim name, not a playable suspect",
-    "location": "concrete murder location",
-    "method": "concrete murder method",
-    "motive": "explicit motive",
-    "summary": "2-4 sentences describing how it happened",
-    "opportunity": "why the killer had the opening to do it",
-    "why_others_could_not": ["short exclusion", "short exclusion"]
-  },
-  "treasure": {
-    "object": "physical treasure or inheritance object",
-    "hiding_place": "discoverable physical location",
-    "concealment": "how it is hidden there",
-    "significance": "why it matters to the conflict or motive",
-    "discovery_path": "how players could plausibly uncover it"
-  }
-}`.trim(),
+Rules: one killer; killer commits the crime; victim cannot be a playable character; stay concise.`.trim(),
 
     user: `Story:
 ${storyBlurb || ''}

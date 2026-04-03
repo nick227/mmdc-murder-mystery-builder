@@ -1,9 +1,6 @@
 import { getCharacterCards } from './cards.js';
 
 const NON_PERSON_VICTIM_PATTERNS = /\b(statue|bust|portrait|effigy|idol|artifact|relic|object|prop|quill|folio|ring|locket|mask|scroll|jewel|ruby)\b/i;
-const ACCESS_PATTERNS = /\b(access|key|route|passage|entry|door|gate|private|restricted|alcove|study|library|pavilion|garden|room|grounds)\b/i;
-const MOTIVE_PATTERNS = /\b(jealous|envy|revenge|debt|blackmail|inheritance|ambition|fear|legacy|silence|rival|motive|power|fortune|reputation)\b/i;
-const OPPORTUNITY_PATTERNS = /\b(opportunity|alone|unseen|moment|window|opening|while|during|before|after|near|present|whereabouts|absent|slipped away)\b/i;
 
 function normalizeText(value) {
   return String(value || '')
@@ -81,10 +78,6 @@ function baseName(value) {
   return String(value || '').split(',')[0].trim();
 }
 
-function hasPattern(text, pattern) {
-  return pattern.test(String(text || ''));
-}
-
 export function getPlayableCharacters(context) {
   return getCharacterCards(context.cards || []).map((card) => ({
     card_id: String(card?.card_id || '').trim(),
@@ -104,41 +97,6 @@ function getKnownPeople(context) {
       .filter(Boolean)
       .map((name) => normalizeText(name))
   );
-}
-
-function buildExclusionMap(coreTruth) {
-  const map = new Map();
-  for (const reason of Array.isArray(coreTruth?.murder?.why_others_could_not) ? coreTruth.murder.why_others_could_not : []) {
-    const text = String(reason || '').trim();
-    const normalized = normalizeText(text);
-    if (!normalized) {
-      continue;
-    }
-    map.set(normalized, text);
-  }
-  return map;
-}
-
-function isExplicitlyExcluded(name, exclusionReasons) {
-  const normalizedName = normalizeText(name);
-  if (!normalizedName) {
-    return false;
-  }
-  for (const [normalizedReason] of exclusionReasons.entries()) {
-    if (normalizedReason.includes(normalizedName)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function axisPresence(textBlob) {
-  const text = String(textBlob || '');
-  return {
-    access: hasPattern(text, ACCESS_PATTERNS),
-    motive: hasPattern(text, MOTIVE_PATTERNS),
-    opportunity: hasPattern(text, OPPORTUNITY_PATTERNS)
-  };
 }
 
 export function validateVictimType(coreTruth, context, playableCharacters = getPlayableCharacters(context)) {
@@ -164,76 +122,16 @@ export function validateVictimType(coreTruth, context, playableCharacters = getP
   return null;
 }
 
-/**
- * Ensures each non-killer playable character is named in at least one why_others_could_not line.
- * Without this, validateUniqueKiller treats unnamed alternates as ambiguous co-killers.
- */
-export function patchCoreTruthAlternateExclusions(coreTruth, context) {
-  const murder = coreTruth?.murder;
-  if (!murder) {
-    return;
-  }
-  const playable = getPlayableCharacters(context);
-  const killerNorm = normalizeText(baseName(murder.killer));
-  const reasons = (Array.isArray(murder.why_others_could_not) ? murder.why_others_could_not : [])
-    .map((r) => String(r || '').trim())
-    .filter(Boolean);
-
-  for (const character of playable) {
-    const charNorm = normalizeText(character.name);
-    if (!charNorm || charNorm === killerNorm) {
-      continue;
-    }
-    const mentioned = reasons.some((r) => normalizeText(r).includes(charNorm));
-    if (!mentioned) {
-      reasons.push(
-        `${character.name} is ruled out as the killer: reconciled timelines, access limits, and motives under this solution exclude them.`
-      );
-    }
-  }
-  murder.why_others_could_not = reasons;
-}
-
-export function validateUniqueKiller(coreTruth, context, playableCharacters = getPlayableCharacters(context)) {
+export function validateKillerPlayable(coreTruth, context, playableCharacters = getPlayableCharacters(context)) {
   const killerName = baseName(coreTruth?.murder?.killer);
   const normalizedKiller = normalizeText(killerName);
-  const exclusions = buildExclusionMap(coreTruth);
-  const declaredKiller = playableCharacters.find((character) => normalizeText(character.name) === normalizedKiller);
-  if (!declaredKiller) {
-    return 'alternate_killer_not_excluded: declared killer is not a playable character';
+  if (!killerName) {
+    return 'killer_not_playable: killer is missing';
   }
-
-  const killerProfileText = [
-    declaredKiller.contents,
-    coreTruth?.murder?.summary,
-    coreTruth?.murder?.opportunity,
-    coreTruth?.murder?.motive,
-    coreTruth?.murder?.method
-  ].join(' ');
-
-  const killerAxes = axisPresence(killerProfileText);
-  const killerAxisCount = ['access', 'motive', 'opportunity'].filter((axis) => killerAxes[axis]).length;
-  if (killerAxisCount < 2) {
-    return 'alternate_killer_not_excluded: declared killer lacks a clear access+motive+opportunity profile';
+  const match = playableCharacters.find((c) => normalizeText(c.name) === normalizedKiller);
+  if (!match) {
+    return 'killer_not_playable: killer must match a playable character name exactly';
   }
-
-  const ambiguousAlternate = playableCharacters.find((character) => {
-    if (normalizeText(character.name) === normalizedKiller) {
-      return false;
-    }
-    const exclusionText = [...exclusions.values()].find((reason) => normalizeText(reason).includes(normalizeText(character.name))) || '';
-    const alternateAxes = axisPresence([character.contents, exclusionText].filter(Boolean).join(' '));
-    const differingAxes = ['access', 'motive', 'opportunity'].filter((axis) => killerAxes[axis] !== alternateAxes[axis]);
-    if (differingAxes.length >= 2) {
-      return false;
-    }
-    return !isExplicitlyExcluded(character.name, exclusions);
-  });
-
-  if (ambiguousAlternate) {
-    return `alternate_killer_not_excluded: ${ambiguousAlternate.name}`;
-  }
-
   return null;
 }
 
@@ -241,6 +139,6 @@ export function collectCoreTruthDeterministicIssues(coreTruth, context) {
   const playableCharacters = getPlayableCharacters(context);
   return [
     validateVictimType(coreTruth, context, playableCharacters),
-    validateUniqueKiller(coreTruth, context, playableCharacters)
+    validateKillerPlayable(coreTruth, context, playableCharacters)
   ].filter(Boolean);
 }

@@ -13,19 +13,13 @@ function run() {
         killer: 'Max Vinyl, The Ruthless Rival',
         victim: 'DJ Spinmaster',
         location: 'Rare Vinyl Vault',
-        method: 'strangled DJ Spinmaster with a guitar cable',
-        motive: 'steal the Lost Melody',
-        summary: 'Max Vinyl confronted DJ Spinmaster in the Rare Vinyl Vault and killed him.',
-        opportunity: 'slipped away during the party',
-        why_others_could_not: [
-          'Lila Groove was busy managing the event and had no access to the vault at the time',
-          'Evelyn Echo Ramirez was monitoring the vault security system but was momentarily distracted',
-          'Theo Marlowe was mingling with guests and had no physical access to the vault'
-        ]
+        murder_solution:
+          'Max Vinyl strangled DJ Spinmaster in the Rare Vinyl Vault with a guitar cable to steal the Lost Melody; he slipped away during the party.'
       },
       treasure: {
         object: 'Lost Melody',
-        hiding_place: 'climate control panel'
+        hiding_place: 'climate control panel',
+        treasure_solution: 'Ledger proves estate control; players follow the climate control access trail.'
       }
     },
     cards: [
@@ -49,8 +43,8 @@ function run() {
   assert(caseState.state_progression.eliminated_suspects.length === 0, 'no suspects eliminated initially');
 
   const lila = caseState.suspects.find((suspect) => suspect.suspect_id === 'lila_groove');
-  assert(lila.baseline.access === 'impossible', 'Lila access should derive from why_others_could_not');
-  assert(caseState.state_progression.constraints.some((entry) => entry.suspect_id === 'lila_groove'), 'baseline constraints should include blocked access');
+  assert(lila.baseline.access === 'unknown', 'without exclusion lines access stays unknown');
+  assert(caseState.state_progression.constraints.length === 0, 'no baseline constraints without exclusion text');
 
   console.log('CASE STATE BUILDER TEST PASSED');
 }

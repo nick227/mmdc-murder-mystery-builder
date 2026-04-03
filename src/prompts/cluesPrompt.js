@@ -1,36 +1,50 @@
-export function buildCluesPrompt({ storyBlurb, characters, locations, narratives, totalClues, numPlayers }) {
-  const suspectNames = characters.map(c => c.card_title).join(', ');
-  const varietyDeckNote
-    = totalClues >= 3
-      ? 'include at least one artifact, one fact, and one derived in the full set; alternate types so the same kind does not dominate consecutively.'
-      : 'use distinct clue_types where the card count allows; still avoid consecutive duplicates.';
+function formatCoreTruthForClues(coreTruth) {
+  const m = coreTruth?.murder;
+  const t = coreTruth?.treasure;
+  if (!m || !t) {
+    return '(core truth not available)';
+  }
+  return JSON.stringify(
+    {
+      murder: {
+        killer: m.killer,
+        victim: m.victim,
+        location: m.location,
+        murder_solution: m.murder_solution
+      },
+      treasure: {
+        object: t.object,
+        hiding_place: t.hiding_place,
+        treasure_solution: t.treasure_solution
+      }
+    },
+    null,
+    2
+  );
+}
+
+export function buildCluesPrompt({
+  storyBlurb,
+  characters,
+  locations,
+  narratives,
+  totalClues,
+  numPlayers,
+  coreTruth
+}) {
+  const suspectNames = (characters || []).map((c) => c.card_title).join(', ');
   return {
     system: `
 You are generating all ${totalClues} clue cards for a murder mystery game with ${numPlayers} players.
 
 Think comprehensively — these are every clue card in the game.
 
-Clue shape (every card):
-- Short: card_title is a terse label; card_contents is 1–3 tight sentences (or one crisp line of artifact text like a timestamp or line from a list). Nothing essay-length.
-- Information-first: state what players learn — who/what/when/where — not GM narration or theory.
-- One unit per card: one item, datum, or implication chain stop. Do not bundle multiple unrelated findings.
-- Not puzzle evidence: no full documents, walkthroughs, ASCII maps, or puzzle-bulk text. Clues stay playable at a glance.
+Hidden canonical solution (author use only):
+- Every clue must be consistent with this truth when it touches facts, people, places, or objects.
+- Do not put the full solution on a single card; players deduce from many small pieces.
 
-clue_type — choose one string below for each card. Variety: ${varietyDeckNote}
-- artifact: text meant to look like a fragment (label, receipt line, log snippet, scrap of note) with minimal framing.
-- fact: a plain factual statement witnesses or records would support (observable, not "therefore the killer").
-- derived: a single inference that still reads as data ("X was seen leaving before Y arrived"), not a verdict on whodunnit.
+One clue alone must NOT solve the murder or fully reveal the treasure location.
 
-Together the deck should reward deduction: players combine cards; no card should single-handedly solve the mystery.
-
-Distribute clues more/less evenly across suspects.
-Each suspect should appear in roughly equal numbers of cards.
-Each suspect should appear in no more than 2 cards.
-No suspect should receive two cards sharing the same clue_type.
-
-- No duplicate facts
-- Equal spread of clue_weight: low, mid, high
-- suspect_name is the person most directly connected to the clue
 `.trim(),
     user: `
 Create ${totalClues} clue cards for a murder mystery game with ${numPlayers} players.
@@ -38,7 +52,10 @@ Create ${totalClues} clue cards for a murder mystery game with ${numPlayers} pla
 Story:
 ${storyBlurb}
 
-Suspects: 
+Hidden solution (ground truth for clue writing — do not dump this verbatim onto one card):
+${formatCoreTruthForClues(coreTruth)}
+
+Suspects:
 ${suspectNames}
 
 Locations:
