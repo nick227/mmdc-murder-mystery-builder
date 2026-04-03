@@ -34,7 +34,7 @@ const clues = ctx.cards.filter((c) => c.card_type === 'clue');
 const treasureItems = ctx.cards.filter((c) => c.card_type === 'item' && c.is_treasure);
 assert.equal(clues.length, 3);
 assert.equal(treasureItems.length, 0, 'treasure identity is upstream in coreTruth; agent emits clues only');
-assert.ok(clues.every((c) => c.clue_type === 'treasure'));
+assert.ok(clues.every((c) => c.clue_type === 'treasure' && c.clue_weight === undefined));
 assert.deepEqual(
   clues.map((c) => c.act),
   [1, 2, 3],

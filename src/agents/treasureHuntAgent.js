@@ -3,8 +3,6 @@ import { getCharacterCards, pushCards } from '../utils/cards.js';
 import { getStoryBlurb } from '../utils/context.js';
 import { buildTreasureHuntResponseSchema } from '../schemas/treasureHuntSchema.js';
 
-const WEIGHT_CYCLE = ['low', 'mid', 'mid', 'high'];
-
 function buildPrompt({ storyBlurb, treasure, clueCount }) {
   return {
     system: 'Generate treasure hunt clues. Return JSON only.',
@@ -70,7 +68,6 @@ export async function treasureHuntAgent(context) {
       card_title: String(c.card_title || '').trim(),
       card_contents: String(c.card_contents || '').trim(),
       clue_type: 'treasure',
-      clue_weight: WEIGHT_CYCLE[i % WEIGHT_CYCLE.length],
       linked_character: title
     };
   });
