@@ -57,7 +57,7 @@ const SIGNAL_PATTERNS = {
   contradiction: /\b(contradict|claims|despite|though|however|alibi|elsewhere|denied|inconsistent)\b/i
 };
 
-export function collectSignalTypes(texts = []) {
+function collectSignalTypes(texts = []) {
   const types = new Set();
   for (const text of texts) {
     const value = String(text || '');
