@@ -16,7 +16,7 @@ Rules:
 - No single clue should reveal it.
 - Return JSON only.
 
-Treasure:
+Treasure (canonical — already defined upstream):
 object: ${String(treasure?.object || '').trim()}
 treasure_solution: ${String(treasure?.treasure_solution || '').trim()}
 
@@ -43,10 +43,6 @@ export async function treasureHuntAgent(context) {
   }
 
   const n = characters.length;
-  const characterTitles = characters.map((c) => String(c.card_title || '').trim()).filter(Boolean);
-  if (characterTitles.length !== n) {
-    throw new Error('treasure_hunt_agent: character cards need card_title');
-  }
 
   const storyBlurb = getStoryBlurb(context);
   const schema = buildTreasureHuntResponseSchema(n);
@@ -79,18 +75,6 @@ export async function treasureHuntAgent(context) {
     };
   });
 
-  const it = parsed?.item || {};
-  const body = String(it.card_contents || '').trim() || solution;
-
-  const treasureItem = {
-    card_type: 'item',
-    card_title: String(it.card_title || object || 'Treasure').trim(),
-    card_contents: body,
-    is_treasure: true,
-    hidden_until_solved: true
-  };
-
   pushCards(context, 'clue', clueEntries);
-  pushCards(context, 'item', [treasureItem]);
   return context;
 }

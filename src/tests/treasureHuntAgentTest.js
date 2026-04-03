@@ -31,8 +31,9 @@ const ctx = {
 await treasureHuntAgent(ctx);
 
 const clues = ctx.cards.filter((c) => c.card_type === 'clue');
-const items = ctx.cards.filter((c) => c.card_type === 'item' && c.is_treasure);
+const treasureItems = ctx.cards.filter((c) => c.card_type === 'item' && c.is_treasure);
 assert.equal(clues.length, 3);
+assert.equal(treasureItems.length, 0, 'treasure identity is upstream in coreTruth; agent emits clues only');
 assert.ok(clues.every((c) => c.clue_type === 'treasure'));
 assert.deepEqual(
   clues.map((c) => c.act),
@@ -45,7 +46,5 @@ assert.deepEqual(
   clues.map((c) => c.linked_character),
   ['Alpha One, The First', 'Beta Two, The Second', 'Gamma Three, The Third']
 );
-assert.equal(items.length, 1);
-assert.ok(items[0].hidden_until_solved === true);
 
 console.log('treasureHuntAgentTest OK');

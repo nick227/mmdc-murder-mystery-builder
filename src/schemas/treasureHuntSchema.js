@@ -8,17 +8,7 @@ const clueEntrySchema = {
   }
 };
 
-const itemSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['card_title', 'card_contents'],
-  properties: {
-    card_title: { type: 'string' },
-    card_contents: { type: 'string' }
-  }
-};
-
-/** One clue per playable character; `linked_character` assigned in code. */
+/** One clue per playable character; treasure identity lives in coreTruth only. */
 export function buildTreasureHuntResponseSchema(clueCount) {
   const n = Number(clueCount);
   if (!Number.isInteger(n) || n < 1 || n > 32) {
@@ -27,15 +17,14 @@ export function buildTreasureHuntResponseSchema(clueCount) {
   return {
     type: 'object',
     additionalProperties: false,
-    required: ['clues', 'item'],
+    required: ['clues'],
     properties: {
       clues: {
         type: 'array',
         minItems: n,
         maxItems: n,
         items: clueEntrySchema
-      },
-      item: itemSchema
+      }
     }
   };
 }

@@ -197,10 +197,6 @@ function fakeSmokeClueTargets(opts) {
 
 function fakeSmokeTreasureHunt(opts) {
   const user = String(opts?.user || '');
-  const objLine = user.match(/object:\s*([^\n]+)/i);
-  const solLine = user.match(/treasure_solution:\s*([^\n]+)/i);
-  const title = String(objLine?.[1] || 'Smoke treasure').trim();
-  const contents = String(solLine?.[1] || `The physical ${title}.`).trim();
   const countMatch = user.match(/Clue count:\s*(\d+)/i);
   const n = Math.min(32, Math.max(1, parseInt(String(countMatch?.[1] || '1'), 10)));
   const clues = Array.from({ length: n }, (_, i) => ({
@@ -208,13 +204,7 @@ function fakeSmokeTreasureHunt(opts) {
     card_contents: `Short concrete hint toward the treasure thread (${i + 1}).`
   }));
 
-  return {
-    clues,
-    item: {
-      card_title: title,
-      card_contents: contents
-    }
-  };
+  return { clues };
 }
 
 function fakeSmokePuzzleBundle(opts) {
