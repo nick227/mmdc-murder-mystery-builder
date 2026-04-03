@@ -84,6 +84,7 @@ export async function solvabilityValidatorAgent(context) {
 
     console.log('SOLVABILITY REPAIR:', problems);
 
+    /* LLM repair replaces whole cards; skip whenever bundle cards exist so hidden solutions stay stamped to clue_target.fact. */
     if (protectPuzzleBundles) {
       context.debug.warning_log.push({
         stage: 'solvability_validator',

@@ -1,3 +1,5 @@
+import { getCanonicalMurderStrings, getCanonicalSuspectBaseNames } from '../utils/canonFacts.js';
+
 function formatMurderTruthForClues(coreTruth) {
   const m = coreTruth?.murder;
   if (!m) {
@@ -23,9 +25,14 @@ export function buildCluesPrompt({
   narratives,
   totalClues,
   numPlayers,
-  coreTruth
+  coreTruth,
+  context = null
 }) {
   const suspectNames = (characters || []).map((c) => c.card_title).join(', ');
+  const { victim: canonVictim, location: canonLocation } = getCanonicalMurderStrings(coreTruth);
+  const rosterBases = context
+    ? getCanonicalSuspectBaseNames(context).join('; ')
+    : '';
   return {
     system: `
 You are generating all ${totalClues} clue cards for a murder mystery game.
@@ -50,6 +57,13 @@ ${storyMeta || '(none)'}
 
 HIDDEN murder truth (NEVER REVEAL THESE TO THE PLAYERS):
 ${formatMurderTruthForClues(coreTruth)}
+
+READ-ONLY canonical strings (use these exact substrings when naming the victim or crime scene; do not rename):
+Victim: ${canonVictim}
+Location: ${canonLocation}
+
+Playable suspect base names for suspect_name field (each clue's suspect_name must match one base name exactly; roster titles below carry full spelling):
+${rosterBases || '(derive from Suspects list titles)'}
 
 Suspects:
 ${suspectNames}

@@ -10,11 +10,16 @@ import { caseStateBuilderAgent } from '../../agents/caseStateBuilderAgent.js';
 import { charactersBuilderAgent } from '../../agents/charactersBuilderAgent.js';
 
 import { itemAgent } from '../../agents/itemAgent.js';
+import { clueAgent } from '../../agents/clueAgent.js';
 import { puzzleAgent } from '../../agents/puzzleAgent.js';
 import { bundleFinalizeAgent } from '../../agents/bundleFinalizeAgent.js';
 import { puzzleEvidenceAgent } from '../../agents/puzzleEvidenceAgent.js';
 import { bundleLinkerAgent } from '../../agents/bundleLinkerAgent.js';
-import { clueAgent } from '../../agents/clueAgent.js';
+import {
+  bundleVisibleCanonValidatorAgent,
+  clueRosterValidatorAgent,
+  puzzleDraftCanonValidatorAgent
+} from '../../agents/canonValidatorAgents.js';
 import { clueTargetAgent } from '../../agents/clueTargetAgent.js';
 import { structuralPreflightAgent } from '../../agents/structuralPreflightAgent.js';
 
@@ -40,10 +45,13 @@ export const steps = [
 
   { name: 'item_agent', run: itemAgent },
   { name: 'clue_agent', run: clueAgent },
+  { name: 'clue_roster_validator_agent', run: clueRosterValidatorAgent },
   { name: 'clue_target_agent', run: clueTargetAgent },
   { name: 'puzzle_agent', run: puzzleAgent },
+  { name: 'puzzle_draft_canon_validator_agent', run: puzzleDraftCanonValidatorAgent },
   { name: 'bundle_finalize_agent', run: bundleFinalizeAgent },
   { name: 'puzzle_evidence_agent', run: puzzleEvidenceAgent },
+  { name: 'bundle_visible_canon_validator_agent', run: bundleVisibleCanonValidatorAgent },
   { name: 'bundle_linker_agent', run: bundleLinkerAgent },
   { name: 'structural_preflight_agent', run: structuralPreflightAgent },
 

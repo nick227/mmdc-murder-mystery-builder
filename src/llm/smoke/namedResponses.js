@@ -124,28 +124,42 @@ function fakeSmokePuzzleBundle(opts) {
   const user = String(opts?.user || '');
   const targetFactMatch = user.match(/Target clue fact:\s*([\s\S]*?)\n\s*Target category:/i);
   const targetFact = String(targetFactMatch?.[1] || 'A smoke clue fact.').trim();
+  let canonVictim = 'Morgan Ashcroft';
+  let canonLocation = 'Smoke Test Ballroom';
+  const vParts = user.split('<<<CANON_VICTIM>>>');
+  if (vParts.length > 1) {
+    const rest = vParts[1].split('<<<CANON_LOCATION>>>');
+    const firstLine = (block) => String(block || '')
+      .trim()
+      .split('\n')
+      .map((l) => l.trim())
+      .find(Boolean) || '';
+    canonVictim = firstLine(rest[0]) || canonVictim;
+    canonLocation = firstLine(rest[1]) || canonLocation;
+  }
+  const tagged = (body) => `${body}\n${canonVictim}\n${canonLocation}`;
 
   return {
     cards: [
       {
         card_type: 'evidence',
         card_title: 'Evidence A',
-        card_contents: targetFact
+        card_contents: tagged(targetFact)
       },
       {
         card_type: 'evidence',
         card_title: 'Evidence B',
-        card_contents: `A second visible evidence record that supports this same fact: ${targetFact}`
+        card_contents: tagged(`Second record: ${targetFact}`)
       },
       {
         card_type: 'evidence',
         card_title: 'Evidence C',
-        card_contents: 'A third visible evidence record that confirms the same event.'
+        card_contents: tagged('Third visible evidence record confirming the same event.')
       },
       {
         card_type: 'puzzle',
         card_title: 'Smoke Puzzle',
-        card_contents: 'Use the visible evidence to identify the single concrete fact it reveals.',
+        card_contents: tagged('Use the visible evidence to identify the single concrete fact it reveals.'),
         unlocked_item: 'The confirmed timeline or access fact from the evidence set.'
       },
       {

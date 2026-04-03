@@ -39,7 +39,9 @@ export function buildPuzzlePrompt({
   priorClueTargets: _priorClueTargets = [],
   bundleIndex: _bundleIndex = 0,
   bundleCount: _bundleCount = 4,
-  canonicalKiller = ''
+  canonicalKiller = '',
+  canonicalVictim = '',
+  canonicalLocation = ''
 }) {
   const typeLines = puzzleTypesContent[puzzleType] || puzzleTypesContent.cross_reference;
   const killerLine = String(canonicalKiller || '').trim()
@@ -81,6 +83,13 @@ Evidence seed rules:
 Make one ${puzzleType} puzzle bundle for this story:
 
 ${storyBlurb}
+
+<<<CANON_VICTIM>>>
+${String(canonicalVictim || '').trim()}
+<<<CANON_LOCATION>>>
+${String(canonicalLocation || '').trim()}
+
+Every evidence seed card and the puzzle card must contain the exact canonical victim line and the exact canonical location line above as substrings (copy verbatim).
 
 Target clue fact: ${String(clueTarget?.fact || '').trim()}
 Target category: ${String(clueTarget?.category || '').trim()}

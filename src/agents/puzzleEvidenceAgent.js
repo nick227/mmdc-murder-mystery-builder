@@ -55,6 +55,9 @@ function applyEvidenceRewrite(existingCards, rewrite) {
     if (String(card?.card_id || '').trim() !== cardId) {
       return card;
     }
+    if (card?.card_type === 'solution' || card?.hidden_until_solved === true) {
+      return card;
+    }
     return {
       ...card,
       evidence_type: String(rewrite.evidence_type || '').trim() || card.evidence_type,

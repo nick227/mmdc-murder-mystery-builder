@@ -2,6 +2,7 @@ import { callJson } from '../llm/client.js';
 import { buildPuzzlePrompt } from '../prompts/puzzlePrompt.js';
 import { puzzleBundleSchema } from '../schemas/puzzleBundleSchema.js';
 import { getCardsByType, getCharacterCards } from '../utils/cards.js';
+import { getCanonicalMurderStrings } from '../utils/canonFacts.js';
 import { getStoryBlurb } from '../utils/context.js';
 
 const PUZZLE_COUNT = 4;
@@ -13,6 +14,7 @@ export async function puzzleAgent(context) {
 
   const drafts = [];
   const cards = context.cards || [];
+  const { victim: canonicalVictim, location: canonicalLocation } = getCanonicalMurderStrings(context.coreTruth);
 
   for (let i = 0; i < PUZZLE_COUNT; i++) {
     const clueTarget = targets[i] || {};
@@ -35,7 +37,9 @@ export async function puzzleAgent(context) {
       priorClueTargets,
       bundleIndex: i,
       bundleCount: PUZZLE_COUNT,
-      canonicalKiller: context?.coreTruth?.murder?.killer || ''
+      canonicalKiller: context?.coreTruth?.murder?.killer || '',
+      canonicalVictim,
+      canonicalLocation
     });
 
     const result = await callJson({

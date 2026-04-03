@@ -17,7 +17,8 @@ async function generateClues(context, totalClues, numPlayers, callJsonImpl = cal
     narratives: context.narratives,
     totalClues,
     numPlayers,
-    coreTruth: context.coreTruth
+    coreTruth: context.coreTruth,
+    context
   });
 
   const result = await callJsonImpl({
