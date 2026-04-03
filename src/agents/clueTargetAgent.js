@@ -15,6 +15,15 @@ function normalizeText(value) {
 
 function mapClueTypeToCategory(clueType) {
   const normalized = normalizeText(clueType);
+  if (normalized === 'artifact') {
+    return 'object';
+  }
+  if (normalized === 'fact') {
+    return 'location';
+  }
+  if (normalized === 'derived') {
+    return 'access';
+  }
   if (/(time|timeline)/.test(normalized)) {
     return 'timing';
   }

@@ -2,12 +2,19 @@ const clueSchema = {
   type: 'object',
   additionalProperties: false,
   required: ['card_title', 'card_contents', 'clue_type', 'suspect_name', 'clue_weight'],
-  description: 'A clue card providing an observable fact about the mystery.',
+  description: 'A clue card: one small information unit (artifact, fact, or derived).',
   properties: {
     card_title: { type: 'string' },
     card_contents: { type: 'string' },
-    clue_type: { type: 'string' },
-    suspect_name: { type: 'string', description: 'The primary suspect this clue relates to.' },
+    clue_type: {
+      type: 'string',
+      enum: ['artifact', 'fact', 'derived'],
+      description: 'artifact | fact | derived — mix across the deck.'
+    },
+    suspect_name: {
+      type: 'string',
+      description: 'Person most directly connected to the clue (not necessarily the killer).'
+    },
     clue_weight: {
       type: 'string',
       enum: ['low', 'mid', 'high'],
