@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
 import { pushCards } from '../utils/cards.js';
+import { FACT_BINDING_ORDER } from '../utils/truthTrailReachability.js';
 
 const VALID_ACTS = new Set([1, 2, 3]);
 const DEFAULT_ACT = 2;
@@ -32,6 +33,11 @@ function toInternalCards(rawCards, bundleIndex, frozenSolutionFact = '') {
   assert(puzzle, `bundle_finalize_agent bundle ${bundleIndex + 1} missing puzzle card`);
   assert(solution, `bundle_finalize_agent bundle ${bundleIndex + 1} missing solution card`);
 
+  const factBinding =
+    bundleIndex >= 0 && bundleIndex < FACT_BINDING_ORDER.length
+      ? FACT_BINDING_ORDER[bundleIndex]
+      : null;
+
   const evidenceCards = evidence.map((card, idx) => ({
     card_ref: `bundle_${bundleIndex + 1}_evidence_${String(idx + 1).padStart(3, '0')}`,
     card_type: 'clue',
@@ -47,7 +53,8 @@ function toInternalCards(rawCards, bundleIndex, frozenSolutionFact = '') {
     card_type: 'solution',
     card_title: String(solution?.card_title || `Clue ${bundleIndex + 1}`).trim(),
     card_contents: solutionText,
-    hidden_until_solved: true
+    hidden_until_solved: true,
+    meta: factBinding ? { fact_binding: factBinding } : undefined
   };
 
   const puzzleCard = {
@@ -86,7 +93,7 @@ export function flattenBundle(bundleDraft, index, externalRefToId = new Map()) {
   const emittedCards = cards.map((card) => {
     const cardRef = String(card.card_ref || '').trim();
     const cardId = localRefToId.get(cardRef);
-    return {
+    const base = {
       card_id: cardId,
       card_ref: cardRef,
       card_type: card.card_type,
@@ -96,6 +103,10 @@ export function flattenBundle(bundleDraft, index, externalRefToId = new Map()) {
       bundle_id: bundleId,
       hidden_until_solved: card.card_type === 'solution' ? true : card.hidden_until_solved === true
     };
+    if (card.meta && typeof card.meta === 'object') {
+      base.meta = card.meta;
+    }
+    return base;
   });
 
   const puzzleCard = emittedCards.find((c) => c.card_type === 'puzzle') || null;

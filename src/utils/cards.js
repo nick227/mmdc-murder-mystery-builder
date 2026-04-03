@@ -121,6 +121,9 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (card?.is_treasure !== undefined || previous.is_treasure !== undefined) {
       merged.is_treasure = card?.is_treasure ?? previous.is_treasure;
     }
+    if (card?.meta !== undefined || previous.meta !== undefined) {
+      merged.meta = card?.meta ?? previous.meta;
+    }
 
     return merged;
   });
@@ -235,6 +238,9 @@ export function pushCards(context, type, entries) {
     }
     if (e.linked_item_id !== undefined) {
       card.linked_item_id = e.linked_item_id;
+    }
+    if (e.meta !== undefined) {
+      card.meta = e.meta;
     }
 
     return card;

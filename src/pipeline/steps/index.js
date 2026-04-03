@@ -20,6 +20,7 @@ import { puzzleAgent } from '../../agents/puzzleAgent.js';
 import { bundleFinalizeAgent } from '../../agents/bundleFinalizeAgent.js';
 import { puzzleEvidenceAgent } from '../../agents/puzzleEvidenceAgent.js';
 import { bundleLinkerAgent } from '../../agents/bundleLinkerAgent.js';
+import { truthTrailValidatorAgent } from '../../agents/truthTrailValidatorAgent.js';
 import {
   bundleVisibleCanonValidatorAgent,
   clueRosterValidatorAgent,
@@ -63,6 +64,7 @@ export const steps = [
   { name: 'puzzle_evidence_agent', run: puzzleEvidenceAgent },
   { name: 'bundle_visible_canon_validator_agent', run: bundleVisibleCanonValidatorAgent },
   { name: 'bundle_linker_agent', run: bundleLinkerAgent },
+  { name: 'truth_trail_validator_agent', run: truthTrailValidatorAgent },
   { name: 'structural_preflight_agent', run: structuralPreflightAgent },
 
   { name: 'solvability_validator_agent', run: solvabilityValidatorAgent },

@@ -27,6 +27,7 @@
     "test:playability-learning": "node src/tests/playabilityLearningTest.js",
     "test:targeted-playability-repair": "node src/tests/targetedPlayabilityRepairTest.js",
     "test:structural-preflight": "node src/tests/structuralPreflightTest.js",
+    "test:truth-trail": "node src/tests/truthTrailReachabilityTest.js",
     "test:suspect-coverage": "node src/tests/suspectCoverageTest.js",
     "test:mvp-quality-gate": "node src/tests/mvpQualityGateTest.js",
     "test:shakespeare-regression": "node src/tests/shakespeareRegressionHarness.js",
