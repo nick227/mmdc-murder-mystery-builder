@@ -42,6 +42,34 @@ function fakeSmokeCharacterSecrets(opts) {
   };
 }
 
+function fakeSmokeStoryActs() {
+  return {
+    cards: [
+      {
+        card_title: 'Smoke act I — gathering',
+        card_contents:
+          'The guests trade smiles while studying doorways and exits; alliances form in whispered asides before anyone names a fear. Suspicion has not yet hardened into accusation, but every polite greeting carries a second meaning in the ballroom haze.',
+        act: 1,
+        location_ref: 'Smoke ballroom'
+      },
+      {
+        card_title: 'Smoke act II — fracture',
+        card_contents:
+          'Contradictions ripple through testimony as timelines refuse to align and motives surface from half-forgotten quarrels. What seemed like coincidence tightens into pattern, forcing players to choose which witnesses they still trust as pressure mounts.',
+        act: 2,
+        location_ref: 'Smoke ballroom'
+      },
+      {
+        card_title: 'Smoke act III — reckoning',
+        card_contents:
+          'The final interval leaves no room for polite doubt: every player must commit to a theory and defend it against hard questions. The answer still hangs in the air, but the room demands resolution before the last clock chime.',
+        act: 3,
+        location_ref: 'Smoke ballroom'
+      }
+    ]
+  };
+}
+
 function fakeSmokeHostSpeech() {
   return {
     cards: [
@@ -202,6 +230,7 @@ const NAMED_SMOKE = {
   puzzle_bundle: fakeSmokePuzzleBundle,
   treasure_hunt: fakeSmokeTreasureHunt,
   character_secrets: fakeSmokeCharacterSecrets,
+  story_acts: fakeSmokeStoryActs,
   host_speech: fakeSmokeHostSpeech
 };
 

@@ -61,6 +61,15 @@ function validateContext(context, stepName) {
     assert(flagged.length === 1, 'expected exactly one is_treasure item');
   }
 
+  if (stepName === 'story_acts_agent') {
+    const acts = getCardsByType(context.cards, 'story_act');
+    assert(acts.length === 3, 'expected exactly three story_act cards');
+    assert(
+      acts.every((c) => String(c.card_contents || '').trim().length >= 40),
+      'each story_act must have meaningful card_contents'
+    );
+  }
+
   if (stepName === 'host_speech_agent') {
     assert(getCardsByType(context.cards, 'host_speech').length >= 3, 'expected at least three host_speech cards');
   }

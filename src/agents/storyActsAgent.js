@@ -47,10 +47,28 @@ export async function storyActsAgent(context) {
     throw lastError || new Error('story_acts_agent failed to produce story acts');
   }
 
-  const cards = (result.cards || []).map((c, i) => ({
-    ...c,
-    act: c.act ?? (i + 1)
-  }));
+  const raw = result.cards || [];
+  if (raw.length !== 3) {
+    throw new Error(`story_acts_agent: expected exactly 3 story act cards, got ${raw.length}`);
+  }
+
+  const cards = raw.map((c, i) => {
+    const body = String(c?.card_contents || '').trim();
+    if (body.length < 40) {
+      throw new Error(`story_acts_agent: act ${i + 1} card_contents too short (need at least 40 characters)`);
+    }
+    const actNum = i + 1;
+    const declared = c.act;
+    if (declared !== undefined && declared !== null && Number(declared) !== actNum) {
+      throw new Error(`story_acts_agent: card index ${i} must use act ${actNum}, got ${declared}`);
+    }
+    return {
+      card_title: String(c?.card_title || '').trim(),
+      card_contents: body,
+      act: actNum,
+      location_ref: c?.location_ref ?? null
+    };
+  });
 
   return pushCards(context, 'story_act', cards);
 }

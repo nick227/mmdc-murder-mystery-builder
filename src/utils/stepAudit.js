@@ -31,6 +31,7 @@ const STEP_ORDER = [
   'character_secret_agent',
   'item_agent',
   'treasure_item_agent',
+  'story_acts_agent',
   'host_speech_agent',
   'clue_agent',
   'clue_roster_validator_agent',

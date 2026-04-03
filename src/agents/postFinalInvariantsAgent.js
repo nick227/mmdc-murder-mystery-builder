@@ -28,6 +28,21 @@ export async function postFinalInvariantsAgent(context) {
     `post_final_invariants_agent: expected at least ${characterCount * 2} secret cards; got ${secrets.length}`
   );
 
+  const storyActs = getCardsByType(context.cards, 'story_act');
+  assert(
+    storyActs.length === 3,
+    `post_final_invariants_agent: expected exactly 3 story_act cards; got ${storyActs.length}`
+  );
+  for (const c of storyActs) {
+    assert(
+      String(c?.card_contents || '').trim().length >= 40,
+      `post_final_invariants_agent: story_act ${c?.act} must have meaningful card_contents`
+    );
+    assert([1, 2, 3].includes(c.act), `post_final_invariants_agent: story_act has invalid act ${c?.act}`);
+  }
+  const actKeys = new Set(storyActs.map((c) => c.act));
+  assert(actKeys.size === 3, 'post_final_invariants_agent: story_act cards must cover acts 1, 2, and 3');
+
   const hostSpeech = getCardsByType(context.cards, 'host_speech');
   assert(
     hostSpeech.length >= 3,

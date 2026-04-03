@@ -10,6 +10,7 @@ import { caseStateBuilderAgent } from '../../agents/caseStateBuilderAgent.js';
 
 import { charactersBuilderAgent } from '../../agents/charactersBuilderAgent.js';
 import { characterSecretAgent } from '../../agents/characterSecretAgent.js';
+import { storyActsAgent } from '../../agents/storyActsAgent.js';
 import { hostSpeechAgent } from '../../agents/hostSpeechAgent.js';
 
 import { itemAgent } from '../../agents/itemAgent.js';
@@ -51,6 +52,7 @@ export const steps = [
   { name: 'character_secret_agent', run: characterSecretAgent },
   { name: 'item_agent', run: itemAgent },
   { name: 'treasure_item_agent', run: treasureItemAgent },
+  { name: 'story_acts_agent', run: storyActsAgent },
   { name: 'host_speech_agent', run: hostSpeechAgent },
   { name: 'clue_agent', run: clueAgent },
   { name: 'clue_roster_validator_agent', run: clueRosterValidatorAgent },

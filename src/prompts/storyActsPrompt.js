@@ -14,7 +14,7 @@ Public blurb:
 ${storyBlurb}
 
 Competing suspect narratives (all are plausible - do not treat any as confirmed truth):
-${JSON.stringify(narratives, null, 2)}
+${JSON.stringify(narratives ?? [], null, 2)}
 
 Playable characters:
 ${JSON.stringify(characters || [], null, 2)}
