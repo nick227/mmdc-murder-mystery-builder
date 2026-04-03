@@ -1,18 +1,17 @@
 import { safeJson } from '../utils/json.js';
 import { recordUsage } from './costLedger.js';
+import { nextSmokeCallJson } from './smoke/smokeCallJson.js';
 
 const API_BASE_URL = process.env.API_BASE_URL || 'https://api.openai.com/v1';
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 const SMOKE = process.env.SMOKE_MODE === 'true';
-let smokeCallSeq = 0;
-let smokeSecretBatchSeq = 0;
 
 async function call(body) {
   const res = await fetch(`${API_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
     },
     body: JSON.stringify(body)
   });
@@ -25,19 +24,25 @@ async function call(body) {
   return res.json();
 }
 
+function chatCompletionPayload(opts, extra) {
+  return {
+    model: MODEL,
+    messages: [
+      { role: 'system', content: opts.system },
+      { role: 'user', content: opts.user }
+    ],
+    ...extra
+  };
+}
+
 export async function callText(opts) {
   if (SMOKE) {
     return 'SMOKE_MODE_TEXT';
   }
 
-  const jsonResp = await call({
-    model: MODEL,
-    temperature: opts.temperature ?? 0.7,
-    messages: [
-      { role: 'system', content: opts.system },
-      { role: 'user', content: opts.user }
-    ]
-  });
+  const jsonResp = await call(
+    chatCompletionPayload(opts, { temperature: opts.temperature ?? 0.7 })
+  );
 
   recordUsage({
     requestType: 'text',
@@ -51,12 +56,7 @@ export async function callText(opts) {
 
 export async function callJson(opts) {
   if (SMOKE) {
-    smokeCallSeq += 1;
-    const smokeOverride = fakeSmokeResponse(opts);
-    if (smokeOverride) {
-      return smokeOverride;
-    }
-    return fakeFromSchema(opts?.schema, `root${smokeCallSeq}`, 0);
+    return nextSmokeCallJson(opts);
   }
 
   if (!opts?.schemaName) {
@@ -66,22 +66,19 @@ export async function callJson(opts) {
     throw new Error('callJson requires schema');
   }
 
-  const jsonResp = await call({
-    model: MODEL,
-    temperature: opts.temperature ?? 0.4,
-    response_format: {
-      type: 'json_schema',
-      json_schema: {
-        name: opts.schemaName,
-        schema: opts.schema,
-        strict: true
+  const jsonResp = await call(
+    chatCompletionPayload(opts, {
+      temperature: opts.temperature ?? 0.4,
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: opts.schemaName,
+          schema: opts.schema,
+          strict: true
+        }
       }
-    },
-    messages: [
-      { role: 'system', content: opts.system },
-      { role: 'user', content: opts.user }
-    ]
-  });
+    })
+  );
 
   recordUsage({
     requestType: 'json',
@@ -105,241 +102,4 @@ export async function callJson(opts) {
   }
 
   return parsed;
-}
-
-function fakeSmokeResponse(opts) {
-  const schemaName = String(opts?.schemaName || '').trim();
-  if (schemaName === 'core_truth') {
-    return fakeSmokeCoreTruth(opts);
-  }
-  if (schemaName === 'clue_targets') {
-    return fakeSmokeClueTargets(opts);
-  }
-  if (schemaName === 'puzzle_bundle') {
-    return fakeSmokePuzzleBundle(opts);
-  }
-  if (schemaName === 'treasure_hunt') {
-    return fakeSmokeTreasureHunt(opts);
-  }
-  if (schemaName === 'character_secrets') {
-    return fakeSmokeCharacterSecrets();
-  }
-  return null;
-}
-
-function fakeSmokeCharacterSecrets(opts) {
-  smokeSecretBatchSeq += 1;
-  const batch = smokeSecretBatchSeq;
-  const user = String(opts?.user || '');
-  const label = 'Character:';
-  const idx = user.lastIndexOf(label);
-  let name = 'smoke character';
-  if (idx !== -1) {
-    const after = user.slice(idx + label.length).trimStart();
-    const line = after.split('\n')[0]?.trim() || '';
-    if (line) {
-      name = line.replace(/\s+/g, ' ').slice(0, 80);
-    }
-  }
-
-  return {
-    cards: [
-      {
-        card_title: `Smoke motive ${batch} — ${name}`,
-        card_contents:
-          `[${batch}] Resentment over inheritance and fear of blackmail pushed ${name} to seek leverage before the will reading.`
-      },
-      {
-        card_title: `Smoke access ${batch} — ${name}`,
-        card_contents:
-          `[${batch}] ${name} had backstage access to the study, slipped inside near midnight, and were spotted by the cellar door.`
-      }
-    ]
-  };
-}
-
-function fakeSmokeCoreTruth(opts) {
-  const user = String(opts?.user || '');
-  const playableCharacters = extractJsonBlock(user, 'Playable characters:', 'World:');
-  const firstCharacter = Array.isArray(playableCharacters) ? playableCharacters[0] : null;
-  const killer = String(firstCharacter?.card_title || firstCharacter?.name || 'Smoke Character 1').trim();
-
-  return {
-    murder: {
-      killer,
-      victim: 'Morgan Ashcroft',
-      location: 'Smoke Test Ballroom',
-      murder_solution: `${killer} poisoned Morgan Ashcroft during the toast in the Smoke Test Ballroom, seized a private moment with the glasses before guests gathered, and staged confusion after the band started. Motive: control of the disputed inheritance.`
-    },
-    treasure: {
-      object: 'The smoke test inheritance ledger',
-      hiding_place: 'Inside the false bottom of the ballroom podium',
-      treasure_solution: 'Wrapped in sheet music beneath the podium drawer; proves who controls estate holdings. Players trace the podium key, the sheet music clue, and the hidden compartment.'
-    }
-  };
-}
-
-function fakeSmokeClueTargets(opts) {
-  const user = String(opts?.user || '');
-  const playableCharacters = extractJsonBlock(user, 'Playable characters:', 'World:');
-  const coreTruth = extractJsonBlock(user, 'Core truth:', 'Playable characters:');
-  const chars = Array.isArray(playableCharacters) ? playableCharacters : [];
-  const fallbackKiller = String(coreTruth?.murder?.killer || 'mock_root3.cards.card_title_1').trim();
-  const t0 = String(chars[0]?.card_title || fallbackKiller).trim();
-  const t1 = String(chars[1]?.card_title || fallbackKiller).trim();
-  const t2 = String(chars[2]?.card_title || fallbackKiller).trim();
-  const t3 = String(chars[3]?.card_title || fallbackKiller).trim();
-  const name0 = t0.split(',')[0].trim();
-  const name1 = t1.split(',')[0].trim();
-  const name2 = t2.split(',')[0].trim();
-  const name3 = t3.split(',')[0].trim();
-  const loc = String(coreTruth?.murder?.location || 'Smoke Test Ballroom');
-  const obj = String(coreTruth?.treasure?.object || 'smoke test inheritance ledger');
-
-  return {
-    targets: [
-      {
-        fact: `${name0} was recorded in ${loc} before the toast.`,
-        category: 'location',
-        act: 1,
-        puzzle_type_hint: 'cross_reference',
-        difficulty_hint: 'easy'
-      },
-      {
-        fact: `${name1} had access to the champagne service during the crime window.`,
-        category: 'access',
-        act: 2,
-        puzzle_type_hint: 'elimination',
-        difficulty_hint: 'medium'
-      },
-      {
-        fact: `${name2} was seen in the foyer at 9:12 PM per the security log.`,
-        category: 'movement',
-        act: 3,
-        puzzle_type_hint: 'timeline',
-        difficulty_hint: 'medium'
-      },
-      {
-        fact: `The ${obj} shows fingerprints consistent with ${name3} on the podium latch.`,
-        category: 'object',
-        act: 3,
-        puzzle_type_hint: 'item_combination',
-        difficulty_hint: 'hard'
-      }
-    ]
-  };
-}
-
-function fakeSmokeTreasureHunt(opts) {
-  const user = String(opts?.user || '');
-  const countMatch = user.match(/Clue count:\s*(\d+)/i);
-  const n = Math.min(32, Math.max(1, parseInt(String(countMatch?.[1] || '1'), 10)));
-  const clues = Array.from({ length: n }, (_, i) => ({
-    card_title: `Treasure hint ${i + 1}`,
-    card_contents: `Short concrete hint toward the treasure thread (${i + 1}).`
-  }));
-
-  return { clues };
-}
-
-function fakeSmokePuzzleBundle(opts) {
-  const user = String(opts?.user || '');
-  const targetFactMatch = user.match(/Target clue fact:\s*([\s\S]*?)\n\s*Target category:/i);
-  const targetFact = String(targetFactMatch?.[1] || 'A smoke clue fact.').trim();
-
-  return {
-    cards: [
-      {
-        card_type: 'evidence',
-        card_title: 'Evidence A',
-        card_contents: targetFact
-      },
-      {
-        card_type: 'evidence',
-        card_title: 'Evidence B',
-        card_contents: `A second visible evidence record that supports this same fact: ${targetFact}`
-      },
-      {
-        card_type: 'evidence',
-        card_title: 'Evidence C',
-        card_contents: 'A third visible evidence record that confirms the same event.'
-      },
-      {
-        card_type: 'puzzle',
-        card_title: 'Smoke Puzzle',
-        card_contents: 'Use the visible evidence to identify the single concrete fact it reveals.',
-        unlocked_item: 'The confirmed timeline or access fact from the evidence set.'
-      },
-      {
-        card_type: 'solution',
-        card_title: 'Smoke Clue',
-        card_contents: targetFact
-      }
-    ]
-  };
-}
-
-function extractJsonBlock(text, startLabel, endLabel) {
-  const source = String(text || '');
-  const start = source.indexOf(startLabel);
-  if (start === -1) {
-    return null;
-  }
-
-  const afterStart = source.slice(start + startLabel.length);
-  const end = endLabel ? afterStart.indexOf(endLabel) : -1;
-  const block = (end === -1 ? afterStart : afterStart.slice(0, end)).trim();
-
-  try {
-    return safeJson(block);
-  } catch {
-    return null;
-  }
-}
-
-function fakeFromSchema(schema, parentKey = 'root', index = 0) {
-  if (!schema?.properties) {
-    return {};
-  }
-
-  const obj = {};
-
-  for (const key of Object.keys(schema.properties)) {
-    obj[key] = fakeValue(schema.properties[key], `${parentKey}.${key}`, index);
-  }
-
-  return obj;
-}
-
-function fakeValue(def, key, index) {
-  if (!def) {
-    return null;
-  }
-
-  if (Array.isArray(def.enum) && def.enum.length > 0) {
-    return def.enum[0];
-  }
-
-  const types = Array.isArray(def.type) ? def.type : [def.type];
-
-  if (types.includes('string')) {
-    return `mock_${key || 'string'}_${index}`;
-  }
-  if (types.includes('integer') || types.includes('number')) {
-    return 1;
-  }
-  if (types.includes('boolean')) {
-    return true;
-  }
-
-  if (types.includes('array')) {
-    const length = Number.isInteger(def.minItems) ? def.minItems : 1;
-    return Array.from({ length }, (_v, i) => fakeValue(def.items, key, i + 1));
-  }
-
-  if (types.includes('object')) {
-    return fakeFromSchema(def, key, index);
-  }
-
-  return `mock_${key || 'value'}_${index}`;
 }
