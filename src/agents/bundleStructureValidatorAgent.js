@@ -1,3 +1,5 @@
+import { baseName } from '../utils/coreTruthChecks.js';
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -38,6 +40,32 @@ function getSuspectNames(context) {
     .filter(Boolean);
 }
 
+function assertBundleSolutionDoesNotNameWrongSuspects(context, solution, bundleId) {
+  const killerFull = String(context?.coreTruth?.murder?.killer || '').trim();
+  if (!killerFull) {
+    return;
+  }
+  const victimFull = String(context?.coreTruth?.murder?.victim || '').trim();
+  const text = normalizeText(solution.card_contents);
+  const killerNorm = normalizeText(baseName(killerFull));
+  const victimNorm = normalizeText(baseName(victimFull));
+
+  for (const rawName of getSuspectNames(context)) {
+    const suspectNorm = normalizeText(baseName(rawName));
+    if (!suspectNorm) {
+      continue;
+    }
+    if (suspectNorm === killerNorm || suspectNorm === victimNorm) {
+      continue;
+    }
+    if (text.includes(suspectNorm)) {
+      throw new Error(
+        `bundle_structure_validator_agent: bundle ${bundleId} solution names suspect "${rawName}" but core truth killer is "${baseName(killerFull)}"`
+      );
+    }
+  }
+}
+
 export async function bundleStructureValidatorAgent(context) {
   /* Smoke uses synthetic names/facts that do not satisfy suspect-context heuristics. */
   if (process.env.SMOKE_MODE === 'true') {
@@ -51,7 +79,6 @@ export async function bundleStructureValidatorAgent(context) {
     (Array.isArray(context?.puzzle_bundles) ? context.puzzle_bundles : [])
       .map((bundle) => [bundle.bundle_id, bundle])
   );
-  void getSuspectNames(context);
 
   for (const [bundleId, bundleCards] of bundles.entries()) {
     const puzzleCards = bundleCards.filter((card) => card.card_type === 'puzzle');
@@ -74,6 +101,8 @@ export async function bundleStructureValidatorAgent(context) {
     assert(typeof solution.card_contents === 'string' && solution.card_contents.trim(), `bundle_structure_validator_agent: bundle ${bundleId} solution must have card_contents`);
     assert(typeof puzzle.puzzle_type === 'string' && puzzle.puzzle_type.trim(), `bundle_structure_validator_agent: bundle ${bundleId} puzzle must have puzzle_type`);
     assert(Array.isArray(puzzle.unlock_card_ids) && puzzle.unlock_card_ids.length === 1, `bundle_structure_validator_agent: bundle ${bundleId} puzzle must unlock exactly one hidden clue`);
+
+    assertBundleSolutionDoesNotNameWrongSuspects(context, solution, bundleId);
 
     if (meta) {
       assert(

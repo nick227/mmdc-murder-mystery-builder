@@ -21,10 +21,24 @@ async function expectFailure(fn, pattern) {
 
 function makeContext() {
   return {
+    coreTruth: {
+      murder: {
+        killer: 'Max Vinyl',
+        victim: 'Pat Chen',
+        location: 'Rare Vinyl Vault',
+        murder_solution: 'Max Vinyl struck the victim after hours.'
+      },
+      treasure: {
+        object: 'Demo reliquary',
+        hiding_place: 'under the riser',
+        treasure_solution: 'Lift the riser plate.'
+      }
+    },
     case_state: {
+      killer_id: 'max_vinyl',
       suspects: [
-        { name: 'Max Vinyl' },
-        { name: 'Lila Groove' }
+        { suspect_id: 'max_vinyl', name: 'Max Vinyl' },
+        { suspect_id: 'lila_groove', name: 'Lila Groove' }
       ]
     },
     puzzle_bundles: [
@@ -126,6 +140,24 @@ async function run() {
         : card)
     }),
     /puzzle leaks its hidden solution/
+  );
+
+  await expectFailure(
+    () => bundleStructureValidatorAgent({
+      ...makeContext(),
+      cards: makeContext().cards.map((card) => card.card_id === 's1'
+        ? { ...card, card_contents: 'Lila Groove accessed the vault at 11:54 PM.' }
+        : card),
+      puzzle_bundles: [
+        {
+          bundle_id: 'puzzle_bundle_001',
+          act: 1,
+          puzzle_type: 'timeline',
+          clue_target: 'Lila Groove accessed the vault at 11:54 PM.'
+        }
+      ]
+    }),
+    /solution names suspect/
   );
 
   await expectFailure(

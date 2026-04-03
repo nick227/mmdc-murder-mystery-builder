@@ -59,22 +59,24 @@ function derivePuzzleTypeFromCategory(category) {
   }
 }
 
-function buildDerivedTargetFact(clue) {
-  const suspectName = String(clue?.suspect_name || '').trim() || 'the highlighted suspect';
+function buildDerivedTargetFact(clue, coreTruth) {
+  const title = String(clue?.card_title || 'this evidence').trim() || 'this evidence';
+  const location = String(coreTruth?.murder?.location || 'the scene').trim() || 'the scene';
+  const victim = String(coreTruth?.murder?.victim || 'the victim').trim() || 'the victim';
   const category = mapClueTypeToCategory(clue?.clue_type);
 
   switch (category) {
   case 'timing':
-    return `${suspectName} is the suspect whose timeline this clue meaningfully narrows.`;
+    return `Resolving records tied to "${title}" pins a time window relevant to ${victim} at ${location}.`;
   case 'location':
-    return `${suspectName} is the suspect most strongly tied to the location revealed by this clue.`;
+    return `Cross-referencing "${title}" isolates which part of ${location} the physical detail implicates.`;
   case 'access':
-    return `${suspectName} is the suspect constrained by the access pattern this clue reveals.`;
+    return `The "${title}" material shows which access or credential mattered at ${location}.`;
   case 'movement':
-    return `${suspectName} is the suspect whose movement this clue helps narrow.`;
+    return `Reconstructing movement from "${title}" narrows who could have been present near ${location}.`;
   case 'object':
   default:
-    return `${suspectName} is the suspect implicated by the object relationship this clue reveals.`;
+    return `The physical pattern described under "${title}" ties to the circumstances of the death at ${location}.`;
   }
 }
 
@@ -94,7 +96,7 @@ function buildDerivedClueTargets(context) {
         suspect_name: String(card?.suspect_name || '').trim(),
         source_signature: String(buildEvidenceSignature(card, context) || '').trim(),
         source_text: sourceText,
-        fact: buildDerivedTargetFact(card),
+        fact: buildDerivedTargetFact(card, context.coreTruth),
         category,
         puzzle_type_hint: derivePuzzleTypeFromCategory(category),
         act: typeof card?.act === 'number' ? card.act : null

@@ -38,15 +38,21 @@ export function buildPuzzlePrompt({
   locations: _locations = [],
   priorClueTargets: _priorClueTargets = [],
   bundleIndex: _bundleIndex = 0,
-  bundleCount: _bundleCount = 4
+  bundleCount: _bundleCount = 4,
+  canonicalKiller = ''
 }) {
   const typeLines = puzzleTypesContent[puzzleType] || puzzleTypesContent.cross_reference;
+  const killerLine = String(canonicalKiller || '').trim()
+    ? `Canonical murderer (from sealed core truth — do not replace or contradict with the answer card): ${String(canonicalKiller).trim()}`
+    : 'Murderer identity is fixed elsewhere; do not state a different perpetrator in the answer card.';
 
   return {
     system: `
 You create playable ${puzzleType} puzzles.
 
 ${typeLines.map((line) => `- ${line}`).join('\n')}
+
+${killerLine}
 
 Create exactly one puzzle bundle with:
 - 2 to 4 evidence seed cards

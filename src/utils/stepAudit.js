@@ -29,6 +29,7 @@ const STEP_ORDER = [
   'case_state_builder_agent',
   'item_agent',
   'clue_agent',
+  'clue_target_agent',
   'puzzle_agent',
   'bundle_finalize_agent',
   'puzzle_evidence_agent',

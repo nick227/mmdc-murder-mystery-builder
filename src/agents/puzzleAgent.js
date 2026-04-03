@@ -34,7 +34,8 @@ export async function puzzleAgent(context) {
       locations: getCardsByType(cards, 'location').map(c => c.card_title),
       priorClueTargets,
       bundleIndex: i,
-      bundleCount: PUZZLE_COUNT
+      bundleCount: PUZZLE_COUNT,
+      canonicalKiller: context?.coreTruth?.murder?.killer || ''
     });
 
     const result = await callJson({

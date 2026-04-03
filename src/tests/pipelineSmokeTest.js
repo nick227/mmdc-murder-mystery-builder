@@ -53,6 +53,11 @@ function validateContext(context, stepName) {
     }
   }
 
+  if (stepName === 'clue_target_agent') {
+    assert(Array.isArray(context.clue_targets), 'clue_targets missing');
+    assert(context.clue_targets.length === 4, 'expected four frozen clue targets');
+  }
+
   if (stepName === 'bundle_finalize_agent') {
     const puzzleCards = getCardsByType(context.cards, 'puzzle');
     const puzzleBundles = context.puzzle_bundles || [];

@@ -1,7 +1,7 @@
 import { getCharacterCards } from './cards.js';
 
 /** First segment before comma, trimmed — matches playable roster naming. */
-function baseName(value) {
+export function baseName(value) {
   return String(value || '').split(',')[0].trim();
 }
 

@@ -15,6 +15,7 @@ import { bundleFinalizeAgent } from '../../agents/bundleFinalizeAgent.js';
 import { puzzleEvidenceAgent } from '../../agents/puzzleEvidenceAgent.js';
 import { bundleLinkerAgent } from '../../agents/bundleLinkerAgent.js';
 import { clueAgent } from '../../agents/clueAgent.js';
+import { clueTargetAgent } from '../../agents/clueTargetAgent.js';
 import { structuralPreflightAgent } from '../../agents/structuralPreflightAgent.js';
 
 import { solvabilityValidatorAgent } from '../../agents/solvabilityValidatorAgent.js';
@@ -39,6 +40,7 @@ export const steps = [
 
   { name: 'item_agent', run: itemAgent },
   { name: 'clue_agent', run: clueAgent },
+  { name: 'clue_target_agent', run: clueTargetAgent },
   { name: 'puzzle_agent', run: puzzleAgent },
   { name: 'bundle_finalize_agent', run: bundleFinalizeAgent },
   { name: 'puzzle_evidence_agent', run: puzzleEvidenceAgent },
