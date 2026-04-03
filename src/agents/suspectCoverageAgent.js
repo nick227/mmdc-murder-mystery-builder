@@ -1,24 +1,24 @@
 import { buildSuspectCoverageReport } from '../utils/suspectCoverage.js';
 
 /**
- * Builds suspect_coverage diagnostics (motive/access heuristics, underused flags).
- * Does not mutate cards or fail the pipeline — use the report in QA, playability, and runs.
+ * Analysis-only: runs heuristics from `buildSuspectCoverageReport`, attaches `context.suspect_coverage`,
+ * mirrors issues into `debug.warning_log`. No LLM calls, no card mutation, no throws.
  */
-export async function suspectCoverageAgent(context) {
+export function suspectCoverageAgent(context) {
   context.debug ??= {};
   context.debug.warning_log ??= [];
 
   const report = buildSuspectCoverageReport(context);
   context.suspect_coverage = report;
 
-  for (const issue of report.issues) {
-    context.debug.warning_log.push({
+  context.debug.warning_log.push(
+    ...report.issues.map((issue) => ({
       stage: 'suspect_coverage_agent',
       reason: issue.code,
       severity: issue.severity,
       message: issue.message
-    });
-  }
+    }))
+  );
 
   return context;
 }
