@@ -23,7 +23,7 @@ function resolveRefs(refs, localRefToId, externalRefToId, bundleId, label) {
   });
 }
 
-function toInternalCards(rawCards, bundleIndex) {
+function toInternalCards(rawCards, bundleIndex, frozenSolutionFact = '') {
   const list = Array.isArray(rawCards) ? rawCards : [];
   const puzzle = list.find((c) => c?.card_type === 'puzzle') || null;
   const solution = list.find((c) => c?.card_type === 'solution') || null;
@@ -40,11 +40,13 @@ function toInternalCards(rawCards, bundleIndex) {
     hidden_until_solved: false
   }));
 
+  const solutionText = String(frozenSolutionFact || '').trim() || String(solution?.card_contents || '').trim();
+
   const solutionCard = {
     card_ref: `bundle_unlock_${String(bundleIndex + 1).padStart(3, '0')}`,
     card_type: 'solution',
     card_title: String(solution?.card_title || `Clue ${bundleIndex + 1}`).trim(),
-    card_contents: String(solution?.card_contents || '').trim(),
+    card_contents: solutionText,
     hidden_until_solved: true
   };
 
@@ -69,8 +71,9 @@ export function flattenBundle(bundleDraft, index, externalRefToId = new Map()) {
     || ''
   ).trim() || 'cross_reference';
   const defaultAct = normalizeAct(clueTarget?.act, DEFAULT_ACT);
+  const frozenFact = String(clueTarget?.fact || '').trim();
 
-  const cards = toInternalCards(bundleDraft?.cards, index);
+  const cards = toInternalCards(bundleDraft?.cards, index, frozenFact);
   const localRefToId = new Map();
 
   for (const card of cards) {
