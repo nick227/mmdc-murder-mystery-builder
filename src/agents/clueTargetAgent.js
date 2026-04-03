@@ -1,5 +1,6 @@
 import { getCardsByType } from '../utils/cards.js';
 import { buildEvidenceSignature } from '../utils/evidenceFacts.js';
+import { FACT_BINDING_ORDER } from '../utils/truthTrailReachability.js';
 
 const PUZZLE_COUNT = 4;
 const DEFAULT_ACT = 2;
@@ -124,7 +125,8 @@ function buildDerivedClueTargets(context) {
     category: clue.category,
     act: clue.act ?? BUNDLE_ACTS[index] ?? DEFAULT_ACT,
     puzzle_type_hint: clue.puzzle_type_hint,
-    suspect_name: clue.suspect_name
+    suspect_name: clue.suspect_name,
+    fact_binding: FACT_BINDING_ORDER[index]
   }));
 }
 

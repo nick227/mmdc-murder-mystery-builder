@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 
 import { pushCards } from '../utils/cards.js';
-import { FACT_BINDING_ORDER } from '../utils/truthTrailReachability.js';
+import { FACT_BINDING_ORDER, isAllowedFactBinding } from '../utils/truthTrailReachability.js';
 
 const VALID_ACTS = new Set([1, 2, 3]);
 const DEFAULT_ACT = 2;
@@ -24,7 +24,24 @@ function resolveRefs(refs, localRefToId, externalRefToId, bundleId, label) {
   });
 }
 
-function toInternalCards(rawCards, bundleIndex, frozenSolutionFact = '') {
+/** Prefer clue_target.fact_binding; index fallback only when unset (backward compat). */
+function resolveFactBindingForBundle(clueTarget, bundleIndex) {
+  const explicit = String(clueTarget?.fact_binding || '').trim();
+  if (explicit) {
+    if (!isAllowedFactBinding(explicit)) {
+      throw new Error(
+        `bundle_finalize_agent: invalid fact_binding "${explicit}" (expected one of: ${FACT_BINDING_ORDER.join(', ')})`
+      );
+    }
+    return explicit;
+  }
+  if (bundleIndex >= 0 && bundleIndex < FACT_BINDING_ORDER.length) {
+    return FACT_BINDING_ORDER[bundleIndex];
+  }
+  return null;
+}
+
+function toInternalCards(rawCards, bundleIndex, frozenSolutionFact, factBinding) {
   const list = Array.isArray(rawCards) ? rawCards : [];
   const puzzle = list.find((c) => c?.card_type === 'puzzle') || null;
   const solution = list.find((c) => c?.card_type === 'solution') || null;
@@ -32,11 +49,6 @@ function toInternalCards(rawCards, bundleIndex, frozenSolutionFact = '') {
 
   assert(puzzle, `bundle_finalize_agent bundle ${bundleIndex + 1} missing puzzle card`);
   assert(solution, `bundle_finalize_agent bundle ${bundleIndex + 1} missing solution card`);
-
-  const factBinding =
-    bundleIndex >= 0 && bundleIndex < FACT_BINDING_ORDER.length
-      ? FACT_BINDING_ORDER[bundleIndex]
-      : null;
 
   const evidenceCards = evidence.map((card, idx) => ({
     card_ref: `bundle_${bundleIndex + 1}_evidence_${String(idx + 1).padStart(3, '0')}`,
@@ -54,7 +66,7 @@ function toInternalCards(rawCards, bundleIndex, frozenSolutionFact = '') {
     card_title: String(solution?.card_title || `Clue ${bundleIndex + 1}`).trim(),
     card_contents: solutionText,
     hidden_until_solved: true,
-    meta: factBinding ? { fact_binding: factBinding } : undefined
+    meta: factBinding ? { fact_binding: String(factBinding).trim() } : undefined
   };
 
   const puzzleCard = {
@@ -79,8 +91,9 @@ export function flattenBundle(bundleDraft, index, externalRefToId = new Map()) {
   ).trim() || 'cross_reference';
   const defaultAct = normalizeAct(clueTarget?.act, DEFAULT_ACT);
   const frozenFact = String(clueTarget?.fact || '').trim();
+  const factBinding = resolveFactBindingForBundle(clueTarget, index);
 
-  const cards = toInternalCards(bundleDraft?.cards, index, frozenFact);
+  const cards = toInternalCards(bundleDraft?.cards, index, frozenFact, factBinding);
   const localRefToId = new Map();
 
   for (const card of cards) {

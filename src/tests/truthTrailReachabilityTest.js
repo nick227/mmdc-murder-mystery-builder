@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   collectFactBindingsFromReachableSolutions,
+  computeSequentialUnlockSteps,
   expandReachableThroughPuzzles,
   findMissingTruthBindings,
   getInitiallyReachableCardIds
@@ -81,6 +82,11 @@ assert.deepEqual(
 );
 
 assert.equal(findMissingTruthBindings(bindings).length, 0);
+
+const seq = computeSequentialUnlockSteps(makeChainCards(), initial);
+assert.equal(seq.sequential_puzzle_steps, 4);
+assert.equal(seq.firstSeenIteration.get('s1'), 1);
+assert.equal(seq.firstSeenIteration.get('s4'), 4);
 
 await truthTrailValidatorAgent({ cards: makeChainCards() });
 console.log('truthTrailReachabilityTest OK');
