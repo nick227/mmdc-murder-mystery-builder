@@ -7,6 +7,9 @@ export function assertMurderClueSuspectNames(context) {
     throw new Error('canon_validate: suspect roster is empty');
   }
 
+  const { victim } = getCanonicalMurderStrings(context.coreTruth);
+  const victimNorm = victim ? baseName(victim) : '';
+
   for (const card of context.cards || []) {
     if (card?.card_type !== 'clue') {
       continue;
@@ -24,11 +27,15 @@ export function assertMurderClueSuspectNames(context) {
     }
 
     const b = baseName(sn);
-    if (!roster.has(b)) {
-      throw new Error(
-        `canon_validate: suspect_name "${sn}" (base "${b}") is not in the playable roster`
-      );
+    if (roster.has(b)) {
+      continue;
     }
+    if (victim && (sn === victim || b === victimNorm)) {
+      continue;
+    }
+    throw new Error(
+      `canon_validate: suspect_name "${sn}" (base "${b}") is not in the playable roster or canonical victim`
+    );
   }
 }
 

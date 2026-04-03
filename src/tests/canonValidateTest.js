@@ -41,6 +41,13 @@ assertMurderClueSuspectNames({
       card_title: 'B',
       suspect_name: 'Sam Lee',
       card_id: '2'
+    },
+    {
+      card_type: 'clue',
+      clue_type: 'fact',
+      card_title: 'Victim clue',
+      suspect_name: 'Pat Jordan',
+      card_id: '3'
     }
   ]
 });

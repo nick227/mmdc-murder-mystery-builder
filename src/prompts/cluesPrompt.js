@@ -62,7 +62,7 @@ READ-ONLY canonical strings (use these exact substrings when naming the victim o
 Victim: ${canonVictim}
 Location: ${canonLocation}
 
-Playable suspect base names for suspect_name field (each clue's suspect_name must match one base name exactly; roster titles below carry full spelling):
+Playable suspect base names for suspect_name (must match one base name exactly, OR the exact Victim line above when the clue centers on the deceased):
 ${rosterBases || '(derive from Suspects list titles)'}
 
 Suspects:
