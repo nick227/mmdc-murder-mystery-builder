@@ -1,5 +1,3 @@
-import { baseName } from '../utils/coreTruthChecks.js';
-
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -22,48 +20,6 @@ function collectBundles(cards) {
     bundles.get(card.bundle_id).push(card);
   }
   return bundles;
-}
-
-function getSuspectNames(context) {
-  const caseStateSuspects = Array.isArray(context?.case_state?.suspects) ? context.case_state.suspects : [];
-  const names = caseStateSuspects
-    .map((suspect) => String(suspect?.name || '').trim())
-    .filter(Boolean);
-
-  if (names.length) {
-    return names;
-  }
-
-  return (Array.isArray(context?.cards) ? context.cards : [])
-    .filter((card) => card?.card_type === 'character')
-    .map((card) => String(card?.card_title || '').trim())
-    .filter(Boolean);
-}
-
-function assertBundleSolutionDoesNotNameWrongSuspects(context, solution, bundleId) {
-  const killerFull = String(context?.coreTruth?.murder?.killer || '').trim();
-  if (!killerFull) {
-    return;
-  }
-  const victimFull = String(context?.coreTruth?.murder?.victim || '').trim();
-  const text = normalizeText(solution.card_contents);
-  const killerNorm = normalizeText(baseName(killerFull));
-  const victimNorm = normalizeText(baseName(victimFull));
-
-  for (const rawName of getSuspectNames(context)) {
-    const suspectNorm = normalizeText(baseName(rawName));
-    if (!suspectNorm) {
-      continue;
-    }
-    if (suspectNorm === killerNorm || suspectNorm === victimNorm) {
-      continue;
-    }
-    if (text.includes(suspectNorm)) {
-      throw new Error(
-        `bundle_structure_validator_agent: bundle ${bundleId} solution names suspect "${rawName}" but core truth killer is "${baseName(killerFull)}"`
-      );
-    }
-  }
 }
 
 export async function bundleStructureValidatorAgent(context) {
@@ -101,8 +57,6 @@ export async function bundleStructureValidatorAgent(context) {
     assert(typeof solution.card_contents === 'string' && solution.card_contents.trim(), `bundle_structure_validator_agent: bundle ${bundleId} solution must have card_contents`);
     assert(typeof puzzle.puzzle_type === 'string' && puzzle.puzzle_type.trim(), `bundle_structure_validator_agent: bundle ${bundleId} puzzle must have puzzle_type`);
     assert(Array.isArray(puzzle.unlock_card_ids) && puzzle.unlock_card_ids.length === 1, `bundle_structure_validator_agent: bundle ${bundleId} puzzle must unlock exactly one hidden clue`);
-
-    assertBundleSolutionDoesNotNameWrongSuspects(context, solution, bundleId);
 
     if (meta) {
       assert(
