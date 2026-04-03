@@ -3,7 +3,7 @@ import { buildCharactersBuilderPrompt } from '../prompts/charactersBuilderPrompt
 
 const prompt = buildCharactersBuilderPrompt({
   storyBlurb: 'A noble host is found dead beneath the willow arbor.',
-  storyMeta: 'Theme tags: garden noir, ensemble\nWorld expansion: Lady Viola presides; Sir Edmund hoards manuscripts.',
+  storyMeta: 'Theme tags: garden noir, ensemble\nHost pitch: A garden party where old rivals trade barbs.',
   world:
     'A dramatic Shakespeare garden party. Supporting figures: Lady Viola (hostess), Sir Edmund (manuscript collector).',
   playerCount: 4

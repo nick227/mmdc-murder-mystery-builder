@@ -23,9 +23,8 @@ function validateContext(context, stepName) {
     assert(context.story_description, 'story_description missing');
     assert(context.story_rating, 'story_rating missing');
     assert(context.story_themes, 'story_themes missing');
-    assert(context.world_expansion, 'world_expansion missing');
     const meta = getCardsByType(context.cards, 'story_meta');
-    assert(meta.length === 5, 'expected 5 story_meta cards');
+    assert(meta.length === 4, 'expected 4 story_meta cards');
   }
 
   if (stepName === 'world_building_agent') {

@@ -17,8 +17,7 @@ process.env.SMOKE_MODE = 'true';
     debug: { warning_log: [], rejection_log: [], bundle_stats: [] }
   });
   assert.ok(ctx.story_title);
-  assert.ok(ctx.world_expansion);
-  assert.equal(ctx.cards.filter((c) => c.card_type === 'story_meta').length, 5);
+  assert.equal(ctx.cards.filter((c) => c.card_type === 'story_meta').length, 4);
 }
 
 {

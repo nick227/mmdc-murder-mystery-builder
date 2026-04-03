@@ -6,7 +6,7 @@ Generate exactly ${playerCount} playable suspect character cards for a murder my
 Output is the canonical suspect roster: each card has card_title and card_contents only.
 Distinct names, contrasting roles, worth suspecting. No killer assignment or murder mechanics.
 
-Honor theme tags and world expansion from the packaging block when shaping motives and flavor.
+Honor theme tags and host pitch from the packaging block when shaping motives and flavor.
 
 Return JSON only.
 `.trim(),

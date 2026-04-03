@@ -14,7 +14,7 @@ treasure:
 - treasure_solution: 2–4 sentences on why it matters and how players could realistically find it (without inventing new canon outside this block)
 
 Rules: one killer; killer commits the crime; victim cannot be a playable character; stay concise.
-Let theme tags and world expansion guide motive texture and why the treasure matters, without contradicting the host pitch.`.trim(),
+Let theme tags and host pitch guide motive texture and why the treasure matters.`.trim(),
 
     user: `Story concept:
 ${storyBlurb || ''}
