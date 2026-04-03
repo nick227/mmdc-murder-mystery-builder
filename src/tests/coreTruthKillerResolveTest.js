@@ -1,19 +1,22 @@
 import assert from 'node:assert/strict';
-import { resolveKillerToPlayableName } from '../utils/coreTruthChecks.js';
+import { validateKillerPlayable } from '../utils/coreTruthChecks.js';
 
-const playable = [
-  { name: 'Johnny \'Wave Rider\' Malone', card_id: 'a', title: '', contents: '' },
-  { name: 'Dana Kealoha', card_id: 'b', title: '', contents: '' }
-];
+const context = {
+  cards: [
+    { card_id: 'a', card_type: 'character', card_title: 'Johnny Wave Rider Malone, Lifeguard' },
+    { card_id: 'b', card_type: 'character', card_title: 'Dana Kealoha, Organizer' }
+  ]
+};
 
 assert.equal(
-  resolveKillerToPlayableName('Johnny Malone', playable),
-  'Johnny \'Wave Rider\' Malone',
-  'shortened killer should map to playable card base name'
+  validateKillerPlayable({ murder: { killer: 'Johnny Wave Rider Malone' } }, context),
+  null,
+  'exact killer name should pass'
 );
 
-assert.equal(resolveKillerToPlayableName('Johnny \'Wave Rider\' Malone', playable), 'Johnny \'Wave Rider\' Malone');
-
-assert.equal(resolveKillerToPlayableName('Unknown NPC', playable), null);
+assert.equal(
+  validateKillerPlayable({ murder: { killer: 'Johnny Malone' } }, context),
+  'killer_not_playable: killer must match a playable character name exactly'
+);
 
 console.log('coreTruthKillerResolveTest: ok');

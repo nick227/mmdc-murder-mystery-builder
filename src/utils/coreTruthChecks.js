@@ -1,93 +1,11 @@
 import { getCharacterCards } from './cards.js';
 
-/** Weak heuristic only — never blocks; logs a warning (many false positives, e.g. person surnames). */
-const NON_PERSON_VICTIM_HEURISTIC = /\b(statue|bust|portrait|effigy|idol|artifact|relic|object|prop|quill|folio|ring|locket|mask|scroll|jewel|ruby)\b/i;
-
-function warnVictimObjectHeuristic(victim, context) {
-  if (!NON_PERSON_VICTIM_HEURISTIC.test(String(victim || ''))) {
-    return;
-  }
-  context.debug ??= {};
-  context.debug.warning_log ??= [];
-  context.debug.warning_log.push({
-    stage: 'core_truth_checks',
-    code: 'victim_name_object_prop_heuristic',
-    message:
-      `Victim name "${victim}" matched a weak object/prop word list; confirm murder.victim is a person, not an artifact nickname edge case.`,
-    severity: 'warning'
-  });
-}
-
 function normalizeText(value) {
   return String(value || '')
     .toLowerCase()
     .replace(/[^\w\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-/** Killer tokens must appear in order within the playable name tokens (handles nicknames in the middle). */
-function tokenSubsequenceMatch(needleTokens, haystackTokens) {
-  let i = 0;
-  for (const t of needleTokens) {
-    while (i < haystackTokens.length && haystackTokens[i] !== t) {
-      i += 1;
-    }
-    if (i >= haystackTokens.length) {
-      return false;
-    }
-    i += 1;
-  }
-  return true;
-}
-
-/**
- * Map a model-supplied killer string onto canonical playable `baseName(card_title)` when the string is a
- * clear variant (shortened name, missing middle nicknames). Returns null if ambiguous or unmatched.
- */
-export function resolveKillerToPlayableName(rawKiller, playableCharacters) {
-  const list = Array.isArray(playableCharacters) ? playableCharacters : [];
-  if (!list.length) {
-    return null;
-  }
-
-  const killerBase = baseName(rawKiller);
-  const normalizedKiller = normalizeText(killerBase);
-  const killerTokens = normalizedKiller.split(' ').filter(Boolean);
-  if (!killerTokens.length) {
-    return null;
-  }
-
-  const exact = list.find((c) => normalizeText(c.name) === normalizedKiller);
-  if (exact) {
-    return exact.name;
-  }
-
-  const subsequenceMatches = list.filter((c) => {
-    const charTokens = normalizeText(c.name).split(' ').filter(Boolean);
-    return tokenSubsequenceMatch(killerTokens, charTokens);
-  });
-  if (subsequenceMatches.length === 1) {
-    return subsequenceMatches[0].name;
-  }
-
-  const forwardContains = list.filter((c) => {
-    const nc = normalizeText(c.name);
-    return nc.includes(normalizedKiller) && normalizedKiller.length >= 5;
-  });
-  if (forwardContains.length === 1) {
-    return forwardContains[0].name;
-  }
-
-  const reverseContains = list.filter((c) => {
-    const nc = normalizeText(c.name);
-    return normalizedKiller.includes(nc) && nc.length >= 5;
-  });
-  if (reverseContains.length === 1) {
-    return reverseContains[0].name;
-  }
-
-  return null;
 }
 
 function baseName(value) {
@@ -103,87 +21,18 @@ export function getPlayableCharacters(context) {
   }));
 }
 
-function getKnownPeople(context) {
-  return new Set(
-    []
-      .concat(Array.isArray(context?.storyEntities?.people) ? context.storyEntities.people : [])
-      .concat(Array.isArray(context?.worldEntities?.people) ? context.worldEntities.people : [])
-      .concat((context?.cards || []).filter((card) => card?.card_type === 'person').map((card) => ({ name: card?.card_title })))
-      .map((entry) => baseName(entry?.name))
-      .filter(Boolean)
-      .map((name) => normalizeText(name))
-  );
-}
-
-/** Text sources where a victim may appear without being in structured people lists. */
-function buildCanonTextForVictimCheck(context) {
-  const chunks = [];
-  if (typeof context?.world === 'string') {
-    chunks.push(context.world);
-  }
-  if (typeof context?.storyBlurb === 'string') {
-    chunks.push(context.storyBlurb);
-  }
-  if (typeof context?.story_description === 'string') {
-    chunks.push(context.story_description);
-  }
-  if (typeof context?.story_title === 'string') {
-    chunks.push(context.story_title);
-  }
-  for (const entry of [...(context?.worldEntities?.people || []), ...(context?.storyEntities?.people || [])]) {
-    if (entry?.name) {
-      chunks.push(String(entry.name));
-    }
-    if (entry?.summary) {
-      chunks.push(String(entry.summary));
-    }
-  }
-  for (const card of context?.cards || []) {
-    if (card?.card_type === 'person') {
-      chunks.push(String(card.card_title || ''));
-      chunks.push(String(card.card_contents || ''));
-    }
-  }
-  return normalizeText(chunks.filter(Boolean).join(' '));
-}
-
-function victimNamedInCanon(context, normalizedVictim) {
-  if (!normalizedVictim || normalizedVictim.length < 3) {
-    return false;
-  }
-  const corpus = buildCanonTextForVictimCheck(context);
-  return Boolean(corpus && corpus.includes(normalizedVictim));
-}
-
-function warnVictimNotRecognizedInCanon(victim, context) {
-  context.debug ??= {};
-  context.debug.warning_log ??= [];
-  context.debug.warning_log.push({
-    stage: 'core_truth_checks',
-    code: 'victim_not_in_structured_or_canon_text',
-    message:
-      `Victim "${victim}" is not in structured people lists and was not found verbatim in normalized world/concept/host copy; confirm spelling matches story text.`,
-    severity: 'warning'
-  });
-}
-
 export function validateVictimType(coreTruth, context, playableCharacters = getPlayableCharacters(context)) {
   const victim = baseName(coreTruth?.murder?.victim);
   const normalizedVictim = normalizeText(victim);
   if (!victim) {
     return 'invalid_victim_type: victim must be an explicitly named person';
   }
-  warnVictimObjectHeuristic(victim, context);
   if (playableCharacters.some((character) => normalizeText(character.name) === normalizedVictim)) {
     return `invalid_victim_type: victim "${victim}" is a playable suspect`;
   }
   const reservedVictimName = baseName(context?.reservedVictim?.name);
   if (reservedVictimName && normalizeText(reservedVictimName) !== normalizedVictim) {
     return `invalid_victim_type: victim "${victim}" does not match reserved victim "${reservedVictimName}"`;
-  }
-  const knownPeople = getKnownPeople(context);
-  if (knownPeople.size && !knownPeople.has(normalizedVictim) && !victimNamedInCanon(context, normalizedVictim)) {
-    warnVictimNotRecognizedInCanon(victim, context);
   }
   return null;
 }

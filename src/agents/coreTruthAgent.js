@@ -4,9 +4,7 @@ import { coreTruthSchema } from '../schemas/coreTruthSchema.js';
 import { getCharacterCards } from '../utils/cards.js';
 import { getStoryBlurb, getStoryMetaForPrompts } from '../utils/context.js';
 import {
-  collectCoreTruthDeterministicIssues,
-  getPlayableCharacters,
-  resolveKillerToPlayableName
+  collectCoreTruthDeterministicIssues
 } from '../utils/coreTruthChecks.js';
 
 export async function coreTruthAgent(context) {
@@ -28,14 +26,6 @@ export async function coreTruthAgent(context) {
     schemaName: 'core_truth',
     schema: coreTruthSchema
   });
-
-  const resolvedKiller = resolveKillerToPlayableName(
-    context.coreTruth.murder.killer,
-    getPlayableCharacters(context)
-  );
-  if (resolvedKiller) {
-    context.coreTruth.murder.killer = resolvedKiller;
-  }
 
   const issues = collectCoreTruthDeterministicIssues(context.coreTruth, context);
   if (issues.length) {
