@@ -115,7 +115,7 @@ function inferResumeStep(context) {
   if (itemCards.length === 0) {
     return 'item_agent';
   }
-  if (!itemCards.some((c) => c.is_treasure === true)) {
+  if (getCardsByType(context.cards || [], 'treasure').length < 1) {
     return 'treasure_item_agent';
   }
   if (getCardsByType(context.cards || [], 'story_act').length < 3) {

@@ -1,8 +1,8 @@
 import { getCardsByType } from './cards.js';
 
 /**
- * Inventory for host importers. Treasure hunt uses clue_type "treasure"; the canonical macguffin
- * is one item with is_treasure true (see treasure_item_agent).
+ * Treasure hunt: clue cards with clue_type "treasure". Finale reveal: card_type "treasure"
+ * (treasure_item_agent), usually act 3 + hidden_until_solved for host unlock.
  */
 export function buildCardSurface(context) {
   const cards = Array.isArray(context?.cards) ? context.cards : [];
@@ -14,11 +14,11 @@ export function buildCardSurface(context) {
   const treasureClueCount = cards.filter(
     (c) => c?.card_type === 'clue' && String(c?.clue_type || '').trim().toLowerCase() === 'treasure'
   ).length;
-  const treasureItemCount = getCardsByType(cards, 'item').filter((c) => c.is_treasure === true).length;
+  const treasureRevealCount = getCardsByType(cards, 'treasure').length;
 
   return {
     counts_by_card_type: counts,
     treasure_clue_count: treasureClueCount,
-    treasure_item_count: treasureItemCount
+    treasure_reveal_card_count: treasureRevealCount
   };
 }

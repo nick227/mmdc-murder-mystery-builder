@@ -31,6 +31,9 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (card?.linked_character_id !== undefined || previous.linked_character_id !== undefined) {
       merged.linked_character_id = card?.linked_character_id ?? previous.linked_character_id;
     }
+    if (card?.linked_item_id !== undefined || previous.linked_item_id !== undefined) {
+      merged.linked_item_id = card?.linked_item_id ?? previous.linked_item_id;
+    }
 
     if (card?.linked_character_index !== undefined || previous.linked_character_index !== undefined) {
       merged.linked_character_index = card?.linked_character_index ?? previous.linked_character_index;
@@ -229,6 +232,9 @@ export function pushCards(context, type, entries) {
     }
     if (e.is_treasure !== undefined) {
       card.is_treasure = e.is_treasure;
+    }
+    if (e.linked_item_id !== undefined) {
+      card.linked_item_id = e.linked_item_id;
     }
 
     return card;

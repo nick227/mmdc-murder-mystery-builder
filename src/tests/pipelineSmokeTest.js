@@ -57,8 +57,9 @@ function validateContext(context, stepName) {
   }
 
   if (stepName === 'treasure_item_agent') {
-    const flagged = getCardsByType(context.cards, 'item').filter((c) => c.is_treasure === true);
-    assert(flagged.length === 1, 'expected exactly one is_treasure item');
+    const reveal = getCardsByType(context.cards, 'treasure');
+    assert(reveal.length === 1, 'expected exactly one treasure reveal card');
+    assert(reveal[0].act === 3, 'treasure reveal should be act 3');
   }
 
   if (stepName === 'story_acts_agent') {

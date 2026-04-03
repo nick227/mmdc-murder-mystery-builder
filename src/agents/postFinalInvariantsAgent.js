@@ -49,10 +49,16 @@ export async function postFinalInvariantsAgent(context) {
     `post_final_invariants_agent: expected at least 3 host_speech cards; got ${hostSpeech.length}`
   );
 
-  const treasureItems = getCardsByType(context.cards, 'item').filter((c) => c.is_treasure === true);
+  const treasureReveal = getCardsByType(context.cards, 'treasure');
   assert(
-    treasureItems.length === 1,
-    `post_final_invariants_agent: expected exactly one is_treasure item; got ${treasureItems.length}`
+    treasureReveal.length === 1,
+    `post_final_invariants_agent: expected exactly one treasure reveal card (card_type treasure); got ${treasureReveal.length}`
+  );
+  const tr = treasureReveal[0];
+  assert(tr.act === 3, 'post_final_invariants_agent: treasure reveal must be act 3');
+  assert(
+    String(tr.card_contents || '').trim().length >= 40,
+    'post_final_invariants_agent: treasure card_contents must be substantive'
   );
 
   for (const card of context.cards || []) {

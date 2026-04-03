@@ -3,13 +3,12 @@ import { treasureItemAgent } from '../agents/treasureItemAgent.js';
 
 const ctx = {
   cards: [
-    { card_id: 'i1', card_type: 'item', card_title: 'Rusty Key', card_contents: 'Old key', is_treasure: false },
+    { card_id: 'i1', card_type: 'item', card_title: 'Rusty Key', card_contents: 'Old key' },
     {
       card_id: 'i2',
       card_type: 'item',
       card_title: 'The Golden Goose',
-      card_contents: 'Shiny',
-      is_treasure: false
+      card_contents: 'Shiny'
     }
   ],
   coreTruth: {
@@ -23,21 +22,27 @@ const ctx = {
 
 await treasureItemAgent(ctx);
 const items = ctx.cards.filter((c) => c.card_type === 'item');
-assert.equal(items.filter((c) => c.is_treasure === true).length, 1);
-assert.equal(items.find((c) => c.is_treasure)?.card_title, 'The Golden Goose');
+assert.ok(!items.some((c) => c.is_treasure));
+const reveal = ctx.cards.filter((c) => c.card_type === 'treasure');
+assert.equal(reveal.length, 1);
+assert.equal(reveal[0].card_title, 'The Golden Goose');
+assert.equal(reveal[0].act, 3);
+assert.equal(reveal[0].hidden_until_solved, true);
+assert.equal(reveal[0].linked_item_id, 'i2');
 
 const ctx2 = {
   cards: [{ card_id: 'x', card_type: 'item', card_title: 'Unrelated', card_contents: 'x' }],
   coreTruth: {
     treasure: {
       object: 'Only In Truth',
-      hiding_place: 'h',
-      treasure_solution: 's'
+      hiding_place: 'Hidden chamber beneath the stage with ornate carvings.',
+      treasure_solution: 'Turn the third sconce to open the panel and recover the relic.'
     }
   }
 };
 await treasureItemAgent(ctx2);
-assert.equal(ctx2.cards.filter((c) => c.card_type === 'item').length, 2);
-assert.ok(ctx2.cards.some((c) => c.card_type === 'item' && c.is_treasure && c.card_title === 'Only In Truth'));
+const tr = ctx2.cards.find((c) => c.card_type === 'treasure');
+assert.ok(tr);
+assert.ok(!tr.linked_item_id);
 
 console.log('treasureItemAgentTest OK');
