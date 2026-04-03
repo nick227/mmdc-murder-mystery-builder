@@ -1,5 +1,20 @@
 import { getCharacterCards } from './cards.js';
-import { baseName } from './coreTruthChecks.js';
+import { baseName, suspectRosterKey } from './coreTruthChecks.js';
+
+function addSuspectRosterAliases(set, raw) {
+  const n = String(raw || '').trim();
+  if (!n) {
+    return;
+  }
+  const b = baseName(n);
+  if (b) {
+    set.add(b);
+  }
+  const k = suspectRosterKey(n);
+  if (k) {
+    set.add(k);
+  }
+}
 
 export function getCanonicalMurderStrings(coreTruth) {
   const m = coreTruth?.murder;
@@ -11,15 +26,18 @@ export function getCanonicalMurderStrings(coreTruth) {
 }
 
 export function getCanonicalSuspectBaseNameSet(context) {
+  const set = new Set();
   const suspects = Array.isArray(context?.case_state?.suspects) ? context.case_state.suspects : [];
   if (suspects.length) {
-    return new Set(
-      suspects.map((s) => baseName(String(s?.name || s?.title || '').trim())).filter(Boolean)
-    );
+    for (const s of suspects) {
+      addSuspectRosterAliases(set, String(s?.name || s?.title || '').trim());
+    }
+    return set;
   }
-  return new Set(
-    getCharacterCards(context.cards || []).map((c) => baseName(String(c?.card_title || '').trim())).filter(Boolean)
-  );
+  for (const c of getCharacterCards(context.cards || [])) {
+    addSuspectRosterAliases(set, String(c?.card_title || '').trim());
+  }
+  return set;
 }
 
 /** Ordered list for read-only prompt injection. */

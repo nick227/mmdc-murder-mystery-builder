@@ -5,6 +5,13 @@ export function baseName(value) {
   return String(value || '').split(',')[0].trim();
 }
 
+/** Segment before " - " role suffix (after comma trim). Clues often use short names; cards use "Name - The Archetype". */
+export function suspectRosterKey(value) {
+  const comma = baseName(value);
+  const head = comma.split(/\s+-\s+/)[0];
+  return (head || comma).trim();
+}
+
 export function getPlayableCharacters(context) {
   return getCharacterCards(context.cards || []).map((card) => ({
     card_id: String(card?.card_id || '').trim(),

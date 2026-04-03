@@ -1,4 +1,4 @@
-import { baseName } from './coreTruthChecks.js';
+import { baseName, suspectRosterKey } from './coreTruthChecks.js';
 import { getCanonicalMurderStrings, getCanonicalSuspectBaseNameSet } from './canonFacts.js';
 
 export function assertMurderClueSuspectNames(context) {
@@ -9,6 +9,7 @@ export function assertMurderClueSuspectNames(context) {
 
   const { victim } = getCanonicalMurderStrings(context.coreTruth);
   const victimNorm = victim ? baseName(victim) : '';
+  const victimKey = victim ? suspectRosterKey(victim) : '';
 
   for (const card of context.cards || []) {
     if (card?.card_type !== 'clue') {
@@ -27,10 +28,11 @@ export function assertMurderClueSuspectNames(context) {
     }
 
     const b = baseName(sn);
-    if (roster.has(b)) {
+    const key = suspectRosterKey(sn);
+    if (roster.has(b) || roster.has(key)) {
       continue;
     }
-    if (victim && (sn === victim || b === victimNorm)) {
+    if (victim && (sn === victim || b === victimNorm || key === victimKey)) {
       continue;
     }
     throw new Error(

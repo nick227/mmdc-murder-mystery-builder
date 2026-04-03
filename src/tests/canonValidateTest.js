@@ -22,6 +22,29 @@ const coreTruth = {
 assertMurderClueSuspectNames({
   coreTruth,
   case_state: {
+    suspects: [{ name: 'Dr. Felix Marlowe - The Skeptic Investigator' }, { name: 'Evelyn Starfire - The Aura Painter' }]
+  },
+  cards: [
+    {
+      card_type: 'clue',
+      clue_type: 'fact',
+      card_title: 'Short names',
+      suspect_name: 'Dr. Felix Marlowe',
+      card_id: '0a'
+    },
+    {
+      card_type: 'clue',
+      clue_type: 'fact',
+      card_title: 'Short names 2',
+      suspect_name: 'Evelyn Starfire',
+      card_id: '0b'
+    }
+  ]
+});
+
+assertMurderClueSuspectNames({
+  coreTruth,
+  case_state: {
     suspects: [
       { name: 'Alex North' },
       { name: 'Sam Lee' }
