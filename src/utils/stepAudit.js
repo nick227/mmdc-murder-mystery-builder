@@ -21,6 +21,7 @@ function addFinding(findings, category, severity, code, message, details = {}) {
 /** Matches `src/pipeline/steps/index.js` (single default pipeline). */
 const STEP_ORDER = [
   'story_blurb_agent',
+  'story_metadata_agent',
   'world_building_agent',
   'characters_builder_agent',
   'core_truth_agent',

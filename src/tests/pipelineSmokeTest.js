@@ -19,6 +19,14 @@ function validateContext(context, stepName) {
     assert(context.storyBlurb, 'storyBlurb missing');
   }
 
+  if (stepName === 'story_metadata_agent') {
+    assert(context.story_title, 'story_title missing');
+    assert(context.story_description, 'story_description missing');
+    assert(context.story_rating, 'story_rating missing');
+    assert(context.story_themes, 'story_themes missing');
+    assert(getCardsByType(context.cards, 'story_meta').length === 4, 'expected four story_meta cards');
+  }
+
   if (stepName === 'world_building_agent') {
     assert(context.world, 'world missing');
   }

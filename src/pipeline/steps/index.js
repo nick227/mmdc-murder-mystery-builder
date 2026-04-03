@@ -1,4 +1,5 @@
 import { storyBlurbAgent } from '../../agents/storyBlurbAgent.js';
+import { storyMetadataAgent } from '../../agents/storyMetadataAgent.js';
 
 import { worldBuildingAgent } from '../../agents/worldBuildingAgent.js';
 
@@ -33,6 +34,7 @@ import { mvpQualityGateAgent } from '../../agents/mvpQualityGateAgent.js';
 /** Core generation + structural glue + hard validators only. */
 export const steps = [
   { name: 'story_blurb_agent', run: storyBlurbAgent },
+  { name: 'story_metadata_agent', run: storyMetadataAgent },
 
   { name: 'world_building_agent', run: worldBuildingAgent },
 

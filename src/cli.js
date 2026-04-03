@@ -89,6 +89,9 @@ function inferResumeStep(context) {
   if (!context?.storyBlurb) {
     return 'story_blurb_agent';
   }
+  if (!String(context?.story_title || '').trim()) {
+    return 'story_metadata_agent';
+  }
   if (!hasCardType(context, 'world_person') && !hasCardType(context, 'world_location')) {
     return 'world_building_agent';
   }
