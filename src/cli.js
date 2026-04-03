@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
+import { steps } from './pipeline/steps/index.js';
 
 async function ask(question) {
   const rl = readline.createInterface({ input, output });
@@ -61,6 +62,7 @@ const args = process.argv.slice(3);
 function printHelp() {
   console.log('Commands:');
   console.log('  node src/cli.js start "<userPrompt>" <playerCount> ["storyStyle"]');
+  console.log('  node src/cli.js start --from <runDir|result.json> [--step <stepName>]');
   console.log('  node src/cli.js start-fast "<userPrompt>" <playerCount> ["storyStyle"]');
   console.log('  node src/cli.js audit-steps "<userPrompt>" <playerCount> ["storyStyle"] [--json] [--full]');
   console.log('  node src/cli.js status');
@@ -69,6 +71,37 @@ function printHelp() {
   console.log('  node src/cli.js review <runDir|result.json>');
   console.log('  node src/cli.js preflight <runDir|result.json>');
   console.log('  node src/cli.js review-batch [runsDir] [--json] [--current-only]');
+}
+
+function getFlagValue(argv, flag) {
+  const index = argv.findIndex((arg) => arg === flag);
+  if (index === -1) {
+    return null;
+  }
+  return argv[index + 1] ?? null;
+}
+
+function hasCardType(context, cardType) {
+  return Array.isArray(context?.cards) && context.cards.some((card) => card?.card_type === cardType);
+}
+
+function inferResumeStep(context) {
+  if (!context?.storyBlurb) {
+    return 'story_blurb_agent';
+  }
+  if (!hasCardType(context, 'world_person') && !hasCardType(context, 'world_location')) {
+    return 'world_building_agent';
+  }
+  if (!hasCardType(context, 'character_profile')) {
+    return 'characters_builder_agent';
+  }
+  if (!context?.coreTruth) {
+    return 'core_truth_agent';
+  }
+  if (!hasCardType(context, 'story_clue')) {
+    return 'clue_agent';
+  }
+  return 'post_clue_dedup_agent';
 }
 
 function printPlayabilityReport(report) {
@@ -117,6 +150,65 @@ function printPartialFailureSummary(runDir, context) {
 
 async function main() {
   if (cmd === 'start') {
+    const fromPathArg = getFlagValue(args, '--from');
+    const overrideStep = getFlagValue(args, '--step');
+    if (fromPathArg) {
+      const sourcePath = resolveReviewPath(fromPathArg);
+      const sourceDir = path.dirname(sourcePath);
+      const context = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+      const resumedStep = overrideStep || inferResumeStep(context);
+      const stepIndex = steps.findIndex((step) => step.name === resumedStep);
+      if (stepIndex < 0) {
+        throw new Error(`Unknown step for --step: ${resumedStep}`);
+      }
+
+      context.pipeline_resume = {
+        from_file: sourcePath,
+        resumed_step: resumedStep,
+        resumed_at: new Date().toISOString()
+      };
+
+      const job = queue.createJob(context);
+      job.stepIndex = stepIndex;
+
+      console.log('────────────────────────────────────────');
+      console.log('Resuming Murder Mystery Build');
+      console.log('From :', sourcePath);
+      console.log('Step :', resumedStep);
+      console.log('Output :', sourceDir);
+      console.log('────────────────────────────────────────');
+
+      try {
+        await runWorker(queue, {
+          targetJobId: job.id,
+          onStepStart: ({ stepName, index, total }) => {
+            console.log(`→ [${index + 1}/${total}] ${stepName}`);
+          },
+          onStepDone: ({ stepName }) => {
+            console.log(`✓ ${stepName}`);
+          },
+          onStepError: ({ stepName, error }) => {
+            console.log(`✗ ${stepName}`);
+            console.log(String(error));
+          }
+        });
+      } catch (error) {
+        const finalDir = job.context?.runDir || sourceDir;
+        const resultPath = path.join(finalDir, 'result.json');
+        if (fs.existsSync(resultPath)) {
+          const failedContext = JSON.parse(fs.readFileSync(resultPath, 'utf8'));
+          printPartialFailureSummary(finalDir, failedContext);
+        }
+        throw error;
+      }
+
+      const outDir = job.context?.runDir || sourceDir;
+      console.log('────────────────────────────────────────');
+      console.log(`Done. Inspect: ${outDir}`);
+      console.log('────────────────────────────────────────');
+      return;
+    }
+
     const { userPrompt, playerCount, storyStyle } = await getStartInputs(args);
 
     if (!process.env.OPENAI_API_KEY) {
