@@ -82,6 +82,7 @@ Rules:
 - card_title, card_contents, clue_type, suspect_name, clue_weight
 - (clue_type must be exactly artifact, fact, or derived)
 - Do not make these clues about the treasure hunt or inheritance object; focus on the murder.
+- Each card_contents: under 100 words, in-world voice only — never prefix with "Canonical victim:", "Victim:", or other internal/meta labels.
 
 `.trim()
   };

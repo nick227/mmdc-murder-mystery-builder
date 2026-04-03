@@ -5,7 +5,10 @@ const clueSchema = {
   description: 'A clue card: one small information unit (artifact, fact, or derived).',
   properties: {
     card_title: { type: 'string' },
-    card_contents: { type: 'string' },
+    card_contents: {
+      type: 'string',
+      description: 'Under 100 words; in-world only, no internal labels (Canonical victim, etc.).'
+    },
     clue_type: {
       type: 'string',
       enum: ['artifact', 'fact', 'derived'],

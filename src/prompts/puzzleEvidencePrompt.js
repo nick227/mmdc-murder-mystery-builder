@@ -4,7 +4,8 @@ export function buildPuzzleEvidencePrompt({ storyBlurb, puzzle, answer, currentE
       'You expand ONE evidence card text for a murder mystery party puzzle bundle.',
       'Return JSON only.',
       'Keep everything as plain text in card_contents (no structured assets).',
-      'Evidence can be long and detailed when it helps playability.',
+      'Hard limit: card_contents must be under 100 words total.',
+      'Never use internal labels like "Canonical victim:", "Canonical location:", or similar — only in-world document text.',
       'Do not change card_id.',
       'Tag the evidence card with evidence_type.'
     ].join(' '),
@@ -50,6 +51,7 @@ Rules:
 - Do not copy the answer sentence verbatim into any evidence card.
 - For comparison/constraint puzzles, make sure this card uses consistent fields/terms with the other evidence cards.
 - Keep information consistent and accurate.
+- Stay under 100 words; no meta headers (Canonical victim/location lines).
 
 Return:
 {
