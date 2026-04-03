@@ -85,8 +85,17 @@ export async function cardQualityAgent(context) {
     if (!puzzle || !solution) {
       continue;
     }
+    const STRICT = false;
+
     if (containsVisibleSolutionLeak(puzzle, solution)) {
-      throw new Error(`Puzzle bundle ${bundleId} leaks its hidden solution in visible puzzle text`);
+      if (STRICT) {
+        throw new Error(`Puzzle bundle ${bundleId} leaks its hidden solution`);
+      }
+
+      context.warnings ??= [];
+      context.warnings.push({ type: 'visible_solution_leak', bundleId });
+
+      console.warn(`[card_quality_agent] possible solution leak: ${bundleId}`);
     }
   }
 

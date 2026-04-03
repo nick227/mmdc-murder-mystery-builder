@@ -26,6 +26,8 @@ import { hostSpeechAgent } from '../../agents/hostSpeechAgent.js';
 import { itemAgent } from '../../agents/itemAgent.js';
 import { clueTargetAgent } from '../../agents/clueTargetAgent.js';
 import { puzzleAgent } from '../../agents/puzzleAgent.js';
+import { bundleFinalizeAgent } from '../../agents/bundleFinalizeAgent.js';
+import { puzzleEvidenceAgent } from '../../agents/puzzleEvidenceAgent.js';
 import { bundleLinkerAgent } from '../../agents/bundleLinkerAgent.js';
 import { clueAgent } from '../../agents/clueAgent.js';
 import { postClueDedupAgent } from '../../agents/postClueDedupAgent.js';
@@ -79,6 +81,8 @@ export const steps = [
   { name: 'post_clue_dedup_agent', run: postClueDedupAgent },
   { name: 'clue_target_agent', run: clueTargetAgent },
   { name: 'puzzle_agent', run: puzzleAgent },
+  { name: 'bundle_finalize_agent', run: bundleFinalizeAgent },
+  { name: 'puzzle_evidence_agent', run: puzzleEvidenceAgent },
   { name: 'bundle_linker_agent', run: bundleLinkerAgent },
   { name: 'structural_preflight_agent', run: structuralPreflightAgent },
 

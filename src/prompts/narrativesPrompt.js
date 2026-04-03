@@ -1,22 +1,14 @@
 export function buildNarrativesPrompt({ storyBlurb, solution, trails, playerCount, characters }) {
   return {
     system: [
-      'You generate competing suspect narratives for a murder mystery.',
-      'These are story-path perspectives and social pressure, not a forensic report.',
-      'Each narrative must center on a different suspect.',
-      'Suspects must come from the playable characters provided.',
-      'The selected true_narrative must match solution.killer.',
-      'You may invent additional world detail and dead-end color, but do not treat invented details as definitive proof.',
-      'Keep everything consistent with the public blurb and the breadcrumb scaffolding.'
+      'You generate three competing suspect narratives for a murder mystery.',
+      'Return JSON only.'
     ].join(' '),
     user: `
-Create 3 competing suspect narratives for this mystery.
+Create 3 competing suspect narratives (a, b, c). Keep them short and usable.
 
 Public blurb:
 ${storyBlurb}
-
-Hidden solution:
-${JSON.stringify(solution || {}, null, 2)}
 
 Breadcrumb scaffolding:
 ${JSON.stringify(trails, null, 2)}
@@ -24,23 +16,29 @@ ${JSON.stringify(trails, null, 2)}
 Playable characters:
 ${JSON.stringify(characters || [], null, 2)}
 
+Hidden solution (for alignment only; do not reveal in wording):
+${JSON.stringify(solution || {}, null, 2)}
+
 Player count:
 ${playerCount}
 
-Requirements:
-- narrative a, b, c must each center on a different suspect
-- each needs motive and opportunity
-- each needs suspicious social behavior, vague movement, or emotional reactions
-- keep all three debatable and coherent
-- do not write direct answer-key language
-- suspects must be selected from the playable characters above
-- the narrative whose suspect matches solution.killer must be the selected true_narrative
-- the killer narrative must not describe them as innocent, excluded, or a red herring
-- non-killer narratives may sound plausible, but must remain socially suspicious rather than mechanically proven
+Rules:
+- suspects must be chosen ONLY from playable characters (use exact name before the comma in card_title)
+- a, b, c must use three different suspects
+- true_narrative must be the one whose suspect equals solution.killer
+- keep all three plausible and debatable (no forensic proof, no answer-key language)
 
-Optional enrichment:
-- include a top-level story_paths array (any length, may be empty) describing additional player-facing story paths to explore
-- story paths should enhance the blurb and breadcrumb trails, not replace them
+For each narrative object, fill required fields tersely:
+- suspect: character name (exact)
+- motive: 1 sentence
+- opportunity: 1 sentence
+- supporting_evidence: 2-4 short bullets
+- misleading_evidence: 1-3 short bullets
+- contradiction_hooks: 1-3 short bullets players can investigate
+- narrative_arc: 2-3 sentences across acts
+
+story_paths:
+- usually return [] (only include if you have a genuinely helpful extra player-facing path)
 
 Return:
 {
@@ -50,14 +48,7 @@ Return:
     "c": {...},
     "true_narrative": "a"
   },
-  "story_paths": [
-    {
-      "title": "Path name",
-      "summary": "1-2 sentences",
-      "beats": ["3-5 short beats players might follow"],
-      "involved_characters": ["character names from playable characters"]
-    }
-  ]
+  "story_paths": []
 }
 `.trim()
   };

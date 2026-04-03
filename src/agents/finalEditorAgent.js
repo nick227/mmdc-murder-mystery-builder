@@ -54,7 +54,7 @@ export async function finalEditorAgent(context) {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['card_title', 'card_contents'],
+          required: ['card_title', 'card_contents', 'act'],
           properties: {
             card_title: { type: 'string' },
             card_contents: { type: 'string' },

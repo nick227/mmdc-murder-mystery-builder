@@ -71,16 +71,22 @@ function inferLinkedTermsFromEvidence(evidenceCards, suspectNames) {
   ];
 
   for (const card of evidenceCards) {
-    const text = String(card?.card_contents || '');
-    const normalizedText = normalizeText(text);
-    const mentionsSuspect = suspectFragments.some((fragment) => fragment && normalizedText.includes(fragment));
+    const title = String(card?.card_title || '');
+    const contents = String(card?.card_contents || '');
+    const normalizedText = normalizeText(`${title} ${contents}`);
+    const assigned = normalizeText(card?.assigned_suspect_name || '');
+    const linked = normalizeText(card?.linked_character || '');
+    const mentionsSuspect = suspectFragments.some((fragment) =>
+      fragment
+      && (normalizedText.includes(fragment) || assigned.includes(fragment) || linked.includes(fragment))
+    );
 
     if (!mentionsSuspect) {
       continue;
     }
 
     for (const pattern of patterns) {
-      for (const match of text.matchAll(pattern)) {
+      for (const match of `${title} ${contents}`.matchAll(pattern)) {
         const term = normalizeText(match[0]);
         if (term) {
           terms.add(term);

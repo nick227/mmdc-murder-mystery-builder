@@ -93,6 +93,7 @@ const STEP_ORDER = [
   'item_agent',
   'clue_target_agent',
   'puzzle_agent',
+  'puzzle_evidence_agent',
   'bundle_linker_agent',
   'clue_agent',
   'structural_preflight_agent'

@@ -27,6 +27,51 @@ function printDebug(label, payload) {
   console.log(JSON.stringify(payload, null, 2));
 }
 
+function enrichFixtureBundles(cards, seedBundles) {
+  const bundleMap = new Map();
+  for (const card of cards) {
+    if (!card?.bundle_id) {
+      continue;
+    }
+    if (!bundleMap.has(card.bundle_id)) {
+      bundleMap.set(card.bundle_id, []);
+    }
+    bundleMap.get(card.bundle_id).push(card);
+  }
+
+  const metaById = new Map(
+    (Array.isArray(seedBundles) ? seedBundles : []).map((entry) => [entry.bundle_id, { ...entry }])
+  );
+
+  for (const [bundleId, bundleCards] of bundleMap) {
+    const puzzle = bundleCards.find((c) => c.card_type === 'puzzle');
+    const solution = bundleCards.find((c) => c.card_type === 'solution');
+    if (puzzle) {
+      puzzle.puzzle_type ??= 'cross_reference';
+      puzzle.act ??= 1;
+      if (solution?.card_id && (!Array.isArray(puzzle.unlock_card_ids) || puzzle.unlock_card_ids.length === 0)) {
+        puzzle.unlock_card_ids = [solution.card_id];
+      }
+    }
+
+    const merged = { bundle_id: bundleId, ...(metaById.get(bundleId) || {}) };
+    if (puzzle?.puzzle_type) {
+      merged.puzzle_type = puzzle.puzzle_type;
+    }
+    if (puzzle?.act != null) {
+      merged.act = puzzle.act;
+    }
+    if (solution?.card_contents) {
+      merged.clue_target = solution.card_contents;
+    }
+    metaById.set(bundleId, merged);
+  }
+
+  return [...metaById.values()].sort((a, b) =>
+    String(a.bundle_id || '').localeCompare(String(b.bundle_id || ''))
+  );
+}
+
 export async function testBundle(cards, caseStateOrOptions = {}, maybeOptions = {}) {
   const { caseState, options } = resolveArgs(caseStateOrOptions, maybeOptions);
   const debug = options?.debug === true;
@@ -48,9 +93,10 @@ export async function testBundle(cards, caseStateOrOptions = {}, maybeOptions = 
     }
   });
 
+  const seedBundles = [{ bundle_id: bundleId }];
   const context = {
     cards: safeCards,
-    puzzle_bundles: [{ bundle_id: bundleId }],
+    puzzle_bundles: enrichFixtureBundles(safeCards, seedBundles),
     case_state: {
       suspects: [],
       ...caseState

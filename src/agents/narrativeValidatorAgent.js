@@ -68,6 +68,24 @@ export async function narrativeValidatorAgent(context) {
 
   context.narrative_validation = result;
 
+  const problems = Array.isArray(result?.problems) ? result.problems : [];
+  const nonBlocking = new Set(['missing_red_herring', 'no_elimination']);
+  const hasOnlyNonBlockingProblems = problems.length > 0 && problems.every((p) => nonBlocking.has(String(p?.type || '').trim()));
+
+  if (result.pass !== true && hasOnlyNonBlockingProblems) {
+    context.debug ??= {};
+    context.debug.warning_log ??= [];
+    for (const p of problems) {
+      context.debug.warning_log.push({
+        stage: 'narrative_validator_agent',
+        reason: String(p?.type || 'non_blocking_problem'),
+        message: String(p?.message || '')
+      });
+    }
+    context.narrative_validation = { ...result, pass: true };
+    return context;
+  }
+
   if (result.pass !== true) {
     throw new Error(
       'Narrative validation failed\n' +

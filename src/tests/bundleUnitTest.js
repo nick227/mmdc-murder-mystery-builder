@@ -19,6 +19,10 @@ async function expectFailure(fn, pattern) {
   throw new Error(`Expected failure matching ${pattern}`);
 }
 
+const bundleCaseState = {
+  suspects: [{ name: 'Max Vinyl' }]
+};
+
 async function run() {
   await testBundle([
     {
@@ -37,7 +41,7 @@ async function run() {
       card_type: 'solution',
       card_contents: 'Max accessed the vault at 11:54 PM.'
     }
-  ]);
+  ], bundleCaseState);
 
   await expectFailure(
     () => testBundle([
@@ -80,7 +84,7 @@ async function run() {
         card_type: 'solution',
         card_contents: ''
       }
-    ]),
+    ], bundleCaseState),
     /must have exactly 1 solution card/
   );
 
@@ -120,7 +124,7 @@ async function run() {
         card_type: 'solution',
         card_contents: 'Max accessed the vault at 11:54 PM.'
       }
-    ]),
+    ], bundleCaseState),
     /at least 2 evidence cards/
   );
 

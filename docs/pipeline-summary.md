@@ -130,7 +130,6 @@ There are 25 prompt files under `src/prompts`. The table below separates activel
 | `trailReviewPrompt.js` | `trailReviewAgent` | reviewed `trails`, pass/fail | `ambiguityBalancerAgent`, later prompts |
 | `narrativesPrompt.js` | `narrativeGeneratorAgent` | `narratives` object | `narrativeValidatorAgent`, `storyActsAgent`, `hostSpeechAgent`, `itemAgent`, `clueAgent`, `gameCardAgent`, `finalEditorAgent` |
 | `narrativeValidatorPrompt.js` | `narrativeValidatorAgent` | pass/fail review of `narratives` | `ambiguityBalancerAgent` |
-| `clueTargetsPrompt.js` | `clueTargetAgent` | `clue_targets` | `puzzleAgent` |
 | `characterSecretsPrompt.js` | `characterSecretAgent` | secret cards | final card set |
 | `storyActsPrompt.js` | `storyActsAgent` | story act cards | final card set |
 | `hostSpeechPrompt.js` | `hostSpeechAgent` | host speech cards | final card set |

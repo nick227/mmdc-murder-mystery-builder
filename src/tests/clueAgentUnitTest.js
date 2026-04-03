@@ -60,7 +60,7 @@ const fixedClues = [
 ];
 
 const mockContext = {
-  playerCount: 3,
+  playerCount: 2,
   cards: [
     {
       card_id: 'char-1',

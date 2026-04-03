@@ -47,8 +47,8 @@ Validation rules:
 - analysis.suspects must list the three suspect names used by narratives a, b, and c
 - analysis.true_suspect must be the suspect selected by true_narrative
 - analysis.matches_solution is true only if analysis.true_suspect equals solution.killer
-- analysis.eliminated_suspect should be the suspect most plausibly ruled out by the overall story path (can be empty if unclear)
-- analysis.red_herring should be a suspect who remains suspicious but is not the true killer (can be empty if unclear)
+- analysis.eliminated_suspect should be the suspect most plausibly ruled out by the overall story path (can be empty if unclear; do not fail validation for this alone)
+- analysis.red_herring should be a suspect who remains suspicious but is not the true killer (can be empty if unclear; do not fail validation for this alone)
 - analysis.deduction_possible is true if players can plausibly narrow suspicion by combining story beats and discoveries (do not require a perfect elimination arc)
 - pass can be true only if uses_only_characters and matches_solution are true, and deduction_possible is not clearly false
 - each problems entry must be an object with shape { "type": "", "message": "" }

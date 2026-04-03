@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 import { bundleLinkerAgent, canLinkUnlockToPuzzle } from '../agents/bundleLinkerAgent.js';
-import { flattenBundle } from '../agents/puzzleAgent.js';
+import { flattenBundle } from '../agents/bundleFinalizeAgent.js';
 
 function testHiddenActDependencyRejected() {
   const sourceBundle = {

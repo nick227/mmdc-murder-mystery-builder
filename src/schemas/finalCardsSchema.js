@@ -42,6 +42,8 @@ const finalCardSchema = {
       items: { type: 'string' }
     },
     actionable_gain: { type: ['string', 'null'] },
+    unlocked_item: { type: ['string', 'null'] },
+    evidence_type: { type: ['string', 'null'] },
     solution_summary: { type: ['string', 'null'] },
     solve_instructions: { type: ['string', 'null'] },
     solution: { type: ['string', 'null'] },

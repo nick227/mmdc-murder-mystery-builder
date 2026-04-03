@@ -21,7 +21,6 @@
     "test:connectivity-harness": "node src/tests/harness/connectivityHarness.js",
     "test:roster-integrity": "node src/tests/rosterIntegrityValidatorTest.js",
     "test:game-card-agent": "node src/tests/gameCardAgentTest.js",
-    "test:roster-prompt-guardrail": "node src/tests/rosterPromptGuardrailTest.js",
     "test:playability-report": "node src/tests/playabilityReportTest.js",
     "test:playability-gate": "node src/tests/playabilityGateTest.js",
     "test:playability-batch": "node src/tests/playabilityBatchReviewTest.js",

@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import { bundleLinkerAgent } from '../agents/bundleLinkerAgent.js';
 import { cardQualityAgent } from '../agents/cardQualityAgent.js';
+import { bundleFinalizeAgent } from '../agents/bundleFinalizeAgent.js';
+import { clueTargetAgent } from '../agents/clueTargetAgent.js';
 import { puzzleAgent } from '../agents/puzzleAgent.js';
 import { normalizeContext } from '../utils/context.js';
 
@@ -194,6 +196,15 @@ function makeMockContext() {
   return normalizeContext({
     playerCount: 4,
     userPrompt: 'Isolated puzzle review',
+    case_state: {
+      killer_id: 'mock-suspect-evelyn',
+      killer_name: 'Evelyn Voss',
+      suspects: [
+        { suspect_id: 'mock-suspect-evelyn', name: 'Evelyn Voss' },
+        { suspect_id: 'mock-suspect-marco', name: 'Marco Vale' },
+        { suspect_id: 'mock-suspect-nina', name: 'Nina Reed' }
+      ]
+    },
     storyBlurb: [
       'At the Blue Ember Club, jazz singer Lila Voss is found dead in a private backstage room.',
       'A rare black-opal necklace has vanished from a locked display nearby.',
@@ -304,6 +315,46 @@ function makeMockContext() {
         card_title: 'Nina Reed',
         card_contents: 'Rival singer with motive and venue familiarity.',
         act: 1
+      },
+      {
+        card_id: 'mock-clue-001',
+        card_type: 'clue',
+        card_title: 'Backstage Corridor Log',
+        card_contents: 'A corridor log shows the backstage door latch clicked from inside at 11:20 PM.',
+        suspect_name: 'Evelyn Voss',
+        clue_type: 'timeline',
+        clue_weight: 'mid',
+        act: 1
+      },
+      {
+        card_id: 'mock-clue-002',
+        card_type: 'clue',
+        card_title: 'Display Case Tool Marks',
+        card_contents: 'Fresh tool marks on the necklace display match a wrench kept in the manager’s kit.',
+        suspect_name: 'Marco Vale',
+        clue_type: 'object',
+        clue_weight: 'mid',
+        act: 1
+      },
+      {
+        card_id: 'mock-clue-003',
+        card_type: 'clue',
+        card_title: 'Stage Schedule Gap',
+        card_contents: 'The stage schedule confirms Nina was off the floor for a full song between sets.',
+        suspect_name: 'Nina Reed',
+        clue_type: 'timeline',
+        clue_weight: 'low',
+        act: 1
+      },
+      {
+        card_id: 'mock-clue-004',
+        card_type: 'clue',
+        card_title: 'Private Room Access Note',
+        card_contents: 'Only staff and featured performers can open the private room’s backstage lock.',
+        suspect_name: 'Evelyn Voss',
+        clue_type: 'access',
+        clue_weight: 'high',
+        act: 1
       }
     ],
     puzzle_bundles: [],
@@ -345,7 +396,9 @@ async function runOnce(index) {
   let context = makeMockContext();
   context.runId = `isolated-puzzle-review-${Date.now()}-${index}`;
 
+  context = normalizeContext(await clueTargetAgent(context));
   context = normalizeContext(await puzzleAgent(context));
+  context = normalizeContext(await bundleFinalizeAgent(context));
   context = normalizeContext(await bundleLinkerAgent(context));
   context = normalizeContext(await cardQualityAgent(context));
 

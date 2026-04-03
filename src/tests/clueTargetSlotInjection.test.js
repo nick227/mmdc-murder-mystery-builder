@@ -39,6 +39,12 @@ const nonKillerClues = result.cards.filter((card) =>
 );
 assert.equal(nonKillerClues.length, 3);
 assert.equal(result.cards.filter((card) => card.card_type === 'clue' && !card.suspect_name).length, 0);
-assert.equal('clue_targets' in result, false);
+assert.ok(Array.isArray(result.clue_targets));
+assert.equal(result.clue_targets.length, 4);
+for (const entry of result.clue_targets) {
+  assert.ok(entry.target_id);
+  assert.ok(entry.fact);
+  assert.ok(entry.puzzle_type_hint);
+}
 
 console.log('clueTargetSlotInjection.test passed');
