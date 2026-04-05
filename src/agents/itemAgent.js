@@ -1,11 +1,32 @@
 import { callJson } from '../llm/client.js';
 import { buildItemsPromptForCharacter } from '../prompts/itemsPrompt.js';
-import { cardsArraySchema } from '../schemas/cardsSchema.js';
 import { getCardsByType, getCharacterCards, pushCards } from '../utils/cards.js';
 import { getStoryBlurb } from '../utils/context.js';
 
 const ITEMS_PER_CHARACTER = 3;
 const MAX_ATTEMPTS = 2;
+
+const itemsSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['cards'],
+  properties: {
+    cards: {
+      type: 'array',
+      minItems: ITEMS_PER_CHARACTER,
+      maxItems: ITEMS_PER_CHARACTER,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['card_title', 'card_contents'],
+        properties: {
+          card_title: { type: 'string' },
+          card_contents: { type: 'string' }
+        }
+      }
+    }
+  }
+};
 
 function normalizeTitle(value) {
   return String(value || '')
@@ -99,7 +120,7 @@ export async function itemAgent(context) {
         const result = await callJson({
           ...prompt,
           schemaName: 'items',
-          schema: cardsArraySchema(ITEMS_PER_CHARACTER, ITEMS_PER_CHARACTER)
+          schema: itemsSchema
         });
 
         for (const raw of result.cards || []) {

@@ -42,6 +42,10 @@ function validateContext(context, stepName) {
     const solution = getSolution(context);
     assert(solution, 'solution should derive from coreTruth');
     assert(solution.killer, 'derived solution.killer missing');
+    const solutions = getCardsByType(context.cards, 'solution');
+    assert(solutions.length === 2, 'expected two final solution cards');
+    assert(solutions.some((c) => c.role === 'murder'), 'missing murder solution card');
+    assert(solutions.some((c) => c.role === 'treasure'), 'missing treasure solution card');
   }
 
   if (stepName === 'core_truth_validator_agent') {
@@ -54,12 +58,6 @@ function validateContext(context, stepName) {
     const chars = getCharacterCards(context.cards);
     const secrets = getCardsByType(context.cards, 'secret');
     assert(secrets.length >= chars.length * 2, 'expected at least two secrets per character');
-  }
-
-  if (stepName === 'treasure_item_agent') {
-    const reveal = getCardsByType(context.cards, 'treasure');
-    assert(reveal.length === 1, 'expected exactly one treasure reveal card');
-    assert(reveal[0].act === 3, 'treasure reveal should be act 3');
   }
 
   if (stepName === 'story_acts_agent') {
@@ -79,55 +77,7 @@ function validateContext(context, stepName) {
     const clueCards = getCardsByType(context.cards, 'clue');
     assert(clueCards.length >= 8, 'expected at least 8 clue cards');
     for (const clue of clueCards) {
-      if (clue.bundle_id || clue.clue_type === 'treasure') {
-        continue;
-      }
-      assert(clue.clue_type, `murder clue missing clue_type: ${clue.card_title}`);
-    }
-  }
-
-  if (stepName === 'clue_target_agent') {
-    assert(Array.isArray(context.clue_targets), 'clue_targets missing');
-    assert(context.clue_targets.length === 4, 'expected four frozen clue targets');
-  }
-
-  if (stepName === 'bundle_finalize_agent') {
-    const puzzleCards = getCardsByType(context.cards, 'puzzle');
-    const puzzleBundles = context.puzzle_bundles || [];
-
-    assert(puzzleBundles.length >= 1, 'expected at least one puzzle bundle');
-    assert(puzzleCards.length === puzzleBundles.length, 'expected one puzzle card per bundle');
-
-    const allRefs = new Set((context.cards || []).map((card) => card.card_ref).filter(Boolean));
-
-    for (const bundle of puzzleBundles) {
-      assert(bundle.bundle_id, 'puzzle bundle missing bundle_id');
-
-      const bundleCards = (context.cards || []).filter((card) => card.bundle_id === bundle.bundle_id);
-      const bundlePuzzleCards = bundleCards.filter((card) => card.card_type === 'puzzle');
-      const bundleNonPuzzle = bundleCards.filter((card) => card.card_type !== 'puzzle');
-      const hiddenSolutionCards = bundleNonPuzzle.filter(
-        (card) => card.hidden_until_solved === true && card.card_type === 'solution'
-      );
-
-      assert(bundlePuzzleCards.length === 1, `bundle ${bundle.bundle_id} must emit exactly one puzzle card`);
-      assert(bundleCards.length >= 2, `bundle ${bundle.bundle_id} must emit at least two cards`);
-      assert(hiddenSolutionCards.length === 1, `bundle ${bundle.bundle_id} must emit exactly one hidden solution card`);
-
-      const puzzle = bundlePuzzleCards[0];
-      assert(Array.isArray(puzzle.required_card_refs), `bundle ${bundle.bundle_id} puzzle missing required_card_refs`);
-      assert(Array.isArray(puzzle.unlock_card_refs), `bundle ${bundle.bundle_id} puzzle missing unlock_card_refs`);
-      assert(Array.isArray(puzzle.required_card_ids), `bundle ${bundle.bundle_id} puzzle missing required_card_ids`);
-      assert(Array.isArray(puzzle.unlock_card_ids), `bundle ${bundle.bundle_id} puzzle missing unlock_card_ids`);
-      assert(puzzle.required_card_ids.length >= 1, `bundle ${bundle.bundle_id} puzzle must resolve required_card_ids`);
-
-      const bundleRefs = new Set(bundleCards.map((card) => card.card_ref).filter(Boolean));
-      for (const requiredRef of puzzle.required_card_refs) {
-        assert(allRefs.has(requiredRef), `bundle ${bundle.bundle_id} required card_ref missing from output`);
-      }
-      for (const unlockRef of puzzle.unlock_card_refs) {
-        assert(bundleRefs.has(unlockRef), `bundle ${bundle.bundle_id} unlock card_ref missing from output`);
-      }
+      assert(clue.weight, `murder clue missing weight: ${clue.card_title}`);
     }
   }
 

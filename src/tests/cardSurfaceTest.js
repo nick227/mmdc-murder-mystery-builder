@@ -3,17 +3,18 @@ import { buildCardSurface } from '../utils/cardSurface.js';
 
 const surface = buildCardSurface({
   cards: [
-    { card_type: 'clue', clue_type: 'treasure' },
-    { card_type: 'clue', clue_type: 'fact' },
+    { card_type: 'solution', role: 'murder', reveal: 'host_reveal' },
+    { card_type: 'solution', role: 'treasure', reveal: 'host_reveal' },
+    { card_type: 'clue' },
     { card_type: 'secret' },
-    { card_type: 'treasure', card_title: 'MacGuffin' },
     { card_type: 'item' }
   ]
 });
 
-assert.equal(surface.treasure_clue_count, 1);
-assert.equal(surface.treasure_reveal_card_count, 1);
-assert.equal(surface.counts_by_card_type.clue, 2);
+assert.equal(surface.solution_reveal_count, 2);
+assert.equal(surface.solution_roles.murder, 1);
+assert.equal(surface.solution_roles.treasure, 1);
+assert.equal(surface.counts_by_card_type.clue, 1);
 assert.equal(surface.counts_by_card_type.secret, 1);
 
 console.log('cardSurfaceTest passed');

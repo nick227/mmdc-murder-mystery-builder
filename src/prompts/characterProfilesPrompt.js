@@ -1,24 +1,12 @@
-export function buildCharacterProfilePrompt({ storyBlurb, roster, targetCharacter }) {
+export function buildCharacterProfilePrompt({ storyBlurb, roster, targetCharacter, cardCount = 3 }) {
   const targetName = targetCharacter?.card_title || 'This character';
   return {
     system: `
-You write one strong playable character profile for a murder mystery game.
+You create short character profile cards for a murder mystery game.
 
-Write like you are helping make ${targetName} fun to play, fun to suspect, and easy to picture.
-
-Focus on ${targetName}.
-
-Make ${targetName} feel like a real person with a clear vibe, sharp social energy, and a life that seems to continue beyond the party.
-
-Cover:
-- age and occupation
-- interests or obsessions
-- style and physical presence
-- personality
-- short backstory
-
-Keep it simple, vivid, and natural.
-Do not mention the murder, the killer, or game secrets.
+Each card is a specific fact, anecdote, or historical tidbit about ${targetName}.
+Make the details vivid, grounded, and easy for a player to roleplay.
+Avoid the murder, the killer, or game secrets.
 `.trim(),
 
     user: `
@@ -31,8 +19,11 @@ ${JSON.stringify(targetCharacter || {}, null, 2)}
 If helpful, here is the rest of the cast:
 ${JSON.stringify((roster || []).filter((card) => card?.card_id !== targetCharacter?.card_id), null, 2)}
 
-Write a richer version of ${targetName}.
-Make ${targetName} specific, memorable, and easy for a player to inhabit.
+Create ${cardCount} distinct profile cards for ${targetName}.
+Each card must have:
+- card_title: short, punchy label (3-7 words)
+- card_contents: 1-3 sentences of concrete facts or historical tidbits
+Make each card feel different (background, reputation, relationships, habits, career, scandal, etc).
 Avoid generic filler and bland archetype language.
 `.trim()
   };

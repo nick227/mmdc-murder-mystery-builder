@@ -8,9 +8,9 @@ import {
   rebalanceGameCardTargets
 } from '../utils/gameCardTargetRebalance.js';
 import { getStoryBlurb } from '../utils/context.js';
+import { DEFAULT_CARDS_PER_PLAYER, coerceNonNegativeInt } from '../config/generationDefaults.js';
 
 const MAX_ATTEMPTS = 5;
-const CARDS_PER_PLAYER = 5;
 const BETWEEN_PLAYER_DELAY_MS = 2000;
 
 function delay(ms) {
@@ -64,7 +64,7 @@ function resolveGameCardPlayers(context) {
   throw new Error(`game_card_agent needs at least ${n} character cards or case_state.suspects`);
 }
 
-function analyzeGameCards(cards, caseState) {
+function analyzeGameCards(cards, caseState, cardsPerPlayer) {
   const issues = [];
   const roster = buildSuspectRoster(caseState);
   const { primaryTargetCounts, namedPrimaryTargetCardCount } = collectGameCardTargetMetrics(cards, roster);
@@ -82,8 +82,8 @@ function analyzeGameCards(cards, caseState) {
     perPlayerCounts.set(who, (perPlayerCounts.get(who) || 0) + 1);
   }
   for (const [who, count] of perPlayerCounts.entries()) {
-    if (count !== CARDS_PER_PLAYER) {
-      issues.push(`Each player must receive exactly ${CARDS_PER_PLAYER} game cards. ${who} currently has ${count}.`);
+    if (count !== cardsPerPlayer) {
+      issues.push(`Each player must receive exactly ${cardsPerPlayer} game cards. ${who} currently has ${count}.`);
     }
   }
 
@@ -105,7 +105,11 @@ function analyzeGameCards(cards, caseState) {
 }
 
 export async function gameCardAgent(context) {
-  const schema = actedCardsArraySchema(CARDS_PER_PLAYER, CARDS_PER_PLAYER);
+  const cardsPerPlayer = coerceNonNegativeInt(context?.cardsPerPlayer, DEFAULT_CARDS_PER_PLAYER);
+  if (cardsPerPlayer === 0) {
+    return context;
+  }
+  const schema = actedCardsArraySchema(cardsPerPlayer, cardsPerPlayer);
   const players = resolveGameCardPlayers(context);
   let rejectionReasons = [];
   let cards = [];
@@ -124,6 +128,7 @@ export async function gameCardAgent(context) {
         characterName: player.name,
         characterRole: player.role,
         characterBio: player.bio,
+        cardsPerPlayer,
         playerIndex: p,
         playerCount: players.length
       });
@@ -143,7 +148,7 @@ export async function gameCardAgent(context) {
     }
 
     cards = rebalanceGameCardTargets(cards, context.case_state);
-    rejectionReasons = analyzeGameCards(cards, context.case_state);
+    rejectionReasons = analyzeGameCards(cards, context.case_state, cardsPerPlayer);
     if (!rejectionReasons.length) {
       break;
     }

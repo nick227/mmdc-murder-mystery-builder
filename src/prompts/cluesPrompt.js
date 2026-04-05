@@ -1,53 +1,17 @@
-import { getCanonicalMurderStrings, getCanonicalSuspectBaseNames } from '../utils/canonFacts.js';
-
-function formatMurderTruthForClues(coreTruth) {
-  const m = coreTruth?.murder;
-  if (!m) {
-    return '(murder truth not available)';
-  }
-  return JSON.stringify(
-    {
-      killer: m.killer,
-      victim: m.victim,
-      location: m.location,
-      murder_solution: m.murder_solution
-    },
-    null,
-    2
-  );
-}
-
-export function buildCluesPrompt({
+export function buildClueBriefsPrompt({
   storyBlurb,
   storyMeta,
-  characters,
-  locations,
-  narratives,
-  totalClues,
-  numPlayers,
   coreTruth,
-  context = null
+  suspectRoster = [],
+  totalClues = 0
 }) {
-  const suspectNames = (characters || []).map((c) => c.card_title).join(', ');
-  const { victim: canonVictim, location: canonLocation } = getCanonicalMurderStrings(coreTruth);
-  const rosterBases = context
-    ? getCanonicalSuspectBaseNames(context).join('; ')
-    : '';
+  const victim = String(coreTruth?.murder?.victim || 'the victim').trim();
+  const location = String(coreTruth?.murder?.location || 'the crime scene').trim();
+  const killer = String(coreTruth?.murder?.killer || 'the killer').trim();
+
   return {
-    system: `
-You are generating all ${totalClues} clue cards for a murder mystery game.
-
-Think comprehensively — these are the murder-investigation clue cards (not the separate treasure hunt).
-
-One clue alone must NOT solve the murder.
-
-First you must understand the game world and the story.
-
-Then you must generate ${totalClues} clues that are relevant to the story and the murder truth below.
-
-`.trim(),
-    user: `
-Create ${totalClues} clue cards for a murder mystery game with ${numPlayers} players.
+    system: 'Create structured clue briefs for a murder mystery game. Return JSON only.',
+    user: `Create ${totalClues} clue briefs for a murder mystery game.
 
 Story concept:
 ${storyBlurb}
@@ -55,35 +19,65 @@ ${storyBlurb}
 Packaging and thematic guidance:
 ${storyMeta || '(none)'}
 
-HIDDEN murder truth (NEVER REVEAL THESE TO THE PLAYERS):
-${formatMurderTruthForClues(coreTruth)}
+HIDDEN murder truth (do NOT reveal directly):
+Killer: ${killer}
+Victim: ${victim}
+Location: ${location}
 
-Victim and crime scene names (use consistently in story; exact strings are also stored on each card as murder_canon by the pipeline — do not print that field or meta labels into card_contents):
-Victim: ${canonVictim}
-Location: ${canonLocation}
+Playable suspects (use name or title for target_name, or null):
+${JSON.stringify(suspectRoster, null, 2)}
 
-Playable suspect base names for suspect_name (must match one base name exactly, OR the victim display name when the clue centers on the deceased):
-${rosterBases || '(derive from Suspects list titles)'}
-
-Suspects:
-${suspectNames}
-
-Locations:
-${JSON.stringify(locations || [], null, 2)}
-
-Narratives:
-${JSON.stringify(narratives || [], null, 2)}
-
-Generate exactly ${totalClues} clue cards.
+Each brief must include:
+- item_name (short title for the clue)
+- target_name (suspect name/title or null)
+- strength (low, mid, high)
+- uniqueness_angle (what makes this clue distinct)
+- description_seed (short seed for the prose writer)
 
 Rules:
-- Mix artifact, fact, and derived across the set (avoid homogeneity).
-- Each suspect should appear in no more than 2 cards
-- card_title, card_contents, clue_type, suspect_name, clue_weight
-- (clue_type must be exactly artifact, fact, or derived)
-- Do not make these clues about the treasure hunt or inheritance object; focus on the murder.
-- Each card_contents: under 100 words, in-world voice only — no "Canonical victim:", "Victim:", or internal headers.
+- Generate exactly ${totalClues} briefs.
+- All suspects must be implicated at least once (target_name).
+- The killer should have the strongest overall signal (more high strengths).
+- Vary item types and angles; avoid duplicates.
+- Do not identify the killer.
+- Do not state any clue as confirmed fact.
+- Each brief must stand alone.`
+  };
+}
 
-`.trim()
+export function buildClueProsePrompt({
+  storyBlurb,
+  storyMeta,
+  victim,
+  location,
+  briefs = []
+}) {
+  return {
+    system: 'Write clear, readable clue prose from briefs. Return JSON only.',
+    user: `Write final clue prose from the briefs below.
+
+Story concept:
+${storyBlurb}
+
+Packaging and thematic guidance:
+${storyMeta || '(none)'}
+
+Victim: ${victim}
+Location: ${location}
+
+Briefs (keep order):
+${JSON.stringify(briefs, null, 2)}
+
+Rules:
+- Return exactly ${briefs.length} clues in the same order.
+- Each clue must include card_contents only.
+- Each clue must explicitly describe the item_name from its brief.
+- Follow the uniqueness_angle to keep clues distinct.
+- Write 1-3 clear sentences per clue.
+- Keep each card_contents under 40 words.
+- Use suggestive or uncertain tone.
+- Do not identify the killer.
+- Do not state any clue as confirmed fact.
+- Each clue must stand alone.`
   };
 }

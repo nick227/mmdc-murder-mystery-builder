@@ -25,12 +25,21 @@ export async function treasureItemAgent(context) {
   }
 
   context.cards = (context.cards || []).filter((c) => c?.card_type !== 'treasure');
+  context.cards = (context.cards || []).filter((c) => !(c?.card_type === 'clue' && c?.meta?.treasure_stage === 'clue'));
 
   const targetNorm = normalizeTitle(object);
   const targetItem = items.find((c) => normalizeTitle(c.card_title) === targetNorm);
 
   const hiding = String(treasure?.hiding_place || '').trim();
   const solution = String(treasure?.treasure_solution || '').trim();
+  const clueLines = [
+    `${object} is the inheritance object at the center of the treasure trail.`
+  ];
+  if (solution) {
+    clueLines.push(solution.split(/[.!?]/)[0]?.trim() || solution);
+  }
+  const clueBody = clueLines.filter(Boolean).join(' ');
+
   const lines = [
     'Host reveal: read when the group recovers the treasure or at the end of Act 3.',
     '',
@@ -48,13 +57,28 @@ export async function treasureItemAgent(context) {
     throw new Error('treasure_item_agent: treasure reveal text too short');
   }
 
+  pushCards(context, 'clue', [
+    {
+      card_title: `${object} Lead`,
+      card_contents: clueBody,
+      act: 3,
+      hidden_until_solved: true,
+      role: 'treasure',
+      target_id: targetItem?.card_id || null,
+      weight: 'high',
+      linked_item_id: targetItem?.card_id,
+      meta: { treasure_stage: 'clue' }
+    }
+  ]);
+
   return pushCards(context, 'treasure', [
     {
       card_title: object,
       card_contents: body,
       act: 3,
       hidden_until_solved: true,
-      linked_item_id: targetItem?.card_id
+      linked_item_id: targetItem?.card_id,
+      meta: { treasure_stage: 'reveal' }
     }
   ]);
 }

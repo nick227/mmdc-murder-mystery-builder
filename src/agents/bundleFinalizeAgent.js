@@ -46,18 +46,31 @@ function toInternalCards(rawCards, bundleIndex, frozenSolutionFact, factBinding)
   const list = Array.isArray(rawCards) ? rawCards : [];
   const puzzle = list.find((c) => c?.card_type === 'puzzle') || null;
   const solution = list.find((c) => c?.card_type === 'solution') || null;
+  const gate = list.find((c) => c?.card_type === 'gate') || null;
   const evidence = list.filter((c) => c?.card_type === 'evidence');
 
   assert(puzzle, `bundle_finalize_agent bundle ${bundleIndex + 1} missing puzzle card`);
   assert(solution, `bundle_finalize_agent bundle ${bundleIndex + 1} missing solution card`);
+  assert(gate, `bundle_finalize_agent bundle ${bundleIndex + 1} missing gate card`);
 
   const evidenceCards = evidence.map((card, idx) => ({
     card_ref: `bundle_${bundleIndex + 1}_evidence_${String(idx + 1).padStart(3, '0')}`,
     card_type: 'clue',
     card_title: String(card?.card_title || `Evidence ${idx + 1}`).trim(),
     card_contents: String(card?.card_contents || '').trim(),
+    role: 'evidence',
+    target_id: null,
+    weight: 'mid',
     hidden_until_solved: false
   }));
+
+  const gateCard = {
+    card_ref: `bundle_${bundleIndex + 1}_gate`,
+    card_type: 'item',
+    card_title: String(gate?.card_title || `Gate Summary ${bundleIndex + 1}`).trim(),
+    card_contents: String(gate?.card_contents || '').trim(),
+    hidden_until_solved: false
+  };
 
   const solutionText = String(frozenSolutionFact || '').trim() || String(solution?.card_contents || '').trim();
 
@@ -79,7 +92,7 @@ function toInternalCards(rawCards, bundleIndex, frozenSolutionFact, factBinding)
     unlocked_item: typeof puzzle?.unlocked_item === 'string' ? puzzle.unlocked_item : undefined
   };
 
-  return [...evidenceCards, solutionCard, puzzleCard];
+  return [...evidenceCards, gateCard, solutionCard, puzzleCard];
 }
 
 export function flattenBundle(bundleDraft, index, externalRefToId = new Map(), murderCanonRef = null) {
@@ -117,6 +130,15 @@ export function flattenBundle(bundleDraft, index, externalRefToId = new Map(), m
       bundle_id: bundleId,
       hidden_until_solved: card.card_type === 'solution' ? true : card.hidden_until_solved === true
     };
+    if (card.role !== undefined) {
+      base.role = card.role;
+    }
+    if (card.target_id !== undefined) {
+      base.target_id = card.target_id;
+    }
+    if (card.weight !== undefined) {
+      base.weight = card.weight;
+    }
     if (card.meta && typeof card.meta === 'object') {
       base.meta = card.meta;
     }
@@ -135,8 +157,9 @@ export function flattenBundle(bundleDraft, index, externalRefToId = new Map(), m
     .filter((card) => card.card_type === 'clue' && card.hidden_until_solved !== true)
     .map((card) => String(card.card_ref || '').trim())
     .filter(Boolean);
+  const gateRef = String(cards.find((card) => card.card_type === 'item' && card.hidden_until_solved !== true)?.card_ref || '').trim();
   const priorUnlockRef = index > 0 ? `bundle_unlock_${String(index).padStart(3, '0')}` : null;
-  const requiredCardRefs = [...(priorUnlockRef ? [priorUnlockRef] : []), ...localEvidenceRefs];
+  const requiredCardRefs = [...(priorUnlockRef ? [priorUnlockRef] : []), ...(gateRef ? [gateRef] : []), ...localEvidenceRefs];
   const unlockCardRefs = [String(cards.find((c) => c.card_type === 'solution')?.card_ref || '').trim()].filter(Boolean);
 
   puzzleCard.puzzle_type = puzzleType;
@@ -184,4 +207,3 @@ export async function bundleFinalizeAgent(context) {
 
   return pushCards(context, 'puzzle', bundles.flatMap((bundle) => bundle.cards));
 }
-

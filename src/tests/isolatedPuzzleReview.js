@@ -321,9 +321,9 @@ function makeMockContext() {
         card_type: 'clue',
         card_title: 'Backstage Corridor Log',
         card_contents: 'A corridor log shows the backstage door latch clicked from inside at 11:20 PM.',
-        suspect_name: 'Evelyn Voss',
-        clue_type: 'timeline',
-        clue_weight: 'mid',
+        role: 'alibi',
+        target_id: 'evelyn_voss',
+        weight: 'mid',
         act: 1
       },
       {
@@ -331,9 +331,9 @@ function makeMockContext() {
         card_type: 'clue',
         card_title: 'Display Case Tool Marks',
         card_contents: 'Fresh tool marks on the necklace display match a wrench kept in the manager’s kit.',
-        suspect_name: 'Marco Vale',
-        clue_type: 'object',
-        clue_weight: 'mid',
+        role: 'evidence',
+        target_id: 'marco_vale',
+        weight: 'mid',
         act: 1
       },
       {
@@ -341,9 +341,9 @@ function makeMockContext() {
         card_type: 'clue',
         card_title: 'Stage Schedule Gap',
         card_contents: 'The stage schedule confirms Nina was off the floor for a full song between sets.',
-        suspect_name: 'Nina Reed',
-        clue_type: 'timeline',
-        clue_weight: 'low',
+        role: 'suspect_pressure',
+        target_id: 'nina_reed',
+        weight: 'low',
         act: 1
       },
       {
@@ -351,9 +351,9 @@ function makeMockContext() {
         card_type: 'clue',
         card_title: 'Private Room Access Note',
         card_contents: 'Only staff and featured performers can open the private room’s backstage lock.',
-        suspect_name: 'Evelyn Voss',
-        clue_type: 'access',
-        clue_weight: 'high',
+        role: 'suspect_pressure',
+        target_id: 'evelyn_voss',
+        weight: 'high',
         act: 1
       }
     ],

@@ -1,6 +1,7 @@
 import { extractJsonBlock } from './extractPromptJson.js';
 
 let smokeSecretBatchSeq = 0;
+let smokePuzzleBundleSeq = 0;
 
 function playableCharactersFromUser(opts) {
   return extractJsonBlock(String(opts?.user || ''), 'Playable characters:', 'World:');
@@ -30,11 +31,13 @@ function fakeSmokeCharacterSecrets(opts) {
     cards: [
       {
         card_title: `Smoke motive ${batch} — ${name}`,
+        secret_type: 'motive',
         card_contents:
           `[${batch}] Resentment over inheritance and fear of blackmail pushed ${name} to seek leverage before the will reading.`
       },
       {
         card_title: `Smoke access ${batch} — ${name}`,
+        secret_type: 'access',
         card_contents:
           `[${batch}] ${name} had backstage access to the study, slipped inside near midnight, and were spotted by the cellar door.`
       }
@@ -50,21 +53,18 @@ function fakeSmokeStoryActs() {
         card_contents:
           'The guests trade smiles while studying doorways and exits; alliances form in whispered asides before anyone names a fear. Suspicion has not yet hardened into accusation, but every polite greeting carries a second meaning in the ballroom haze.',
         act: 1,
-        location_ref: 'Smoke ballroom'
       },
       {
         card_title: 'Smoke act II — fracture',
         card_contents:
           'Contradictions ripple through testimony as timelines refuse to align and motives surface from half-forgotten quarrels. What seemed like coincidence tightens into pattern, forcing players to choose which witnesses they still trust as pressure mounts.',
         act: 2,
-        location_ref: 'Smoke ballroom'
       },
       {
         card_title: 'Smoke act III — reckoning',
         card_contents:
           'The final interval leaves no room for polite doubt: every player must commit to a theory and defend it against hard questions. The answer still hangs in the air, but the room demands resolution before the last clock chime.',
         act: 3,
-        location_ref: 'Smoke ballroom'
       }
     ]
   };
@@ -77,19 +77,16 @@ function fakeSmokeHostSpeech() {
         card_title: 'Smoke host — opening',
         card_contents: 'Welcome, detectives. The night is young and secrets stir beneath the chandeliers.',
         act: 1,
-        location_ref: 'Smoke ballroom'
       },
       {
         card_title: 'Smoke host — act two',
         card_contents: 'Tighten your alibies—new whispers contradict what we thought we knew.',
         act: 2,
-        location_ref: 'Smoke ballroom'
       },
       {
         card_title: 'Smoke host — finale',
         card_contents: 'Accusations in the air; one of you knows far more than they have admitted.',
         act: 3,
-        location_ref: 'Smoke ballroom'
       }
     ]
   };
@@ -173,7 +170,54 @@ function fakeSmokeTreasureHunt(opts) {
   return { clues };
 }
 
+function fakeSmokeClues(opts) {
+  const roster = extractJsonBlock(String(opts?.user || ''), 'Playable suspect roster (target_id MUST be one of these suspect_id values, or null when truly untargeted):', 'Allowed target_id values:');
+  const suspects = Array.isArray(roster) ? roster : [];
+  const clueCountMatch = String(opts?.user || '').match(/Generate exactly (\d+) clue cards/i);
+  const total = Math.max(0, Number(clueCountMatch?.[1] || 0)) || Math.max(8, suspects.length * 2);
+  const cards = [];
+
+  for (const suspect of suspects) {
+    const suspectId = String(suspect?.suspect_id || '').trim();
+    const displayName = String(suspect?.name || suspect?.title || suspectId).trim();
+    if (!suspectId) {
+      continue;
+    }
+    cards.push({
+      card_title: `${displayName} Pressure`,
+      card_contents: `${displayName} handled restricted access shortly before the murder window.`,
+      role: 'suspect_pressure',
+      target_id: suspectId,
+      weight: 'high'
+    });
+    cards.push({
+      card_title: `${displayName} Alibi Tension`,
+      card_contents: `${displayName} gave an alibi that does not fully match the timeline witnesses described.`,
+      role: 'alibi',
+      target_id: suspectId,
+      weight: 'mid'
+    });
+  }
+
+  let index = 1;
+  while (cards.length < total) {
+    const suspect = suspects[cards.length % Math.max(1, suspects.length)] || null;
+    cards.push({
+      card_title: `Smoke Evidence ${index}`,
+      card_contents: `Supporting physical evidence entry ${index} tied to the scene records.`,
+      role: 'evidence',
+      target_id: String(suspect?.suspect_id || '').trim() || null,
+      weight: index % 2 === 0 ? 'low' : 'mid'
+    });
+    index += 1;
+  }
+
+  return { cards: cards.slice(0, total) };
+}
+
 function fakeSmokePuzzleBundle(opts) {
+  smokePuzzleBundleSeq += 1;
+  const bundleSeq = smokePuzzleBundleSeq;
   const user = String(opts?.user || '');
   const targetFactMatch = user.match(/Target clue fact:\s*([\s\S]*?)\n\s*Target category:/i);
   const targetFact = String(targetFactMatch?.[1] || 'A smoke clue fact.').trim();
@@ -204,28 +248,33 @@ function fakeSmokePuzzleBundle(opts) {
     cards: [
       {
         card_type: 'evidence',
-        card_title: 'Evidence A',
+        card_title: `Evidence A (Bundle ${bundleSeq})`,
         card_contents: tagged(targetFact)
       },
       {
         card_type: 'evidence',
-        card_title: 'Evidence B',
+        card_title: `Evidence B (Bundle ${bundleSeq})`,
         card_contents: tagged(`Second record: ${targetFact}`)
       },
       {
         card_type: 'evidence',
-        card_title: 'Evidence C',
+        card_title: `Evidence C (Bundle ${bundleSeq})`,
         card_contents: tagged('Third visible evidence record confirming the same event.')
       },
       {
+        card_type: 'gate',
+        card_title: `Gate Summary ${bundleSeq}`,
+        card_contents: tagged('Visible summary sheet: compare the records here before resolving the final question.')
+      },
+      {
         card_type: 'puzzle',
-        card_title: 'Smoke Puzzle',
+        card_title: `Smoke Puzzle ${bundleSeq}`,
         card_contents: tagged('Use the visible evidence to identify the single concrete fact it reveals.'),
         unlocked_item: 'The confirmed timeline or access fact from the evidence set.'
       },
       {
         card_type: 'solution',
-        card_title: 'Smoke Clue',
+        card_title: `Smoke Clue ${bundleSeq}`,
         card_contents: targetFact
       }
     ]
@@ -234,6 +283,7 @@ function fakeSmokePuzzleBundle(opts) {
 
 const NAMED_SMOKE = {
   core_truth: fakeSmokeCoreTruth,
+  clue_cards: fakeSmokeClues,
   clue_targets: fakeSmokeClueTargets,
   puzzle_bundle: fakeSmokePuzzleBundle,
   treasure_hunt: fakeSmokeTreasureHunt,

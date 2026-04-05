@@ -15,6 +15,7 @@ function sanitizeContextForOutput(context) {
   delete sanitized.murder_truth;
   delete sanitized.fortune_truth;
   delete sanitized.solution;
+  delete sanitized.playability_history;
   return sanitized;
 }
 

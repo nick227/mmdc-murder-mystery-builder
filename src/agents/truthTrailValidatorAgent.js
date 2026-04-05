@@ -8,6 +8,10 @@ import {
   getInitiallyReachableCardIds,
   mapBindingToFirstIteration
 } from '../utils/truthTrailReachability.js';
+import { DEFAULT_PUZZLE_COUNT, coercePuzzleCount } from '../config/generationDefaults.js';
+
+const REQUIRED_FACT_BINDINGS = ['killer', 'location', 'treasure_object', 'treasure_location'];
+const MIN_SEQUENTIAL_PUZZLE_STEPS = 3;
 
 function parseEnvInt(name) {
   const n = Number(process.env[name]);
@@ -15,6 +19,14 @@ function parseEnvInt(name) {
 }
 
 export async function truthTrailValidatorAgent(context) {
+  const puzzleCount = coercePuzzleCount(context?.puzzleCount, DEFAULT_PUZZLE_COUNT);
+  if (puzzleCount === 0) {
+    context.truth_trail = {
+      skipped: true,
+      reason: 'puzzleCount=0'
+    };
+    return context;
+  }
   const cards = Array.isArray(context?.cards) ? context.cards : [];
 
   const emptyReq = collectPuzzlesWithEmptyRequirements(cards);
@@ -45,6 +57,7 @@ export async function truthTrailValidatorAgent(context) {
     fixpoint_iterations: fixpointIterations,
     sequential_puzzle_steps: sequential.sequential_puzzle_steps,
     fact_bindings_reachable: [...bindings].sort(),
+    required_fact_bindings: [...REQUIRED_FACT_BINDINGS],
     binding_first_iteration: bindingFirstIteration,
     missing_fact_bindings: missing
   };
@@ -78,10 +91,11 @@ export async function truthTrailValidatorAgent(context) {
   }
 
   const minSeq = parseEnvInt('TRUTH_TRAIL_MIN_SEQUENTIAL_STEPS');
-  if (minSeq >= 1 && sequential.sequential_puzzle_steps < minSeq) {
+  const requiredMinSeq = Math.max(MIN_SEQUENTIAL_PUZZLE_STEPS, minSeq);
+  if (sequential.sequential_puzzle_steps < requiredMinSeq) {
     throw new Error(
       `truth_trail_validator_agent: sequential_puzzle_steps ${sequential.sequential_puzzle_steps} < ` +
-      `TRUTH_TRAIL_MIN_SEQUENTIAL_STEPS (${minSeq})`
+      `required minimum (${requiredMinSeq})`
     );
   }
 

@@ -25,28 +25,17 @@ const STEP_ORDER = [
   'world_building_agent',
   'characters_builder_agent',
   'core_truth_agent',
-  'treasure_hunt_agent',
   'core_truth_validator_agent',
   'case_state_builder_agent',
   'character_secret_agent',
   'item_agent',
-  'treasure_item_agent',
   'story_acts_agent',
   'host_speech_agent',
   'clue_agent',
   'clue_roster_validator_agent',
-  'clue_target_agent',
-  'puzzle_agent',
-  'puzzle_draft_canon_validator_agent',
-  'bundle_finalize_agent',
-  'puzzle_evidence_agent',
-  'bundle_visible_canon_validator_agent',
-  'bundle_linker_agent',
   'structural_preflight_agent',
   'solvability_validator_agent',
-  'bundle_structure_validator_agent',
   'post_final_invariants_agent',
-  'bundle_integrity_validator_agent',
   'mvp_quality_gate_agent'
 ];
 
@@ -108,7 +97,7 @@ export function buildStepAudit(context, stepName) {
   }
 
   for (const issue of playability.issues) {
-    if (issue.code === 'unknown_roster_entities' && !atOrAfter(stepName, 'bundle_integrity_validator_agent')) {
+    if (issue.code === 'unknown_roster_entities' && !atOrAfter(stepName, 'post_final_invariants_agent')) {
       continue;
     }
     if (['unknown_roster_entities', 'roster_validator_noise'].includes(issue.code)) {

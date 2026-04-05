@@ -42,9 +42,24 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (card?.linked_character !== undefined || previous.linked_character !== undefined) {
       merged.linked_character = card?.linked_character ?? previous.linked_character;
     }
+    if (card?.secret_type !== undefined || previous.secret_type !== undefined) {
+      merged.secret_type = card?.secret_type ?? previous.secret_type;
+    }
 
     if (card?.trail_role !== undefined || previous.trail_role !== undefined) {
       merged.trail_role = card?.trail_role ?? previous.trail_role;
+    }
+    if (card?.role !== undefined || previous.role !== undefined) {
+      merged.role = card?.role ?? previous.role;
+    }
+    if (card?.target_id !== undefined || previous.target_id !== undefined) {
+      merged.target_id = card?.target_id ?? previous.target_id;
+    }
+    if (card?.weight !== undefined || previous.weight !== undefined) {
+      merged.weight = card?.weight ?? previous.weight;
+    }
+    if (card?.evidence_type !== undefined || previous.evidence_type !== undefined) {
+      merged.evidence_type = card?.evidence_type ?? previous.evidence_type;
     }
     if (card?.clue_type !== undefined || previous.clue_type !== undefined) {
       merged.clue_type = card?.clue_type ?? previous.clue_type;
@@ -103,6 +118,12 @@ export function mergeCardMetadata(previousCards = [], nextCards = []) {
     if (card?.hidden_until_solved !== undefined || previous.hidden_until_solved !== undefined) {
       merged.hidden_until_solved = card?.hidden_until_solved ?? previous.hidden_until_solved;
     }
+    if (card?.hidden !== undefined || previous.hidden !== undefined) {
+      merged.hidden = card?.hidden ?? previous.hidden;
+    }
+    if (card?.reveal !== undefined || previous.reveal !== undefined) {
+      merged.reveal = card?.reveal ?? previous.reveal;
+    }
     if (card?.evidence_strength !== undefined || previous.evidence_strength !== undefined) {
       merged.evidence_strength = card?.evidence_strength ?? previous.evidence_strength;
     }
@@ -146,7 +167,7 @@ export function pushCards(context, type, entries) {
       card_contents: String(e.card_contents || '').trim()
     };
 
-    if (cardType !== 'game_card') {
+    if (cardType !== 'game_card' && cardType !== 'solution') {
       card.act = (e.act === 1 || e.act === 2 || e.act === 3)
         ? e.act
         : ((i % 3) + 1);
@@ -154,6 +175,9 @@ export function pushCards(context, type, entries) {
 
     if (e.linked_character !== undefined) {
       card.linked_character = e.linked_character;
+    }
+    if (e.secret_type !== undefined) {
+      card.secret_type = e.secret_type;
     }
     if (e.linked_character_index !== undefined) {
       card.linked_character_index = e.linked_character_index;
@@ -163,6 +187,18 @@ export function pushCards(context, type, entries) {
     }
     if (e.trail_role !== undefined) {
       card.trail_role = e.trail_role;
+    }
+    if (e.role !== undefined) {
+      card.role = e.role;
+    }
+    if (e.target_id !== undefined) {
+      card.target_id = e.target_id;
+    }
+    if (e.weight !== undefined) {
+      card.weight = e.weight;
+    }
+    if (e.evidence_type !== undefined) {
+      card.evidence_type = e.evidence_type;
     }
     if (e.clue_type !== undefined) {
       card.clue_type = e.clue_type;
@@ -220,6 +256,12 @@ export function pushCards(context, type, entries) {
     }
     if (e.hidden_until_solved !== undefined) {
       card.hidden_until_solved = e.hidden_until_solved;
+    }
+    if (e.hidden !== undefined) {
+      card.hidden = e.hidden;
+    }
+    if (e.reveal !== undefined) {
+      card.reveal = e.reveal;
     }
     if (e.evidence_strength !== undefined) {
       card.evidence_strength = e.evidence_strength;

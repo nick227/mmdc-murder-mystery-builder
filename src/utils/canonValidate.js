@@ -1,9 +1,25 @@
 import { baseName, suspectRosterKey } from './coreTruthChecks.js';
 import { getCanonicalMurderStrings, getCanonicalSuspectBaseNameSet, getMurderCanonRef } from './canonFacts.js';
 
+function isTreasureClue(card) {
+  const role = String(card?.role || '').trim().toLowerCase();
+  if (role) {
+    return role === 'treasure';
+  }
+  return String(card?.clue_type || '').trim().toLowerCase() === 'treasure';
+}
+
 export function assertMurderClueSuspectNames(context) {
+  // Backward-compatible export name (legacy callers); now validates `target_id` instead of `suspect_name`.
+  const rosterIds = new Set(
+    (Array.isArray(context?.case_state?.suspects) ? context.case_state.suspects : [])
+      .map((s) => String(s?.suspect_id || '').trim())
+      .filter(Boolean)
+  );
+
+  // Fallback roster for older harnesses without case_state.
   const roster = getCanonicalSuspectBaseNameSet(context);
-  if (roster.size === 0) {
+  if (roster.size === 0 && rosterIds.size === 0) {
     throw new Error('canon_validate: suspect roster is empty');
   }
 
@@ -15,34 +31,51 @@ export function assertMurderClueSuspectNames(context) {
     if (card?.card_type !== 'clue') {
       continue;
     }
-    if (String(card?.clue_type || '').trim().toLowerCase() === 'treasure') {
+    if (isTreasureClue(card)) {
       continue;
     }
     if (card?.bundle_id) {
       continue;
     }
 
-    const sn = String(card?.suspect_name || '').trim();
-    if (!sn) {
-      throw new Error(`canon_validate: murder clue "${card?.card_title || card?.card_id}" missing suspect_name`);
+    const targetId = card?.target_id === null ? '' : String(card?.target_id || '').trim();
+    const targetName = card?.target_name === null ? '' : String(card?.target_name || '').trim();
+    if (!targetId) {
+      if (!targetName) {
+        continue;
+      }
+      context.debug ??= {};
+      context.debug.warning_log ??= [];
+      context.debug.warning_log.push({
+        stage: 'canon_validate',
+        reason: 'missing_target_id',
+        message: `murder clue "${card?.card_title || card?.card_id}" has null/empty target_id`
+      });
+      continue;
     }
 
-    const b = baseName(sn);
-    const key = suspectRosterKey(sn);
-    if (roster.has(b) || roster.has(key)) {
+    if (rosterIds.size && rosterIds.has(targetId)) {
       continue;
     }
-    if (victim && (sn === victim || b === victimNorm || key === victimKey)) {
-      continue;
+
+    // If case_state isn't available, fall back to the old base-name roster check for sanity.
+    if (roster.size) {
+      const b = baseName(targetId);
+      const key = suspectRosterKey(targetId);
+      if (roster.has(b) || roster.has(key)) {
+        continue;
+      }
+      if (victim && (targetId === victim || b === victimNorm || key === victimKey)) {
+        continue;
+      }
     }
-    
-    // Downgrade to warning: extra NPCs/red herrings are allowed.
+
     context.debug ??= {};
     context.debug.warning_log ??= [];
     context.debug.warning_log.push({
       stage: 'canon_validate',
-      reason: 'off_roster_suspect_name',
-      message: `suspect_name "${sn}" (base "${b}") is not in the playable roster or canonical victim`
+      reason: 'off_roster_target_id',
+      message: `target_id "${targetId}" is not in the playable roster (or canonical victim)`
     });
   }
 }

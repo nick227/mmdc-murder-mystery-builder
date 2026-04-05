@@ -2,82 +2,47 @@
 import assert from 'node:assert/strict';
 import { clueAgent } from '../agents/clueAgent.js';
 
-const fixedClues = [
+const fixedBriefs = [
   {
-    card_title: 'Torn Program',
-    card_contents: 'A torn theater program was found under the balcony rail.',
-    clue_type: 'object',
-    suspect_name: 'Lady Anne',
-    clue_weight: 'low',
-    act: 3,
-    location_ref: 'balcony'
+    item_name: 'Heated Argument',
+    target_name: 'Dr. Hale',
+    strength: 'high',
+    uniqueness_angle: 'overheard voices in a corridor',
+    description_seed: 'argument before the murder'
   },
   {
-    card_title: 'Mud On The Hem',
-    card_contents: 'Fresh garden mud marked the hem of a formal coat.',
-    clue_type: 'forensic',
-    suspect_name: 'Lord Pembroke',
-    clue_weight: 'mid',
-    act: 2,
-    location_ref: 'maze'
-  },
-  {
-    card_title: 'Missing Key Hook',
-    card_contents: 'The study key hook was empty before the alarm was raised.',
-    clue_type: 'access',
-    suspect_name: 'Mistress Viola',
-    clue_weight: 'high',
-    act: 1,
-    location_ref: 'study'
-  },
-  {
-    card_title: 'Wax Drip',
-    card_contents: 'Warm sealing wax dripped beside an unsigned note.',
-    clue_type: 'forensic',
-    suspect_name: 'Lady Anne',
-    clue_weight: 'low',
-    act: 1,
-    location_ref: 'writing_desk'
-  },
-  {
-    card_title: 'Hallway Witness',
-    card_contents: 'A servant heard hurried steps in the west hallway.',
-    clue_type: 'witness',
-    suspect_name: 'Lord Pembroke',
-    clue_weight: 'mid',
-    act: 2,
-    location_ref: 'west_hall'
-  },
-  {
-    card_title: 'Ledger Tear-Out',
-    card_contents: 'A page naming a private debt was torn from the ledger.',
-    clue_type: 'document',
-    suspect_name: 'Mistress Viola',
-    clue_weight: 'high',
-    act: 3,
-    location_ref: 'office'
+    item_name: 'Late Arrival',
+    target_name: 'Clara Whitmore',
+    strength: 'mid',
+    uniqueness_angle: 'arrival time mismatch',
+    description_seed: 'arrived after others gathered'
   }
+];
+
+const fixedProse = [
+  { card_contents: 'The doctor was overheard arguing with the victim earlier.' },
+  { card_contents: 'The heiress arrived after everyone else had gathered.' }
 ];
 
 const mockContext = {
   playerCount: 2,
+  case_state: {
+    suspects: [
+      { suspect_id: 'dr_hale', name: 'Dr. Hale' },
+      { suspect_id: 'clara_whitmore', name: 'Clara Whitmore' }
+    ]
+  },
   cards: [
     {
       card_id: 'char-1',
       card_type: 'character',
-      card_title: 'Lady Anne, The Keeper of Keys',
+      card_title: 'Dr. Hale, The Physician',
       card_contents: '...'
     },
     {
       card_id: 'char-2',
       card_type: 'character',
-      card_title: 'Lord Pembroke, The Patron with Shadows',
-      card_contents: '...'
-    },
-    {
-      card_id: 'char-3',
-      card_type: 'character',
-      card_title: 'Mistress Viola, The Actress',
+      card_title: 'Clara Whitmore, The Heiress',
       card_contents: '...'
     },
     {
@@ -90,21 +55,37 @@ const mockContext = {
   narratives: []
 };
 
+const seenSchemas = [];
 const result = await clueAgent(structuredClone(mockContext), {
-  callJsonImpl: async () => ({ cards: fixedClues })
+  cluesPerPlayer: 1,
+  callJsonImpl: async ({ schemaName, schema }) => {
+    seenSchemas.push(schemaName);
+    if (schemaName === 'clue_briefs') {
+      assert.equal(schema?.properties?.briefs?.maxItems ?? null, 2);
+      return { briefs: fixedBriefs };
+    }
+    if (schemaName === 'clue_prose') {
+      assert.equal(schema?.properties?.cards?.maxItems ?? null, 2);
+      return { cards: fixedProse };
+    }
+    throw new Error(`Unexpected schemaName ${schemaName}`);
+  }
 });
 
 const clues = result.cards.filter((card) => card.card_type === 'clue');
 
-assert.equal(clues.length, fixedClues.length, 'clueAgent should emit the exact mocked clue count');
+assert.deepEqual(seenSchemas, ['clue_briefs', 'clue_prose']);
+assert.equal(clues.length, 2, 'clueAgent should emit the exact mocked clue count');
 
 for (const [index, clue] of clues.entries()) {
   assert.equal(typeof clue.card_id, 'string', `clue ${index} should receive a card_id`);
-  assert.ok(clue.card_title, `clue ${index} should include card_title`);
-  assert.ok(clue.card_contents, `clue ${index} should include card_contents`);
-  assert.ok(clue.clue_type, `clue ${index} should include clue_type`);
-  assert.ok(clue.suspect_name, `clue ${index} should include suspect_name`);
-  assert(['low', 'mid', 'high'].includes(clue.clue_weight), `clue ${index} should use a valid clue_weight`);
+  assert.equal(clue.card_title, fixedBriefs[index].item_name, `clue ${index} title should use item_name`);
+  assert.equal(clue.card_contents, fixedProse[index].card_contents, `clue ${index} should use prose contents`);
+  assert.equal(clue.target_name, fixedBriefs[index].target_name, `clue ${index} should include target_name`);
+  assert.ok(clue.target_id, `clue ${index} should resolve target_id`);
+  assert.equal(clue.weight, fixedBriefs[index].strength, `clue ${index} should use strength as weight`);
+  assert.equal(clue.bundle_id, null, `clue ${index} should default bundle_id to null`);
+  assert.equal(clue.evidence_type, null, `clue ${index} should default evidence_type to null`);
   assert.equal('act' in clue, false, `clue ${index} should not expose act`);
   assert.equal('location_ref' in clue, false, `clue ${index} should not expose location_ref`);
 }

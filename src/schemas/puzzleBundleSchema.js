@@ -9,6 +9,17 @@ const evidenceCardSchema = {
   }
 };
 
+const gateCardSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['card_type', 'card_title', 'card_contents'],
+  properties: {
+    card_type: { type: 'string', enum: ['gate'] },
+    card_title: { type: 'string' },
+    card_contents: { type: 'string' }
+  }
+};
+
 const solutionCardSchema = {
   type: 'object',
   additionalProperties: false,
@@ -33,7 +44,7 @@ const puzzleCardSchema = {
 };
 
 const puzzleBundleCardSchema = {
-  anyOf: [puzzleCardSchema, evidenceCardSchema, solutionCardSchema]
+  anyOf: [puzzleCardSchema, evidenceCardSchema, gateCardSchema, solutionCardSchema]
 };
 
 export const puzzleBundleSchema = {
@@ -43,8 +54,8 @@ export const puzzleBundleSchema = {
   properties: {
     cards: {
       type: 'array',
-      minItems: 4,
-      maxItems: 7,
+      minItems: 5,
+      maxItems: 8,
       items: puzzleBundleCardSchema
     }
   }

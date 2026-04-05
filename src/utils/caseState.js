@@ -106,6 +106,35 @@ function deriveVictimName(context, murder) {
   return match ? match[1].trim() : '';
 }
 
+function resolveMurderWindow(murder) {
+  const rawWindow = String(murder?.window || '').trim();
+  const rawStart = String(murder?.window_start || '').trim();
+  const rawEnd = String(murder?.window_end || '').trim();
+
+  if (rawWindow) {
+    return {
+      window: rawWindow,
+      window_start: rawStart || null,
+      window_end: rawEnd || null
+    };
+  }
+
+  if (rawStart || rawEnd) {
+    const combined = [rawStart, rawEnd].filter(Boolean).join(' to ');
+    return {
+      window: combined || null,
+      window_start: rawStart || null,
+      window_end: rawEnd || null
+    };
+  }
+
+  return {
+    window: null,
+    window_start: null,
+    window_end: null
+  };
+}
+
 export function buildCaseState(context) {
   const cards = Array.isArray(context?.cards) ? context.cards : [];
   const characterCards = cards.filter((card) => card?.card_type === 'character');
@@ -153,6 +182,7 @@ export function buildCaseState(context) {
   assert(killer, `case_state_builder_agent: killer "${killerText}" not found in playable suspect roster`);
 
   const openingConstraints = suspects.flatMap((suspect) => suspect.baseline_constraints);
+  const murderWindow = resolveMurderWindow(murder);
 
   return {
     suspects,
@@ -165,8 +195,9 @@ export function buildCaseState(context) {
       motive: String(murder.motive || '').trim(),
       summary: String(murder.murder_solution || murder.summary || '').trim(),
       opportunity: String(murder.opportunity || '').trim(),
-      window_start: null,
-      window_end: null
+      window: murderWindow.window,
+      window_start: murderWindow.window_start,
+      window_end: murderWindow.window_end
     },
     treasure: {
       object: String(treasure.object || '').trim(),

@@ -1,5 +1,4 @@
 import { safeJson } from '../utils/json.js';
-import { recordUsage } from './costLedger.js';
 import { nextSmokeCallJson } from './smoke/smokeCallJson.js';
 
 const API_BASE_URL = process.env.API_BASE_URL || 'https://api.openai.com/v1';
@@ -44,13 +43,6 @@ export async function callText(opts) {
     chatCompletionPayload(opts, { temperature: opts.temperature ?? 0.7 })
   );
 
-  recordUsage({
-    requestType: 'text',
-    schemaName: null,
-    model: jsonResp?.model || MODEL,
-    usage: jsonResp?.usage || {}
-  });
-
   return jsonResp.choices?.[0]?.message?.content?.trim?.() || '';
 }
 
@@ -79,13 +71,6 @@ export async function callJson(opts) {
       }
     })
   );
-
-  recordUsage({
-    requestType: 'json',
-    schemaName: opts.schemaName ?? null,
-    model: jsonResp?.model || MODEL,
-    usage: jsonResp?.usage || {}
-  });
 
   const content = jsonResp.choices?.[0]?.message?.content;
 

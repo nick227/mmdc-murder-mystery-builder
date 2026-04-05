@@ -41,7 +41,8 @@ export function buildPuzzlePrompt({
   bundleCount: _bundleCount = 4,
   canonicalKiller = '',
   canonicalVictim = '',
-  canonicalLocation = ''
+  canonicalLocation = '',
+  usedClueTitlesCsv = ''
 }) {
   const typeLines = puzzleTypesContent[puzzleType] || puzzleTypesContent.cross_reference;
   const killerLine = String(canonicalKiller || '').trim()
@@ -58,6 +59,7 @@ ${killerLine}
 
 Create exactly one puzzle bundle with:
 - 2 to 4 evidence seed cards
+- 1 gate summary card
 - 1 puzzle card
 - 1 answer card
 
@@ -66,6 +68,7 @@ Core rules for a playable puzzle:
 - The puzzle card must NOT reveal the answer.
 - The evidence cards are SEED cards (blueprints) that will be expanded later into full documents by a separate agent.
 - The answer card is the direct answer (one short factual sentence).
+- The gate summary card is a short visible summary or reference sheet players need before the puzzle unlock makes sense.
 - The puzzle card must include unlocked_item: a clue and/or interesting item players feel good about unlocking (1 short sentence).
 
 Evidence seed rules:
@@ -94,6 +97,13 @@ Player-facing rules (critical):
 - Write only what characters would read in-world (logs, maps, questions).
 - Evidence seeds: short stubs only (each card_contents under ~80 words); they will be expanded later.
 
+Clue title uniqueness (hard requirement):
+- Evidence seed card_title become final clue card titles in the deck.
+- Do NOT reuse any existing clue titles from earlier in the pipeline.
+- Evidence seed card_title must be unique within this bundle too.
+Existing clue titles (comma-separated):
+${usedClueTitlesCsv || '(none)'}
+
 Target clue fact: ${String(clueTarget?.fact || '').trim()}
 Target category: ${String(clueTarget?.category || '').trim()}
 
@@ -101,6 +111,7 @@ The answer card (solution) must state exactly the target fact above, verbatim.
 
 Return only bundle content for this puzzle:
 - 2–4 evidence seed cards (structured stubs for later expansion)
+- 1 gate summary card ("card_type": "gate") that acts like a visible bridge/reference sheet
 - 1 puzzle card (the question)
 - 1 answer card (the direct answer, 1 sentence)
 - The puzzle card must include unlocked_item (1 sentence).

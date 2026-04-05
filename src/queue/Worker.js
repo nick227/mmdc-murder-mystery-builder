@@ -18,6 +18,11 @@ function ensureJobContext(job) {
       userPrompt: job.userPrompt ?? '',
       playerCount: job.playerCount ?? job.player_count ?? 4,
       storyStyle: job.storyStyle ?? job.story_style ?? '',
+      includeMetadata: job.includeMetadata ?? true,
+      includeWorldbuilding: job.includeWorldbuilding ?? true,
+      includeHostSpeeches: job.includeHostSpeeches ?? true,
+      includeSecrets: job.includeSecrets ?? true,
+      includeItems: job.includeItems ?? true,
       cards: []
     };
   }
@@ -31,8 +36,42 @@ function ensureJobContext(job) {
   if (job.context.storyStyle == null && (job.storyStyle != null || job.story_style != null)) {
     job.context.storyStyle = job.storyStyle ?? job.story_style;
   }
+  if (job.context.includeMetadata == null && job.includeMetadata != null) {
+    job.context.includeMetadata = job.includeMetadata;
+  }
+  if (job.context.includeWorldbuilding == null && job.includeWorldbuilding != null) {
+    job.context.includeWorldbuilding = job.includeWorldbuilding;
+  }
+  if (job.context.includeHostSpeeches == null && job.includeHostSpeeches != null) {
+    job.context.includeHostSpeeches = job.includeHostSpeeches;
+  }
+  if (job.context.includeSecrets == null && job.includeSecrets != null) {
+    job.context.includeSecrets = job.includeSecrets;
+  }
+  if (job.context.includeItems == null && job.includeItems != null) {
+    job.context.includeItems = job.includeItems;
+  }
 
   return normalizeContext(job.context);
+}
+
+function shouldSkipStep(context, stepName) {
+  if (stepName === 'story_metadata_agent' && context?.includeMetadata === false) {
+    return true;
+  }
+  if (stepName === 'world_building_agent' && context?.includeWorldbuilding === false) {
+    return true;
+  }
+  if (stepName === 'host_speech_agent' && context?.includeHostSpeeches === false) {
+    return true;
+  }
+  if (stepName === 'character_secret_agent' && context?.includeSecrets === false) {
+    return true;
+  }
+  if (stepName === 'item_agent' && context?.includeItems === false) {
+    return true;
+  }
+  return false;
 }
 
 function syncJobIdentity(job) {
@@ -43,6 +82,36 @@ function syncJobIdentity(job) {
   if (job.runDir && job.context.runDir !== job.runDir) {
     job.context.runDir = job.runDir;
   }
+}
+
+function getRunTitleCandidate(context) {
+  return String(
+    context?.story_title ||
+    context?.userPrompt ||
+    context?.storyBlurb ||
+    ''
+  )
+    .trim()
+    .slice(0, 96);
+}
+
+function maybeRetitleRunDir(job) {
+  if (!job?.context?.runDir) {
+    return;
+  }
+  const currentLeaf = String(job.context.runId || '').trim() || '';
+  const title = getRunTitleCandidate(job.context);
+  if (!title) {
+    return;
+  }
+  if (currentLeaf && !currentLeaf.startsWith('pending-')) {
+    return;
+  }
+
+  const { id, dir } = retitleExistingRunDir(job.context.runDir, title);
+  job.context.runDir = dir;
+  job.context.runId = id;
+  syncJobIdentity(job);
 }
 
 /** Partial saves must not lose context if playability scoring throws on broken state. */
@@ -154,6 +223,13 @@ export async function runWorker(queue, hooks = {}) {
       while (job.stepIndex < steps.length) {
         const step = steps[job.stepIndex];
 
+        if (shouldSkipStep(job.context, step.name)) {
+          job.stepIndex++;
+          saveJobs(queue.jobs);
+          writeOutput(job.context.runDir, job.context);
+          continue;
+        }
+
         setActiveLlmRunContext({
           runId: job.context?.runId ?? null,
           stepName: step.name
@@ -171,23 +247,7 @@ export async function runWorker(queue, hooks = {}) {
 
         job.context = normalizeContext(next);
         syncJobIdentity(job);
-
-        if (step.name === 'world_building_agent' && job.context?.runDir) {
-          const title = String(
-            job.context.story_title ||
-              job.context.userPrompt ||
-              job.context.storyBlurb ||
-              ''
-          )
-            .trim()
-            .slice(0, 96);
-          if (title) {
-            const { id, dir } = retitleExistingRunDir(job.context.runDir, title);
-            job.context.runDir = dir;
-            job.context.runId = id;
-            syncJobIdentity(job);
-          }
-        }
+        maybeRetitleRunDir(job);
 
         validateContext(job.context, { allowPartial: true });
 
@@ -196,13 +256,6 @@ export async function runWorker(queue, hooks = {}) {
           stepName: step.name
         });
         job.context.playability_report = report;
-        job.context.playability_history ??= [];
-        job.context.playability_history.push({
-          step_name: step.name,
-          score_10: report.score_10,
-          status: report.status,
-          issue_count: report.issue_count
-        });
         saveJobs(queue.jobs);
         writeOutput(job.context.runDir, job.context);
 

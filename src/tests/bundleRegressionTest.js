@@ -63,6 +63,11 @@ function testFlattenBundleValidatesCoreShape() {
         card_contents: 'The watch note records movement near the archive at 11:20 PM.'
       },
       {
+        card_type: 'gate',
+        card_title: 'Archive Gate Summary',
+        card_contents: 'Visible summary sheet: compare the archive watch note with the threat messages before answering.'
+      },
+      {
         card_type: 'solution',
         card_title: 'Archive Clue',
         card_contents: 'The archive door opened at 11:20 PM.'
@@ -70,7 +75,7 @@ function testFlattenBundleValidatesCoreShape() {
     ]
   }, 2, upstreamRefs);
 
-  assert.equal(bundle.cards.length, 5, 'flattenBundle should emit three visible evidence cards, one hidden unlock, and one puzzle');
+  assert.equal(bundle.cards.length, 6, 'flattenBundle should emit three visible evidence cards, one gate card, one hidden unlock, and one puzzle');
   const puzzle = bundle.cards.find((card) => card.card_type === 'puzzle');
   const unlockCards = bundle.cards.filter((card) => card.card_type === 'solution' && card.hidden_until_solved === true);
   assert.equal(bundle.puzzle_type, 'timeline', 'flattenBundle should hard-lock bundle puzzle_type from clue target');
@@ -79,7 +84,7 @@ function testFlattenBundleValidatesCoreShape() {
   assert.equal(Array.isArray(puzzle.unlock_card_refs), true, 'puzzle should include unlock_card_refs');
   assert.equal(Array.isArray(puzzle.unlock_card_ids), true, 'puzzle should include unlock_card_ids');
   assert.equal(puzzle.unlock_card_ids.length === 1, true, 'puzzle should resolve one unlock card');
-  assert.equal(puzzle.required_card_ids.length === 4, true, 'puzzle should resolve prior unlock plus local evidence refs to ids');
+  assert.equal(puzzle.required_card_ids.length === 5, true, 'puzzle should resolve prior unlock plus gate and local evidence refs to ids');
   assert.equal(
     unlockCards.length === 1,
     true,
@@ -200,10 +205,86 @@ async function testBundleLinkerCompletesPartialDependencySets() {
   );
 }
 
+async function testBundleLinkerWiresTreasureChain() {
+  const cards = [
+    {
+      card_id: 'bundle_a_puzzle',
+      card_type: 'puzzle',
+      card_title: 'Bundle A Puzzle',
+      card_contents: 'Compare the registry cards.',
+      act: 1,
+      bundle_id: 'puzzle_bundle_001',
+      hidden_until_solved: false,
+      difficulty: 'medium',
+      required_card_ids: ['bundle_a_gate'],
+      unlock_card_ids: ['bundle_a_unlock']
+    },
+    { card_id: 'bundle_a_gate', card_type: 'item', card_title: 'A Gate', card_contents: 'Visible', act: 1, bundle_id: 'puzzle_bundle_001', hidden_until_solved: false },
+    { card_id: 'bundle_a_unlock', card_type: 'solution', card_title: 'A Unlock', card_contents: 'Killer fact', act: 1, bundle_id: 'puzzle_bundle_001', hidden_until_solved: true, meta: { fact_binding: 'killer' } },
+    {
+      card_id: 'bundle_b_puzzle',
+      card_type: 'puzzle',
+      card_title: 'Bundle B Puzzle',
+      card_contents: 'Compare the route sheet.',
+      act: 2,
+      bundle_id: 'puzzle_bundle_002',
+      hidden_until_solved: false,
+      difficulty: 'medium',
+      required_card_ids: ['bundle_b_gate'],
+      unlock_card_ids: ['bundle_b_unlock']
+    },
+    { card_id: 'bundle_b_gate', card_type: 'item', card_title: 'B Gate', card_contents: 'Visible', act: 2, bundle_id: 'puzzle_bundle_002', hidden_until_solved: false },
+    { card_id: 'bundle_b_unlock', card_type: 'solution', card_title: 'B Unlock', card_contents: 'Location fact', act: 2, bundle_id: 'puzzle_bundle_002', hidden_until_solved: true, meta: { fact_binding: 'location' } },
+    {
+      card_id: 'bundle_c_puzzle',
+      card_type: 'puzzle',
+      card_title: 'Bundle C Puzzle',
+      card_contents: 'Compare the object records.',
+      act: 3,
+      bundle_id: 'puzzle_bundle_003',
+      hidden_until_solved: false,
+      difficulty: 'hard',
+      required_card_ids: ['bundle_c_gate'],
+      unlock_card_ids: ['bundle_c_unlock']
+    },
+    { card_id: 'bundle_c_gate', card_type: 'item', card_title: 'C Gate', card_contents: 'Visible', act: 3, bundle_id: 'puzzle_bundle_003', hidden_until_solved: false },
+    { card_id: 'bundle_c_unlock', card_type: 'solution', card_title: 'C Unlock', card_contents: 'Treasure object fact', act: 3, bundle_id: 'puzzle_bundle_003', hidden_until_solved: true, meta: { fact_binding: 'treasure_object' } },
+    {
+      card_id: 'bundle_d_puzzle',
+      card_type: 'puzzle',
+      card_title: 'Bundle D Puzzle',
+      card_contents: 'Compare the hiding-place records.',
+      act: 3,
+      bundle_id: 'puzzle_bundle_004',
+      hidden_until_solved: false,
+      difficulty: 'hard',
+      required_card_ids: ['bundle_d_gate'],
+      unlock_card_ids: ['bundle_d_unlock']
+    },
+    { card_id: 'bundle_d_gate', card_type: 'item', card_title: 'D Gate', card_contents: 'Visible', act: 3, bundle_id: 'puzzle_bundle_004', hidden_until_solved: false },
+    { card_id: 'bundle_d_unlock', card_type: 'solution', card_title: 'D Unlock', card_contents: 'Treasure location fact', act: 3, bundle_id: 'puzzle_bundle_004', hidden_until_solved: true, meta: { fact_binding: 'treasure_location' } },
+    { card_id: 'treasure_clue', card_type: 'clue', card_title: 'Treasure Lead', card_contents: 'The reliquary matters.', role: 'treasure', hidden_until_solved: true, meta: { treasure_stage: 'clue' } },
+    { card_id: 'treasure_reveal', card_type: 'treasure', card_title: 'Demo Reliquary', card_contents: 'Host reveal text.', hidden_until_solved: true, act: 3 }
+  ];
+
+  const context = {
+    cards,
+    debug: { warning_log: [] }
+  };
+
+  await bundleLinkerAgent(context);
+
+  const bundleCPuzzle = context.cards.find((card) => card.card_id === 'bundle_c_puzzle');
+  const bundleDPuzzle = context.cards.find((card) => card.card_id === 'bundle_d_puzzle');
+  assert.equal(bundleCPuzzle.unlock_card_ids.includes('treasure_clue'), true, 'treasure-object bundle should unlock treasure clue');
+  assert.equal(bundleDPuzzle.unlock_card_ids.includes('treasure_reveal'), true, 'treasure-location bundle should unlock treasure reveal');
+}
+
 async function run() {
   testHiddenActDependencyRejected();
   testFlattenBundleValidatesCoreShape();
   await testBundleLinkerCompletesPartialDependencySets();
+  await testBundleLinkerWiresTreasureChain();
   console.log('bundleRegressionTest passed');
 }
 

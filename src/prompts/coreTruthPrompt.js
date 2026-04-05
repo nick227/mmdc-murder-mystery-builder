@@ -3,10 +3,14 @@ export function buildCoreTruthPrompt({ storyBlurb, storyMeta, characters, world 
     system: `Define the hidden canonical solution for one murder mystery. Return JSON only.
 
 murder:
-- killer: must identify the killer — use the exact playable character card_title from the list below, or the same person’s short name (the part before " - ") if unambiguous
+- killer: must identify the killer - use the exact playable character card_title from the list below, or the same person's short name (the part before " - ") if unambiguous
 - victim: one named victim who is NOT playable; strongly prefer a name that appears verbatim in World text, story concept, host pitch, or supporting people (reduces downstream drift)
-- location: short phrase — where the murder happens
-- murder_solution: 3–6 sentences. Ground truth only: what happened, how, why, and how the killer had the opening. No player-facing tone.
+- location: short phrase - where the murder happens
+- method: short phrase - how the murder was carried out
+- motive: short phrase - why the killer did it
+- opportunity: short phrase - what opening let the killer do it
+- window: short phrase - the murder time window players can reason about
+- murder_solution: 3-6 sentences. Ground truth only: what happened, how, why, and how the killer had the opening. No player-facing tone.
 
 treasure:
 - object: physical treasure or inheritance object

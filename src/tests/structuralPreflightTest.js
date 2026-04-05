@@ -13,24 +13,27 @@ const context = {
       card_type: 'clue',
       card_title: 'Hidden Alcove Key',
       card_contents: 'Exclusive access to the hidden alcove belonged only to Lord Pembroke.',
-      clue_weight: 'high',
-      suspect_name: 'Lord Pembroke'
+      role: 'suspect_pressure',
+      weight: 'high',
+      target_id: 'lord_pembroke'
     },
     {
       card_id: 'e2',
       card_type: 'clue',
       card_title: 'Hidden Alcove Key Repeat',
       card_contents: 'Exclusive access to the hidden alcove belonged only to Lord Pembroke before the alarm.',
-      clue_weight: 'high',
-      suspect_name: 'Lord Pembroke'
+      role: 'suspect_pressure',
+      weight: 'high',
+      target_id: 'lord_pembroke'
     },
     {
       card_id: 'e3',
       card_type: 'clue',
       card_title: 'Stage Note',
       card_contents: 'Mistress Viola performed on stage while guests watched.',
-      clue_weight: 'mid',
-      suspect_name: 'Mistress Viola'
+      role: 'alibi',
+      weight: 'mid',
+      target_id: 'mistress_viola'
     },
     { card_id: 's1', card_type: 'secret', card_title: 'Secret', card_contents: 'Lady Anne once borrowed a passage key.', linked_character: 'Lady Anne' }
   ],

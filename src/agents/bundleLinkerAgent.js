@@ -42,6 +42,63 @@ function getCardLookup(cards) {
   return new Map((Array.isArray(cards) ? cards : []).map((card) => [card.card_id, card]));
 }
 
+function getUnlockCardsForPuzzle(puzzle, cardLookup) {
+  return (Array.isArray(puzzle?.unlock_card_ids) ? puzzle.unlock_card_ids : [])
+    .map((id) => cardLookup.get(id))
+    .filter(Boolean);
+}
+
+function findBundleByFactBinding(bundles, cardLookup, factBinding) {
+  return bundles.find((bundle) =>
+    getUnlockCardsForPuzzle(bundle?.puzzle, cardLookup)
+      .some((card) => card?.card_type === 'solution' && String(card?.meta?.fact_binding || '').trim() === factBinding)
+  ) || null;
+}
+
+function appendUnlockCard(puzzle, cardId) {
+  const current = Array.isArray(puzzle?.unlock_card_ids) ? [...puzzle.unlock_card_ids] : [];
+  if (!cardId || current.includes(cardId)) {
+    return false;
+  }
+  puzzle.unlock_card_ids = [...current, cardId];
+  return true;
+}
+
+function wireTreasureUnlocks(context, bundles, cardLookup, links) {
+  const cards = Array.isArray(context?.cards) ? context.cards : [];
+  const treasureClue = cards.find((card) =>
+    card?.card_type === 'clue'
+    && String(card?.role || '').trim().toLowerCase() === 'treasure'
+    && card?.hidden_until_solved === true
+    && String(card?.meta?.treasure_stage || '').trim() === 'clue'
+  ) || null;
+  const treasureReveal = cards.find((card) =>
+    card?.card_type === 'treasure'
+    && card?.hidden_until_solved === true
+  ) || null;
+
+  const treasureObjectBundle = findBundleByFactBinding(bundles, cardLookup, 'treasure_object');
+  const treasureLocationBundle = findBundleByFactBinding(bundles, cardLookup, 'treasure_location');
+
+  if (treasureClue && treasureObjectBundle?.puzzle && appendUnlockCard(treasureObjectBundle.puzzle, treasureClue.card_id)) {
+    links.push({
+      from_bundle_id: treasureObjectBundle.bundleId,
+      to_special_unlock: 'treasure_clue',
+      unlock_card_id: treasureClue.card_id,
+      mutation_type: 'unlock_card_id_append_only'
+    });
+  }
+
+  if (treasureReveal && treasureLocationBundle?.puzzle && appendUnlockCard(treasureLocationBundle.puzzle, treasureReveal.card_id)) {
+    links.push({
+      from_bundle_id: treasureLocationBundle.bundleId,
+      to_special_unlock: 'treasure_reveal',
+      unlock_card_id: treasureReveal.card_id,
+      mutation_type: 'unlock_card_id_append_only'
+    });
+  }
+}
+
 export function getBundleAct(bundle) {
   const act = bundle?.puzzle?.act;
   return act === 1 || act === 2 || act === 3 ? act : 2;
@@ -78,6 +135,7 @@ export async function bundleLinkerAgent(context) {
   const bundles = collectPuzzleBundles(context.cards);
   const cardLookup = getCardLookup(context.cards);
   if (bundles.length < 2) {
+    wireTreasureUnlocks(context, bundles, cardLookup, []);
     return context;
   }
 
@@ -127,6 +185,8 @@ export async function bundleLinkerAgent(context) {
   for (let index = 1; index < bundles.length; index += 1) {
     tryLinkAdjacentBundle(bundles[index - 1], bundles[index]);
   }
+
+  wireTreasureUnlocks(context, bundles, cardLookup, links);
 
   if (links.length) {
     context.debug.warning_log.push({

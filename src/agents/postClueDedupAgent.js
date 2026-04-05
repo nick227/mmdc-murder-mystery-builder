@@ -40,7 +40,7 @@ function clueText(card) {
 }
 
 function cluePriority(card) {
-  const weight = String(card?.clue_weight || '').trim().toLowerCase();
+  const weight = String(card?.weight || card?.clue_weight || '').trim().toLowerCase();
   return CLUE_WEIGHT_ORDER[weight] ?? -1;
 }
 
@@ -121,3 +121,4 @@ export async function postClueDedupAgent(context) {
 
   return context;
 }
+

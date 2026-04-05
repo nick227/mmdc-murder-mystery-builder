@@ -2,7 +2,7 @@
 
 export const MAX_BUNDLE_EVIDENCE_WORDS = 100;
 export const MAX_BUNDLE_PUZZLE_WORDS = 100;
-export const MAX_STANDALONE_CLUE_WORDS = 100;
+export const MAX_STANDALONE_CLUE_WORDS = 40;
 
 export function truncateToWordCount(text, maxWords) {
   const n = Math.max(1, Number(maxWords) || 100);

@@ -5,7 +5,12 @@ export function buildStoryActsPrompt({ storyBlurb, narratives, characters, locat
       'Never reveal the killer, never state the exact solution, and never collapse the mystery into a conclusion.',
       'Acts should frame tension, shift focus, and introduce new questions.',
       'You do not know who the killer is. Work only from the competing narratives.',
-      'Each act card must be tagged with its act number.'
+      'Each act card must be tagged with its act number.',
+      "Acts should sound like newly discovered information.",
+      "Acts should create immediate conversation.",
+      "Acts should introduce ambiguity or contradiction.",
+      "Acts should reference people, motives, or movement.",
+      'Each act content is < 1200 characters.'
     ].join(' '),
     user: `
 Create exactly 3 story act cards for this murder mystery.
@@ -41,7 +46,6 @@ Rules:
 - Act 3 may narrow focus but must preserve the final deduction gap
 - return exactly 3 cards with act fields 1, 2, and 3 respectively
 - all suspects must be from playable characters
-- each act must center on one main known location and include its location_ref
 `.trim()
   };
 }

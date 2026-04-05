@@ -1,4 +1,4 @@
-export function buildCharacterSecretsPrompt({ storyBlurb, characterName, rejectionReasons = [] }) {
+export function buildCharacterSecretsPrompt({ storyBlurb, characterName, usedMotiveSecrets = [], rejectionReasons = [] }) {
   return {
     system: `
 You generate hidden secrets for a murder mystery character.
@@ -12,6 +12,9 @@ Rules:
 - keep concise
 - secrets should be driven by story context and social dynamics
 - generate exactly 2 secrets for this character
+- every secret must include secret_type from: access, motive, alibi, relationship
+- card_title must be specific and descriptive (not "Secret" or "Confidential")
+- card_title must be unique within this character's two secrets
 - at least 1 secret must provide an explicit motive for this character
 - the motive must be stated directly, not implied: clearly say why this character wanted the victim dead or the treasure stolen/controlled
 - across the 2 secrets together, this character must have:
@@ -32,7 +35,8 @@ Return JSON only:
 {
   "cards":[
     {
-      "card_title":"Secret",
+      "card_title":"Unauthorized Hayloft Visit",
+      "secret_type":"motive",
       "card_contents":"Hidden information creating suspicion"
     }
   ]
@@ -47,6 +51,8 @@ Make one secret concrete and logistical, such as:
 
 Hard requirement:
 - one secret must explicitly state a motive in plain language, for example "X wanted the victim silenced because..." or "X wanted the treasure because..."
+- do not repeat or paraphrase these existing motive secrets:
+${JSON.stringify(usedMotiveSecrets || [], null, 2)}
 
 Retry guidance:
 ${JSON.stringify(rejectionReasons || [], null, 2)}

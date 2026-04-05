@@ -21,8 +21,9 @@ function expectFailure(fn, pattern) {
 
 function makeBaseContext() {
   const puzzleId = 'puzzle-1';
-  const itemId = 'item-1';
-  const itemId2 = 'item-2';
+  const clueId = 'clue-a';
+  const clueId2 = 'clue-b';
+  const gateId = 'item-1';
   const unlockId = 'clue-1';
 
   return {
@@ -35,24 +36,33 @@ function makeBaseContext() {
         act: 2,
         bundle_id: 'puzzle_bundle_001',
         difficulty: 'medium',
-        required_card_ids: [itemId, 'upstream-item-1'],
+        required_card_ids: [gateId, clueId, clueId2, 'upstream-item-1'],
         unlock_card_ids: [unlockId],
         hidden_until_solved: false
       },
       {
-        card_id: itemId,
-        card_type: 'item',
+        card_id: clueId,
+        card_type: 'clue',
         card_title: 'Route Sketch',
-        card_contents: 'A map of the service halls.',
+        card_contents: 'A map of the service halls with timestamps.',
         act: 2,
         bundle_id: 'puzzle_bundle_001',
         hidden_until_solved: false
       },
       {
-        card_id: itemId2,
-        card_type: 'item',
+        card_id: clueId2,
+        card_type: 'clue',
         card_title: 'Service Hall Badge Log',
         card_contents: 'An internal badge log for side-hall access.',
+        act: 2,
+        bundle_id: 'puzzle_bundle_001',
+        hidden_until_solved: false
+      },
+      {
+        card_id: gateId,
+        card_type: 'item',
+        card_title: 'Archive Gate Summary',
+        card_contents: 'Visible bridge sheet explaining how to compare the route sketch and badge log.',
         act: 2,
         bundle_id: 'puzzle_bundle_001',
         hidden_until_solved: false
@@ -77,7 +87,7 @@ function makeBaseContext() {
     puzzle_bundles: [
       {
         bundle_id: 'puzzle_bundle_001',
-        card_ids: [puzzleId, itemId, itemId2, unlockId]
+        card_ids: [puzzleId, clueId, clueId2, gateId, unlockId]
       }
     ]
   };
@@ -86,6 +96,20 @@ function makeBaseContext() {
 function run() {
   {
     const context = makeBaseContext();
+    validateBundleIntegrity(context);
+  }
+
+  {
+    const context = makeBaseContext();
+    context.cards.push({
+      card_id: 'treasure-clue',
+      card_type: 'clue',
+      role: 'treasure',
+      card_title: 'Treasure Lead',
+      card_contents: 'The reliquary matters.',
+      hidden_until_solved: true
+    });
+    context.cards.find((card) => card.card_id === 'puzzle-1').unlock_card_ids.push('treasure-clue');
     validateBundleIntegrity(context);
   }
 
@@ -125,7 +149,18 @@ function run() {
         ...card,
         card_id: `${card.card_id}-new`,
         required_card_ids: Array.isArray(card.required_card_ids)
-          ? card.required_card_ids.map((id) => (id === 'item-1' ? 'item-1-new' : id))
+          ? card.required_card_ids.map((id) => {
+            if (id === 'item-1') {
+              return 'item-1-new';
+            }
+            if (id === 'clue-a') {
+              return 'clue-a-new';
+            }
+            if (id === 'clue-b') {
+              return 'clue-b-new';
+            }
+            return id;
+          })
           : card.required_card_ids,
         unlock_card_ids: Array.isArray(card.unlock_card_ids)
           ? card.unlock_card_ids.map((id) => (id === 'clue-1' ? 'clue-1-new' : id))
@@ -136,7 +171,7 @@ function run() {
     context.cards = remappedCards;
     validateBundleIntegrity(context, { allowIdRemap: true });
     assert(
-      JSON.stringify(context.puzzle_bundles[0].card_ids) === JSON.stringify(['puzzle-1-new', 'item-1-new', 'item-2-new', 'clue-1-new']),
+      JSON.stringify(context.puzzle_bundles[0].card_ids) === JSON.stringify(['puzzle-1-new', 'clue-a-new', 'clue-b-new', 'item-1-new', 'clue-1-new']),
       'allowIdRemap should rewrite bundle.card_ids'
     );
   }

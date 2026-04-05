@@ -6,11 +6,17 @@ export const coreTruthSchema = {
     murder: {
       type: 'object',
       additionalProperties: false,
-      required: ['killer', 'victim', 'location', 'murder_solution'],
+      required: ['killer', 'victim', 'location', 'method', 'motive', 'opportunity', 'window', 'window_start', 'window_end', 'murder_solution'],
       properties: {
         killer: { type: 'string' },
         victim: { type: 'string' },
         location: { type: 'string' },
+        method: { type: ['string', 'null'] },
+        motive: { type: ['string', 'null'] },
+        opportunity: { type: ['string', 'null'] },
+        window: { type: ['string', 'null'] },
+        window_start: { type: ['string', 'null'] },
+        window_end: { type: ['string', 'null'] },
         murder_solution: { type: 'string' }
       }
     },

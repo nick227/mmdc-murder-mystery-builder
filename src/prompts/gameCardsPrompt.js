@@ -1,19 +1,21 @@
 /**
- * One LLM call = five cards for a single player character.
+ * One LLM call = N cards for a single player character.
  */
 export function buildGameCardsPromptForPlayer({
   storyBlurb = '',
   characterName,
   characterRole = '',
-  characterBio = ''
+  characterBio = '',
+  cardsPerPlayer = 5
 }) {
   const name = String(characterName || '').trim();
   const roleLine = String(characterRole || '').trim();
   const bio = String(characterBio || '').trim();
+  const n = Number.isFinite(Number(cardsPerPlayer)) ? Math.max(1, Math.floor(Number(cardsPerPlayer))) : 5;
 
   return {
     system: [
-      'You write five short character "action" cards for one player in a murder-mystery party.',
+      `You write ${n} short character "action" cards for one player in a murder-mystery party.`,
       'Cards spark live improvisation: performances, mini-challenges, sneaky beats, in-character habits, or funny social bits.',
       'Vary the five: mix theatrical, sneaky, characteristic-of-this-role, and humorous—do not repeat the same vibe.'
     ].join(' '),
@@ -23,7 +25,7 @@ Character: ${name}${roleLine ? `\n${roleLine}` : ''}${bio ? `\nBio:\n${bio}` : '
 
 Story: ${storyBlurb}
 
-Write exactly 5 game cards for THIS character only.
+Write exactly ${n} game cards for THIS character only.
 
 Cards should encourage player interaction and performances.
 

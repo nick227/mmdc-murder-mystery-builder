@@ -15,6 +15,9 @@ export function applyFinalEditorResult(existingCards, editedCards) {
     if (card?.bundle_id) {
       return { ...card };
     }
+    if (card?.card_type === 'solution' && card?.reveal === 'host_reveal') {
+      return { ...card };
+    }
     const nextAct = edited.act === 1 || edited.act === 2 || edited.act === 3
       ? edited.act
       : (card.act === 1 || card.act === 2 || card.act === 3 ? card.act : ((index % 3) + 1));

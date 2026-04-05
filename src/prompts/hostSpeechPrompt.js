@@ -30,7 +30,6 @@ Rules:
 - tone should be theatrical, fun, and slightly dramatic
 - keep each speech under 120 words
 - every card must include the correct act field (1, 2, or 3)
-- each speech should spotlight one main known location and include its location_ref
 - return exactly 3 cards
 `.trim()
   };

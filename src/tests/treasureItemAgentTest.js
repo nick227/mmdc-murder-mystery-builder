@@ -23,6 +23,10 @@ const ctx = {
 await treasureItemAgent(ctx);
 const items = ctx.cards.filter((c) => c.card_type === 'item');
 assert.ok(!items.some((c) => c.is_treasure));
+const clue = ctx.cards.filter((c) => c.card_type === 'clue' && c.meta?.treasure_stage === 'clue');
+assert.equal(clue.length, 1);
+assert.equal(clue[0].hidden_until_solved, true);
+assert.equal(clue[0].role, 'treasure');
 const reveal = ctx.cards.filter((c) => c.card_type === 'treasure');
 assert.equal(reveal.length, 1);
 assert.equal(reveal[0].card_title, 'The Golden Goose');
@@ -42,7 +46,9 @@ const ctx2 = {
 };
 await treasureItemAgent(ctx2);
 const tr = ctx2.cards.find((c) => c.card_type === 'treasure');
+const tc = ctx2.cards.find((c) => c.card_type === 'clue' && c.meta?.treasure_stage === 'clue');
 assert.ok(tr);
+assert.ok(tc);
 assert.ok(!tr.linked_item_id);
 
 console.log('treasureItemAgentTest OK');

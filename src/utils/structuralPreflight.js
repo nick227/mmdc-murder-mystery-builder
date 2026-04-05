@@ -13,48 +13,6 @@ function baseName(title) {
   return raw.split(',')[0].trim();
 }
 
-function buildSuspectList(context) {
-  const suspects = Array.isArray(context?.case_state?.suspects) ? context.case_state.suspects : [];
-  if (suspects.length) {
-    return suspects.map((suspect) => ({
-      id: String(suspect.suspect_id || '').trim(),
-      name: String(suspect.name || '').trim(),
-      title: String(suspect.title || suspect.name || '').trim()
-    }));
-  }
-
-  return getCharacterCards(context.cards).map((card) => ({
-    id: String(card.card_id || '').trim(),
-    name: baseName(card.card_title),
-    title: String(card.card_title || '').trim()
-  }));
-}
-
-function getClueCards(context) {
-  return getCardsByType(context?.cards, 'clue');
-}
-
-function getSuspectIdByName(suspects, value) {
-  const normalizedValue = normalizeText(value);
-  if (!normalizedValue) {
-    return '';
-  }
-
-  const match = suspects.find((suspect) =>
-    [suspect.name, baseName(suspect.title), suspect.title]
-      .map((entry) => normalizeText(entry))
-      .filter(Boolean)
-      .includes(normalizedValue)
-  );
-
-  return String(match?.id || '').trim();
-}
-
-function getClueSuspectIds(card, suspects) {
-  const suspectId = getSuspectIdByName(suspects, card?.suspect_name);
-  return suspectId ? [suspectId] : [];
-}
-
 function addIssue(issues, severity, code, message, details = {}) {
   issues.push({
     severity,
@@ -109,3 +67,4 @@ export function buildStructuralPreflight(context) {
     issues
   };
 }
+

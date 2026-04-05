@@ -27,7 +27,7 @@ function resolveResultPaths(targetPath) {
 }
 
 function isCurrentPipelineRun(context) {
-  return Array.isArray(context?.playability_history) && context.playability_history.length > 0;
+  return Boolean(context?.playability_report);
 }
 
 function buildLearningSummary(summary) {

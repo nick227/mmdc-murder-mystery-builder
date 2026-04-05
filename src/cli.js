@@ -13,6 +13,14 @@ import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { steps } from './pipeline/steps/index.js';
 import { getCardsByType, getCharacterCards } from './utils/cards.js';
+import {
+  DEFAULT_CARDS_PER_PLAYER,
+  DEFAULT_CLUES_PER_PLAYER,
+  DEFAULT_PUZZLE_COUNT,
+  DEFAULT_PROFILE_CARDS_PER_CHARACTER,
+  coerceNonNegativeInt,
+  coercePuzzleCount
+} from './config/generationDefaults.js';
 
 async function ask(question) {
   const rl = readline.createInterface({ input, output });
@@ -21,10 +29,66 @@ async function ask(question) {
   return answer.trim();
 }
 
+async function askYesNo(question, defaultValue = true) {
+  const suffix = defaultValue ? ' [Y/n]: ' : ' [y/N]: ';
+  const answer = String(await ask(`${question}${suffix}`)).trim().toLowerCase();
+  if (!answer) {
+    return defaultValue;
+  }
+  if (['y', 'yes'].includes(answer)) {
+    return true;
+  }
+  if (['n', 'no'].includes(answer)) {
+    return false;
+  }
+  return defaultValue;
+}
+
+function stripFlags(argv, flags) {
+  const filtered = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (flags.has(arg)) {
+      i += 1;
+      continue;
+    }
+    filtered.push(arg);
+  }
+  return filtered;
+}
+
 async function getStartInputs(args) {
-  let userPrompt = args[0];
-  let playerCount = args[1];
-  let storyStyle = args[2];
+  const cardsPerPlayerFlag = getFlagValue(args, '--cards-per-player');
+  const cluesPerPlayerFlag = getFlagValue(args, '--clues-per-player');
+  const puzzleCountFlag = getFlagValue(args, '--puzzle-count');
+  const profileCardsFlag = getFlagValue(args, '--profile-cards-per-character');
+  const withMetadataFlag = getFlagValue(args, '--with-metadata');
+  const withWorldbuildingFlag = getFlagValue(args, '--with-worldbuilding');
+  const withHostSpeechesFlag = getFlagValue(args, '--with-host-speeches');
+  const withSecretsFlag = getFlagValue(args, '--with-secrets');
+  const withItemsFlag = getFlagValue(args, '--with-items');
+
+  const positional = stripFlags(
+    args,
+    new Set([
+      '--cards-per-player',
+      '--clues-per-player',
+      '--puzzle-count',
+      '--profile-cards-per-character',
+      '--with-metadata',
+      '--with-worldbuilding',
+      '--with-host-speeches',
+      '--with-secrets',
+      '--with-items'
+    ])
+  );
+
+  let userPrompt = positional[0];
+  let playerCount = positional[1];
+  let storyStyle = positional[2];
+  let cardsPerPlayer = positional[3];
+  let cluesPerPlayer = positional[4];
+  let puzzleCount = positional[5];
 
   // Support `start "<prompt>" "<style>"` by treating a non-numeric second arg as storyStyle.
   if (playerCount && !storyStyle) {
@@ -47,10 +111,58 @@ async function getStartInputs(args) {
     storyStyle = await ask('Story style and theme: ');
   }
 
+  if (!cardsPerPlayerFlag && !cardsPerPlayer) {
+    cardsPerPlayer = await ask(`Game cards per player (default ${DEFAULT_CARDS_PER_PLAYER}, min 0): `);
+  }
+
+  if (!cluesPerPlayerFlag && !cluesPerPlayer) {
+    cluesPerPlayer = await ask(`Clues per player (default ${DEFAULT_CLUES_PER_PLAYER}, min 0): `);
+  }
+
+  if (!puzzleCountFlag && !puzzleCount) {
+    puzzleCount = await ask(`Number of puzzles (default ${DEFAULT_PUZZLE_COUNT}, min 0): `);
+  }
+
+  if (!profileCardsFlag) {
+    const profileAnswer = await ask(`Profile cards per character (default ${DEFAULT_PROFILE_CARDS_PER_CHARACTER}, min 0): `);
+    if (profileAnswer) {
+      // Only treat it as explicitly provided when user types a value.
+      args.push('--profile-cards-per-character', profileAnswer);
+    }
+  }
+
+  const includeMetadata = withMetadataFlag == null
+    ? await askYesNo('Generate story metadata?', true)
+    : !['n', 'no', 'false', '0'].includes(String(withMetadataFlag).trim().toLowerCase());
+  const includeWorldbuilding = withWorldbuildingFlag == null
+    ? await askYesNo('Generate worldbuilding?', true)
+    : !['n', 'no', 'false', '0'].includes(String(withWorldbuildingFlag).trim().toLowerCase());
+  const includeHostSpeeches = withHostSpeechesFlag == null
+    ? await askYesNo('Generate host speeches?', true)
+    : !['n', 'no', 'false', '0'].includes(String(withHostSpeechesFlag).trim().toLowerCase());
+  const includeSecrets = withSecretsFlag == null
+    ? await askYesNo('Generate character secrets?', true)
+    : !['n', 'no', 'false', '0'].includes(String(withSecretsFlag).trim().toLowerCase());
+  const includeItems = withItemsFlag == null
+    ? await askYesNo('Generate character items?', true)
+    : !['n', 'no', 'false', '0'].includes(String(withItemsFlag).trim().toLowerCase());
+
   return {
     userPrompt,
     playerCount: parseInt(playerCount, 10) || 4,
-    storyStyle
+    storyStyle,
+    cardsPerPlayer: coerceNonNegativeInt(cardsPerPlayerFlag ?? cardsPerPlayer, DEFAULT_CARDS_PER_PLAYER),
+    cluesPerPlayer: coerceNonNegativeInt(cluesPerPlayerFlag ?? cluesPerPlayer, DEFAULT_CLUES_PER_PLAYER),
+    puzzleCount: coercePuzzleCount(puzzleCountFlag ?? puzzleCount, DEFAULT_PUZZLE_COUNT),
+    profileCardsPerCharacter: coerceNonNegativeInt(
+      profileCardsFlag ?? getFlagValue(args, '--profile-cards-per-character'),
+      DEFAULT_PROFILE_CARDS_PER_CHARACTER
+    ),
+    includeMetadata,
+    includeWorldbuilding,
+    includeHostSpeeches,
+    includeSecrets,
+    includeItems
   };
 }
 
@@ -62,7 +174,8 @@ const args = process.argv.slice(3);
 
 function printHelp() {
   console.log('Commands:');
-  console.log('  node src/cli.js start "<userPrompt>" <playerCount> ["storyStyle"]');
+  console.log('  node src/cli.js start "<userPrompt>" <playerCount> ["storyStyle"] [cardsPerPlayer] [cluesPerPlayer] [puzzleCount]');
+  console.log('    Optional flags: --cards-per-player N --clues-per-player N --puzzle-count N --profile-cards-per-character N --with-metadata y|n --with-worldbuilding y|n --with-host-speeches y|n --with-secrets y|n --with-items y|n');
   console.log('  node src/cli.js start --from <runDir|result.json> [--step <stepName>]');
   console.log('  node src/cli.js start-fast "<userPrompt>" <playerCount> ["storyStyle"]');
   console.log('  node src/cli.js audit-steps "<userPrompt>" <playerCount> ["storyStyle"] [--json] [--full]');
@@ -86,14 +199,225 @@ function hasCardType(context, cardType) {
   return Array.isArray(context?.cards) && context.cards.some((card) => card?.card_type === cardType);
 }
 
+function isTreasureTrailClue(card) {
+  if (card?.card_type !== 'clue') {
+    return false;
+  }
+  if (String(card?.role || '').trim() === 'treasure') {
+    return true;
+  }
+  return String(card?.meta?.treasure_stage || '').trim() === 'clue';
+}
+
+function applyResumePruneForStep(next, resumedStep) {
+  next.cards ??= [];
+
+  const removeCards = (predicate) => {
+    next.cards = next.cards.filter((card) => !predicate(card));
+  };
+
+  const clearGeneratedTailState = () => {
+    delete next.playability_report;
+    delete next.structural_preflight;
+    delete next.solvability_validation;
+    delete next.mvp_quality_gate;
+    delete next.card_surface;
+    delete next.host_ui_hints;
+    delete next.worker_error;
+    delete next.pipeline_failure;
+    delete next.error;
+  };
+
+  const clearResumeOnlyState = () => {
+    delete next.playability_report;
+    delete next.worker_error;
+    delete next.pipeline_failure;
+    delete next.error;
+  };
+
+  const clearBundleState = () => {
+    delete next.puzzle_bundle_drafts;
+    delete next.puzzle_bundles;
+    delete next.truth_trail;
+  };
+
+  switch (resumedStep) {
+    case 'story_blurb_agent':
+      next.cards = [];
+      delete next.storyBlurb;
+      delete next.storyEntities;
+      delete next.story_title;
+      delete next.story_description;
+      delete next.story_rating;
+      delete next.story_themes;
+      delete next.world;
+      delete next.worldEntities;
+      delete next.coreTruth;
+      delete next.case_state;
+      delete next.clue_targets;
+      clearBundleState();
+      clearGeneratedTailState();
+      break;
+    case 'story_metadata_agent':
+      removeCards((card) => card?.card_type === 'story_meta');
+      delete next.story_title;
+      delete next.story_description;
+      delete next.story_rating;
+      delete next.story_themes;
+      clearGeneratedTailState();
+      break;
+    case 'world_building_agent':
+      removeCards((card) => card?.card_type === 'world_person' || card?.card_type === 'world_location');
+      delete next.world;
+      delete next.worldEntities;
+      clearGeneratedTailState();
+      break;
+    case 'characters_builder_agent':
+      removeCards((card) => card?.card_type === 'character');
+      clearGeneratedTailState();
+      break;
+    case 'core_truth_agent':
+      delete next.coreTruth;
+      delete next.case_state;
+      delete next.clue_targets;
+      clearBundleState();
+      clearGeneratedTailState();
+      break;
+    case 'treasure_hunt_agent':
+      removeCards((card) => card?.card_type === 'clue' && String(card?.role || '').trim() === 'treasure' && !card?.meta?.treasure_stage);
+      clearGeneratedTailState();
+      break;
+    case 'case_state_builder_agent':
+      delete next.case_state;
+      clearGeneratedTailState();
+      break;
+    case 'character_secret_agent':
+      removeCards((card) => card?.card_type === 'secret');
+      clearGeneratedTailState();
+      break;
+    case 'item_agent':
+      removeCards((card) => card?.card_type === 'item' && !card?.bundle_id);
+      clearGeneratedTailState();
+      break;
+    case 'treasure_item_agent':
+      removeCards((card) =>
+        card?.card_type === 'treasure'
+        || (card?.card_type === 'clue' && String(card?.meta?.treasure_stage || '').trim() === 'clue')
+      );
+      clearGeneratedTailState();
+      break;
+    case 'story_acts_agent':
+      removeCards((card) => card?.card_type === 'story_act');
+      clearGeneratedTailState();
+      break;
+    case 'host_speech_agent':
+      removeCards((card) => card?.card_type === 'host_speech');
+      clearGeneratedTailState();
+      break;
+    case 'clue_agent':
+      removeCards((card) =>
+        card?.card_type === 'clue'
+        && !isTreasureTrailClue(card)
+        && !card?.bundle_id
+      );
+      delete next.clue_targets;
+      clearBundleState();
+      clearGeneratedTailState();
+      break;
+    case 'clue_target_agent':
+      delete next.clue_targets;
+      clearBundleState();
+      clearGeneratedTailState();
+      break;
+    case 'puzzle_agent':
+      delete next.puzzle_bundle_drafts;
+      delete next.puzzle_bundles;
+      delete next.truth_trail;
+      clearGeneratedTailState();
+      break;
+    case 'bundle_finalize_agent':
+      removeCards((card) => Boolean(card?.bundle_id));
+      delete next.puzzle_bundles;
+      delete next.truth_trail;
+      clearGeneratedTailState();
+      break;
+    case 'game_card_agent':
+      removeCards((card) => card?.card_type === 'game_card');
+      delete next.mvp_quality_gate;
+      delete next.card_surface;
+      delete next.host_ui_hints;
+      clearResumeOnlyState();
+      break;
+    case 'bundle_structure_validator_agent':
+    case 'post_final_invariants_agent':
+    case 'bundle_integrity_validator_agent':
+      clearResumeOnlyState();
+      break;
+    case 'truth_trail_validator_agent':
+      delete next.truth_trail;
+      clearGeneratedTailState();
+      break;
+    case 'structural_preflight_agent':
+      delete next.structural_preflight;
+      clearGeneratedTailState();
+      break;
+    case 'solvability_validator_agent':
+      delete next.solvability_validation;
+      clearGeneratedTailState();
+      break;
+    case 'mvp_quality_gate_agent':
+      delete next.mvp_quality_gate;
+      delete next.card_surface;
+      delete next.host_ui_hints;
+      clearResumeOnlyState();
+      break;
+    default:
+      clearResumeOnlyState();
+      break;
+  }
+
+  return next;
+}
+
+function pruneResumeContext(context, resumedStep) {
+  const next = {
+    ...context,
+    cards: Array.isArray(context?.cards) ? [...context.cards] : []
+  };
+
+  const startIndex = steps.findIndex((step) => step.name === resumedStep);
+  if (startIndex === -1) {
+    return applyResumePruneForStep(next, resumedStep);
+  }
+
+  for (let index = startIndex; index < steps.length; index += 1) {
+    applyResumePruneForStep(next, steps[index].name);
+  }
+
+  return next;
+}
+
 function inferResumeStep(context) {
+  const failedStep = String(context?.pipeline_failure?.failed_step || '').trim();
+  if (
+    failedStep
+    && steps.some((step) => step.name === failedStep)
+    && (failedStep === 'solvability_validator_agent' || context?.solvability_validation)
+  ) {
+    return failedStep;
+  }
+
   if (!context?.storyBlurb) {
     return 'story_blurb_agent';
   }
-  if (!String(context?.story_title || '').trim()) {
+  if (context?.includeMetadata !== false && !String(context?.story_title || '').trim()) {
     return 'story_metadata_agent';
   }
-  if (!hasCardType(context, 'world_person') && !hasCardType(context, 'world_location')) {
+  if (
+    context?.includeWorldbuilding !== false
+    && !hasCardType(context, 'world_person')
+    && !hasCardType(context, 'world_location')
+  ) {
     return 'world_building_agent';
   }
   if (!hasCardType(context, 'character_profile')) {
@@ -105,9 +429,11 @@ function inferResumeStep(context) {
 
   const charCards = getCharacterCards(context.cards || []);
   if (charCards.length > 0) {
-    const secretN = getCardsByType(context.cards || [], 'secret').length;
-    if (secretN < charCards.length * 2) {
-      return 'character_secret_agent';
+    if (context?.includeSecrets !== false) {
+      const secretN = getCardsByType(context.cards || [], 'secret').length;
+      if (secretN < charCards.length * 2) {
+        return 'character_secret_agent';
+      }
     }
   }
 
@@ -121,12 +447,15 @@ function inferResumeStep(context) {
   if (getCardsByType(context.cards || [], 'story_act').length < 3) {
     return 'story_acts_agent';
   }
-  if (getCardsByType(context.cards || [], 'host_speech').length < 3) {
+  if (context?.includeHostSpeeches !== false && getCardsByType(context.cards || [], 'host_speech').length < 3) {
     return 'host_speech_agent';
   }
 
-  if (!hasCardType(context, 'story_clue')) {
+  if (!hasCardType(context, 'clue')) {
     return 'clue_agent';
+  }
+  if (!context?.solvability_validation) {
+    return 'solvability_validator_agent';
   }
   return null;
 }
@@ -194,13 +523,15 @@ async function main() {
         throw new Error(`Unknown step for --step: ${resumedStep}`);
       }
 
-      context.pipeline_resume = {
+      const prunedContext = pruneResumeContext(context, resumedStep);
+
+      prunedContext.pipeline_resume = {
         from_file: sourcePath,
         resumed_step: resumedStep,
         resumed_at: new Date().toISOString()
       };
 
-      const job = queue.createJob(context);
+      const job = queue.createJob(prunedContext);
       job.stepIndex = stepIndex;
 
       console.log('────────────────────────────────────────');
@@ -241,7 +572,20 @@ async function main() {
       return;
     }
 
-    const { userPrompt, playerCount, storyStyle } = await getStartInputs(args);
+    const {
+      userPrompt,
+      playerCount,
+      storyStyle,
+      cardsPerPlayer,
+      cluesPerPlayer,
+      puzzleCount,
+      profileCardsPerCharacter,
+      includeMetadata,
+      includeWorldbuilding,
+      includeHostSpeeches,
+      includeSecrets,
+      includeItems
+    } = await getStartInputs(args);
 
     if (!process.env.OPENAI_API_KEY) {
       console.error('Missing OPENAI_API_KEY. Copy .env.example to .env and fill it in.');
@@ -255,6 +599,15 @@ async function main() {
       playerCount,
       userPrompt,
       storyStyle,
+      cardsPerPlayer,
+      cluesPerPlayer,
+      puzzleCount,
+      profileCardsPerCharacter,
+      includeMetadata,
+      includeWorldbuilding,
+      includeHostSpeeches,
+      includeSecrets,
+      includeItems,
       cards: []
     });
 
@@ -262,6 +615,15 @@ async function main() {
     console.log('Starting Murder Mystery Build');
     console.log('Run ID :', run.id);
     console.log('Players:', playerCount);
+    console.log('Cards/player:', cardsPerPlayer);
+    console.log('Clues/player:', cluesPerPlayer);
+    console.log('Puzzles:', puzzleCount);
+    console.log('Profile cards/character:', profileCardsPerCharacter);
+    console.log('Metadata:', includeMetadata ? 'yes' : 'no');
+    console.log('Worldbuilding:', includeWorldbuilding ? 'yes' : 'no');
+    console.log('Host speeches:', includeHostSpeeches ? 'yes' : 'no');
+    console.log('Secrets:', includeSecrets ? 'yes' : 'no');
+    console.log('Items:', includeItems ? 'yes' : 'no');
     console.log('Prompt :', userPrompt);
     console.log('Style :', storyStyle);
     console.log('Output :', run.dir, '(folder renames after story title is generated)');
@@ -326,7 +688,19 @@ async function main() {
   }
 
   if (cmd === 'start-fast') {
-    const { userPrompt, playerCount, storyStyle } = await getStartInputs(args);
+    const {
+      userPrompt,
+      playerCount,
+      storyStyle,
+      cardsPerPlayer,
+      cluesPerPlayer,
+      puzzleCount,
+      includeMetadata,
+      includeWorldbuilding,
+      includeHostSpeeches,
+      includeSecrets,
+      includeItems
+    } = await getStartInputs(args);
 
     if (!process.env.OPENAI_API_KEY) {
       console.error('Missing OPENAI_API_KEY. Copy .env.example to .env and fill it in.');
@@ -341,6 +715,15 @@ async function main() {
       playerCount,
       userPrompt,
       storyStyle,
+      cardsPerPlayer,
+      cluesPerPlayer,
+      puzzleCount,
+      profileCardsPerCharacter,
+      includeMetadata,
+      includeWorldbuilding,
+      includeHostSpeeches,
+      includeSecrets,
+      includeItems,
       cards: []
     });
 
@@ -388,7 +771,20 @@ async function main() {
     const jsonMode = args.includes('--json');
     const fullMode = args.includes('--full');
     const filteredArgs = args.filter((arg) => arg !== '--json' && arg !== '--full');
-    const { userPrompt, playerCount, storyStyle } = await getStartInputs(filteredArgs);
+    const {
+      userPrompt,
+      playerCount,
+      storyStyle,
+      cardsPerPlayer,
+      cluesPerPlayer,
+      puzzleCount,
+      profileCardsPerCharacter,
+      includeMetadata,
+      includeWorldbuilding,
+      includeHostSpeeches,
+      includeSecrets,
+      includeItems
+    } = await getStartInputs(filteredArgs);
 
     if (!process.env.OPENAI_API_KEY) {
       console.error('Missing OPENAI_API_KEY. Copy .env.example to .env and fill it in.');
@@ -404,6 +800,15 @@ async function main() {
       playerCount,
       userPrompt,
       storyStyle,
+      cardsPerPlayer,
+      cluesPerPlayer,
+      puzzleCount,
+      profileCardsPerCharacter,
+      includeMetadata,
+      includeWorldbuilding,
+      includeHostSpeeches,
+      includeSecrets,
+      includeItems,
       cards: []
     });
 

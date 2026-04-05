@@ -18,11 +18,13 @@ export function validatePuzzleCardComposition(cards = [], label = 'puzzle bundle
   const safeCards = Array.isArray(cards) ? cards : [];
   const puzzle = safeCards.filter((card) => card?.card_type === 'puzzle');
   const solution = safeCards.filter((card) => card?.card_type === 'solution');
-  const evidence = safeCards.filter((card) => card?.card_type === 'evidence' || card?.card_type === 'clue' || card?.card_type === 'item');
+  const evidence = safeCards.filter((card) => card?.card_type === 'evidence' || card?.card_type === 'clue');
+  const gate = safeCards.filter((card) => card?.card_type === 'item');
 
   assert(puzzle.length === 1, `${label}: must have exactly 1 puzzle card`);
   assert(solution.length === 1, `${label}: must have exactly 1 solution card`);
   assert(evidence.length >= 2, `${label}: must have at least 2 evidence cards`);
+  assert(gate.length >= 1, `${label}: must have at least 1 gate card`);
 }
 
 function collectCardsByBundle(cards = []) {
@@ -40,6 +42,11 @@ function collectCardsByBundle(cards = []) {
   }
 
   return bundles;
+}
+
+function isTreasureUnlockCard(card) {
+  return card?.card_type === 'treasure'
+    || (card?.card_type === 'clue' && String(card?.role || '').trim().toLowerCase() === 'treasure');
 }
 
 export function validateBundleIntegrity(context, options = {}) {
@@ -93,7 +100,9 @@ export function validateBundleIntegrity(context, options = {}) {
     for (const unlockId of Array.isArray(puzzleCard.unlock_card_ids) ? puzzleCard.unlock_card_ids : []) {
       const unlockCard = cardLookup.get(unlockId);
       assert(unlockCard, `bundle_integrity_validator_agent: bundle ${bundleId} dropped unlock card ${unlockId}`);
-      assert(unlockCard.bundle_id === bundleId, `bundle_integrity_validator_agent: unlock card ${unlockId} escaped bundle ${bundleId}`);
+      if (!isTreasureUnlockCard(unlockCard)) {
+        assert(unlockCard.bundle_id === bundleId, `bundle_integrity_validator_agent: unlock card ${unlockId} escaped bundle ${bundleId}`);
+      }
       assert(unlockCard.hidden_until_solved === true, `bundle_integrity_validator_agent: unlock card ${unlockId} is no longer hidden`);
     }
   }

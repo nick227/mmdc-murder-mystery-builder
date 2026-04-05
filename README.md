@@ -29,13 +29,18 @@ npm start
 Arguments:
 
 ```
-start "<prompt>" <playerCount>
+start "<prompt>" <playerCount> ["storyStyle"] [cardsPerPlayer] [cluesPerPlayer] [puzzleCount]
+  --cards-per-player N
+  --clues-per-player N
+  --puzzle-count N
 ```
+
+Defaults: `cardsPerPlayer=5`, `cluesPerPlayer=3`, `puzzleCount=4` (all three may be set to `0`).
 
 Example:
 
 ```bash
-node src/cli.js start "Luxury yacht murder during a storm" 5
+node src/cli.js start "Luxury yacht murder during a storm" 5 "Glam noir on a stormy yacht" --cards-per-player 5 --clues-per-player 3 --puzzle-count 4
 ```
 
 Use `npm run smoke` for a deterministic pipeline smoke test (mock LLM).

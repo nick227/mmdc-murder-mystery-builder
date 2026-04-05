@@ -89,4 +89,58 @@ assert.equal(seq.firstSeenIteration.get('s1'), 1);
 assert.equal(seq.firstSeenIteration.get('s4'), 4);
 
 await truthTrailValidatorAgent({ cards: makeChainCards() });
+
+await assert.rejects(
+  () => truthTrailValidatorAgent({
+    cards: makeChainCards().slice(0, 6)
+  }),
+  /missing reachable fact_binding\(s\): treasure_object, treasure_location/i
+);
+
+await assert.rejects(
+  () => truthTrailValidatorAgent({
+    cards: [
+      { card_id: 'e1', card_type: 'clue', hidden_until_solved: false },
+      {
+        card_id: 'p1',
+        card_type: 'puzzle',
+        required_card_ids: ['e1'],
+        unlock_card_ids: ['s1', 's2']
+      },
+      {
+        card_id: 's1',
+        card_type: 'solution',
+        hidden_until_solved: true,
+        meta: { fact_binding: 'killer' }
+      },
+      {
+        card_id: 's2',
+        card_type: 'solution',
+        hidden_until_solved: true,
+        meta: { fact_binding: 'location' }
+      },
+      { card_id: 'e2', card_type: 'clue', hidden_until_solved: false },
+      {
+        card_id: 'p2',
+        card_type: 'puzzle',
+        required_card_ids: ['e2', 's1'],
+        unlock_card_ids: ['s3', 's4']
+      },
+      {
+        card_id: 's3',
+        card_type: 'solution',
+        hidden_until_solved: true,
+        meta: { fact_binding: 'treasure_object' }
+      },
+      {
+        card_id: 's4',
+        card_type: 'solution',
+        hidden_until_solved: true,
+        meta: { fact_binding: 'treasure_location' }
+      }
+    ]
+  }),
+  /sequential_puzzle_steps 2 < required minimum \(3\)/i
+);
+
 console.log('truthTrailReachabilityTest OK');

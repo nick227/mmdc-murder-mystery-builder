@@ -3,6 +3,31 @@ import { getCharacterCards, pushCards } from '../utils/cards.js';
 import { getStoryBlurb, getStoryMetaForPrompts } from '../utils/context.js';
 import { buildTreasureHuntResponseSchema } from '../schemas/treasureHuntSchema.js';
 
+function normalizeText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function resolveSuspectIdForCharacter(context, characterCard) {
+  const suspects = Array.isArray(context?.case_state?.suspects) ? context.case_state.suspects : [];
+  const characterId = String(characterCard?.card_id || '').trim();
+  const direct = suspects.find((s) => String(s?.card_id || '').trim() === characterId);
+  if (direct?.suspect_id) {
+    return String(direct.suspect_id).trim();
+  }
+
+  const name = String(characterCard?.card_title || '').split(',')[0].trim();
+  const normalized = normalizeText(name);
+  const byName = suspects.find((s) =>
+    normalizeText(s?.name) === normalized
+    || normalizeText(s?.title) === normalized
+  );
+  return byName?.suspect_id ? String(byName.suspect_id).trim() : null;
+}
+
 function buildPrompt({ storyBlurb, storyMeta, treasure, clueCount }) {
   return {
     system: 'Generate treasure hunt clues. Return JSON only.',
@@ -10,6 +35,7 @@ function buildPrompt({ storyBlurb, storyMeta, treasure, clueCount }) {
 
 Rules:
 - Generate EXACTLY ${clueCount} treasure clues.
+- All card_title must be unique.
 - Clues should collectively hint at the treasure_solution.
 - No single clue should reveal it.
 - Match tone and motifs from the packaging block.
@@ -45,7 +71,6 @@ export async function treasureHuntAgent(context) {
   }
 
   const n = characters.length;
-
   const storyBlurb = getStoryBlurb(context);
   const schema = buildTreasureHuntResponseSchema(n);
   const parsed = await callJson({
@@ -66,17 +91,19 @@ export async function treasureHuntAgent(context) {
 
   const clueEntries = raw.map((c, i) => {
     const ch = characters[i];
-    const title = String(ch?.card_title || '').trim();
+    const suspectId = resolveSuspectIdForCharacter(context, ch);
 
     return {
       card_type: 'clue',
       card_title: String(c.card_title || '').trim(),
       card_contents: String(c.card_contents || '').trim(),
-      clue_type: 'treasure',
-      linked_character: title
+      role: 'treasure',
+      target_id: suspectId,
+      weight: 'low'
     };
   });
 
   pushCards(context, 'clue', clueEntries);
   return context;
 }
+

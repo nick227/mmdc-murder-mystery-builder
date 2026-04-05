@@ -60,6 +60,14 @@ function makeContext() {
       },
       {
         card_id: 'e2',
+        card_type: 'clue',
+        card_title: 'Door Camera Transcript',
+        card_contents: 'The camera transcript notes no one else entered the corridor at 11:54 PM.',
+        bundle_id: 'puzzle_bundle_001',
+        hidden_until_solved: false
+      },
+      {
+        card_id: 'g1',
         card_type: 'item',
         card_title: 'Door Camera Note',
         card_contents: 'The vault corridor was clear when the lock engaged.',
@@ -146,18 +154,18 @@ async function run() {
     () => bundleStructureValidatorAgent({
       ...makeContext(),
       cards: makeContext().cards.map((card) => card.card_id === 's1'
-        ? { ...card, card_contents: 'Lila Groove accessed the vault at 11:54 PM.' }
+        ? { ...card, card_contents: 'Only the available evidence fits.' }
         : card),
       puzzle_bundles: [
         {
           bundle_id: 'puzzle_bundle_001',
           act: 1,
           puzzle_type: 'timeline',
-          clue_target: 'Lila Groove accessed the vault at 11:54 PM.'
+          clue_target: 'Only the available evidence fits.'
         }
       ]
     }),
-    /solution names suspect/
+    /solution must reference suspect or location or object/
   );
 
   await expectFailure(
@@ -176,10 +184,17 @@ async function run() {
   );
 
   const tooFewEvidence = makeContext();
-  tooFewEvidence.cards = tooFewEvidence.cards.filter((card) => card.card_id !== 'e2');
+  tooFewEvidence.cards = tooFewEvidence.cards.filter((card) => card.card_id !== 'e2' && card.card_id !== 'g1');
   await expectFailure(
     () => bundleStructureValidatorAgent(tooFewEvidence),
     /at least 2 evidence cards/
+  );
+
+  const missingGate = makeContext();
+  missingGate.cards = missingGate.cards.filter((card) => card.card_id !== 'g1');
+  await expectFailure(
+    () => bundleStructureValidatorAgent(missingGate),
+    /at least 1 gate card/
   );
 
   assert(true, 'bundle structure validator tests should complete');
