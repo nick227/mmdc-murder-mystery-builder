@@ -9,6 +9,11 @@ function nowStamp() {
   return new Date().toISOString().replace(/[:.]/g, '-');
 }
 
+function getFallbackUrl({ runId, cardType, cardId, suffix, size = 1024 }) {
+  const seed = encodeURIComponent(`${runId || 'run'}-${cardType || 'card'}-${cardId || 'id'}${suffix || ''}`);
+  return `https://picsum.photos/seed/${seed}/${size}/${size}`;
+}
+
 function shouldRegenerate(card, { force }) {
   if (force === true) {
     return true;
@@ -50,9 +55,6 @@ function assertConfigured({ runId, runDir }) {
   }
   if (!runDir || !String(runDir).trim()) {
     throw new Error('image_agent: context.runDir is required');
-  }
-  if (!cloudflareR2Service.isInitialized()) {
-    throw new Error('image_agent: Cloudflare R2 is not configured');
   }
 }
 
@@ -115,6 +117,13 @@ export async function imageGeneratorAgent(context, options = {}) {
         continue;
       }
 
+      if (!cloudflareR2Service.isInitialized()) {
+        const fallbackUrl = getFallbackUrl({ runId, cardType, cardId, suffix });
+        card.image_url = fallbackUrl;
+        console.log(`image_agent: fallback card_id=${cardId} type=${cardType} url=${fallbackUrl}`);
+        continue;
+      }
+
       const buffer = await generateFluxPngBuffer(prompt);
       fs.writeFileSync(localPath, buffer);
 
@@ -123,8 +132,11 @@ export async function imageGeneratorAgent(context, options = {}) {
 
       console.log(`image_agent: uploaded key=${r2Key} url=${url}`);
     } catch (err) {
-      console.log(`image_agent: error card_id=${cardId} provider=dezgo|r2 msg=${String(err?.message || err)}`);
-      throw err;
+      const msg = String(err?.message || err);
+      console.log(`image_agent: error card_id=${cardId} provider=dezgo|r2 msg=${msg}`);
+      const fallbackUrl = getFallbackUrl({ runId, cardType, cardId, suffix });
+      card.image_url = fallbackUrl;
+      console.log(`image_agent: fallback card_id=${cardId} type=${cardType} url=${fallbackUrl}`);
     }
   }
 

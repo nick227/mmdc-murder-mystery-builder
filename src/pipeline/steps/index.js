@@ -35,6 +35,10 @@ export const steps = [
   { name: 'world_building_agent', run: worldBuildingAgent },
 
   { name: 'characters_builder_agent', run: charactersBuilderAgent },
+  {
+    name: 'character_image_agent',
+    run: (context) => imageGeneratorAgent(context, { types: ['character'] })
+  },
   { name: 'character_profile_agent', run: characterProfileAgent },
 
   { name: 'core_truth_agent', run: coreTruthAgent },
@@ -45,8 +49,8 @@ export const steps = [
   { name: 'item_agent', run: itemAgent },
   { name: 'story_acts_agent', run: storyActsAgent },
   {
-    name: 'image_generator_agent',
-    run: (context) => imageGeneratorAgent(context, { types: ['character', 'story_act'] })
+    name: 'story_act_image_agent',
+    run: (context) => imageGeneratorAgent(context, { types: ['story_act'] })
   },
   { name: 'host_speech_agent', run: hostSpeechAgent },
   { name: 'clue_agent', run: clueAgent },
