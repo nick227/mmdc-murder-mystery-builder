@@ -21,9 +21,7 @@ export class CloudflareR2Service {
     this.config = null;
     this.s3 = null;
 
-    if (cloudflareR2Config.isConfigured()) {
-      this.initialize();
-    }
+    // NOTE: env is loaded later in the CLI process; initialize lazily.
   }
 
   initialize() {
@@ -33,12 +31,18 @@ export class CloudflareR2Service {
   }
 
   isInitialized() {
+    if (!this.initialized && cloudflareR2Config.isConfigured()) {
+      this.initialize();
+    }
     return this.initialized && this.s3 != null;
   }
 
   async saveImage(imageBuffer, key, options = {}) {
+    if (!this.isInitialized() && cloudflareR2Config.isConfigured()) {
+      this.initialize();
+    }
     if (!this.isInitialized()) {
-      throw new Error('CloudflareR2Service is not initialized. Check CLOUDFLARE_R2_* env vars.');
+      throw new Error('CloudflareR2Service is not initialized. Check R2_* env vars.');
     }
     if (!imageBuffer || !Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
       throw new Error('saveImage requires a non-empty Buffer');
