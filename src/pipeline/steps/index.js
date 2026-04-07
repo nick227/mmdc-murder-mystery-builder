@@ -11,6 +11,7 @@ import { charactersBuilderAgent } from '../../agents/charactersBuilderAgent.js';
 import { characterProfileAgent } from '../../agents/characterProfileAgent.js';
 import { characterSecretAgent } from '../../agents/characterSecretAgent.js';
 import { storyActsAgent } from '../../agents/storyActsAgent.js';
+import { imageGeneratorAgent } from '../../agents/imageGeneratorAgent.js';
 import { hostSpeechAgent } from '../../agents/hostSpeechAgent.js';
 
 import { itemAgent } from '../../agents/itemAgent.js';
@@ -43,6 +44,10 @@ export const steps = [
   { name: 'character_secret_agent', run: characterSecretAgent },
   { name: 'item_agent', run: itemAgent },
   { name: 'story_acts_agent', run: storyActsAgent },
+  {
+    name: 'image_generator_agent',
+    run: (context) => imageGeneratorAgent(context, { types: ['character', 'story_act'] })
+  },
   { name: 'host_speech_agent', run: hostSpeechAgent },
   { name: 'clue_agent', run: clueAgent },
   { name: 'clue_roster_validator_agent', run: clueRosterValidatorAgent },

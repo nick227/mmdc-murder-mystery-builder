@@ -159,136 +159,23 @@ export function pushCards(context, type, entries) {
   }
 
   const normalized = entries.map((e, i) => {
-    const cardType = e.card_type || type;
+    const input = (e && typeof e === 'object') ? e : {};
+    const cardType = input.card_type || type;
+    const cardId = input.card_id || crypto.randomUUID();
+
+    // Preserve unknown fields by default, then normalize canonical fields.
     const card = {
-      card_id: e.card_id || crypto.randomUUID(),
+      ...input,
+      card_id: cardId,
       card_type: cardType,
-      card_title: String(e.card_title || '').trim(),
-      card_contents: String(e.card_contents || '').trim()
+      card_title: String(input.card_title || '').trim(),
+      card_contents: String(input.card_contents || '').trim()
     };
 
     if (cardType !== 'game_card' && cardType !== 'solution') {
-      card.act = (e.act === 1 || e.act === 2 || e.act === 3)
-        ? e.act
+      card.act = (input.act === 1 || input.act === 2 || input.act === 3)
+        ? input.act
         : ((i % 3) + 1);
-    }
-
-    if (e.linked_character !== undefined) {
-      card.linked_character = e.linked_character;
-    }
-    if (e.secret_type !== undefined) {
-      card.secret_type = e.secret_type;
-    }
-    if (e.linked_character_index !== undefined) {
-      card.linked_character_index = e.linked_character_index;
-    }
-    if (e.linked_character_id !== undefined) {
-      card.linked_character_id = e.linked_character_id;
-    }
-    if (e.trail_role !== undefined) {
-      card.trail_role = e.trail_role;
-    }
-    if (e.role !== undefined) {
-      card.role = e.role;
-    }
-    if (e.target_id !== undefined) {
-      card.target_id = e.target_id;
-    }
-    if (e.weight !== undefined) {
-      card.weight = e.weight;
-    }
-    if (e.evidence_type !== undefined) {
-      card.evidence_type = e.evidence_type;
-    }
-    if (e.clue_type !== undefined) {
-      card.clue_type = e.clue_type;
-    }
-    if (e.clue_weight !== undefined) {
-      card.clue_weight = e.clue_weight;
-    }
-    if (e.suspect_name !== undefined) {
-      card.suspect_name = e.suspect_name;
-    }
-    if (e.assigned_suspect_id !== undefined) {
-      card.assigned_suspect_id = e.assigned_suspect_id;
-    }
-    if (e.assigned_suspect_name !== undefined) {
-      card.assigned_suspect_name = e.assigned_suspect_name;
-    }
-    if (e.location_ref !== undefined) {
-      card.location_ref = e.location_ref;
-    }
-    if (e.bundle_id !== undefined) {
-      card.bundle_id = e.bundle_id;
-    }
-    if (e.card_ref !== undefined) {
-      card.card_ref = e.card_ref;
-    }
-    if (e.puzzle_type !== undefined) {
-      card.puzzle_type = e.puzzle_type;
-    }
-    if (e.required_card_refs !== undefined) {
-      card.required_card_refs = e.required_card_refs;
-    }
-    if (e.unlock_card_refs !== undefined) {
-      card.unlock_card_refs = e.unlock_card_refs;
-    }
-    if (e.difficulty !== undefined) {
-      card.difficulty = e.difficulty;
-    }
-    if (e.required_card_ids !== undefined) {
-      card.required_card_ids = e.required_card_ids;
-    }
-    if (e.unlock_card_ids !== undefined) {
-      card.unlock_card_ids = e.unlock_card_ids;
-    }
-    if (e.actionable_gain !== undefined) {
-      card.actionable_gain = e.actionable_gain;
-    }
-    if (e.solution_summary !== undefined) {
-      card.solution_summary = e.solution_summary;
-    }
-    if (e.solve_instructions !== undefined) {
-      card.solve_instructions = e.solve_instructions;
-    }
-    if (e.solution !== undefined) {
-      card.solution = e.solution;
-    }
-    if (e.hidden_until_solved !== undefined) {
-      card.hidden_until_solved = e.hidden_until_solved;
-    }
-    if (e.hidden !== undefined) {
-      card.hidden = e.hidden;
-    }
-    if (e.reveal !== undefined) {
-      card.reveal = e.reveal;
-    }
-    if (e.evidence_strength !== undefined) {
-      card.evidence_strength = e.evidence_strength;
-    }
-    if (e.requires !== undefined) {
-      card.requires = e.requires;
-    }
-    if (e.derived_facts !== undefined) {
-      card.derived_facts = e.derived_facts;
-    }
-    if ('target_character' in e) {
-      card.target_character = e.target_character;
-    }
-    if ('target_character_id' in e) {
-      card.target_character_id = e.target_character_id;
-    }
-    if (e.is_treasure !== undefined) {
-      card.is_treasure = e.is_treasure;
-    }
-    if (e.linked_item_id !== undefined) {
-      card.linked_item_id = e.linked_item_id;
-    }
-    if (e.meta !== undefined) {
-      card.meta = e.meta;
-    }
-    if (e.murder_canon !== undefined) {
-      card.murder_canon = e.murder_canon;
     }
 
     return card;

@@ -50,14 +50,17 @@ Define a central prompt builder registry:
 
 - `promptBuilders[card.card_type](card, context) -> string`
 
-Initial map must include:
+Prompt builders are optional. If a type-specific builder is not present, fall back to:
 
-- `character`
-- `story_act`
+- `defaultPromptBuilder(card, context) -> string`
 
-Later expansion adds builders for:
+Suggested fallback (simple, reusable immediately):
 
-- `item`, `location`, `clue`, etc.
+- `"Illustration of: " + card.card_title + "\n" + card.card_contents`
+
+Later expansion can add type-specific builders for:
+
+- `character`, `story_act`, `item`, `location`, `clue`, etc.
 
 ### 3) Image immutability and explicit regeneration
 
@@ -103,11 +106,9 @@ No retries; rerun the pipeline to retry.
 
 ### 5) Deterministic processing order
 
-To keep runs predictable and logs easy to read:
+Process eligible cards strictly in their natural order of appearance in `context.cards`.
 
-- process all `character` cards first (in their appearance order within `context.cards`)
-- then process `story_act` cards ordered by `act` ascending (1 → 3)
-- then any remaining eligible types in their original order (future-proofing)
+This keeps the image agent fully reusable and pipeline-driven, without hardcoded type ordering.
 
 ### 6) Storage keys (never overwrite)
 
