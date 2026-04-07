@@ -67,6 +67,7 @@ async function getStartInputs(args) {
   const withHostSpeechesFlag = getFlagValue(args, '--with-host-speeches');
   const withSecretsFlag = getFlagValue(args, '--with-secrets');
   const withItemsFlag = getFlagValue(args, '--with-items');
+  const withImagesFlag = getFlagValue(args, '--with-images');
 
   const positional = stripFlags(
     args,
@@ -79,7 +80,8 @@ async function getStartInputs(args) {
       '--with-worldbuilding',
       '--with-host-speeches',
       '--with-secrets',
-      '--with-items'
+      '--with-items',
+      '--with-images'
     ])
   );
 
@@ -126,7 +128,7 @@ async function getStartInputs(args) {
   if (!profileCardsFlag) {
     const profileAnswer = await ask(`Profile cards per character (default ${DEFAULT_PROFILE_CARDS_PER_CHARACTER}, min 0): `);
     if (profileAnswer) {
-      // Only treat it as explicitly provided when user types a value.
+    // Only treat it as explicitly provided when user types a value.
       args.push('--profile-cards-per-character', profileAnswer);
     }
   }
@@ -146,6 +148,9 @@ async function getStartInputs(args) {
   const includeItems = withItemsFlag == null
     ? await askYesNo('Generate character items?', true)
     : !['n', 'no', 'false', '0'].includes(String(withItemsFlag).trim().toLowerCase());
+  const includeImages = withImagesFlag == null
+    ? await askYesNo('Generate images?', true)
+    : !['n', 'no', 'false', '0'].includes(String(withImagesFlag).trim().toLowerCase());
 
   return {
     userPrompt,
@@ -162,7 +167,8 @@ async function getStartInputs(args) {
     includeWorldbuilding,
     includeHostSpeeches,
     includeSecrets,
-    includeItems
+    includeItems,
+    includeImages
   };
 }
 
@@ -175,7 +181,7 @@ const args = process.argv.slice(3);
 function printHelp() {
   console.log('Commands:');
   console.log('  node src/cli.js start "<userPrompt>" <playerCount> ["storyStyle"] [cardsPerPlayer] [cluesPerPlayer] [puzzleCount]');
-  console.log('    Optional flags: --cards-per-player N --clues-per-player N --puzzle-count N --profile-cards-per-character N --with-metadata y|n --with-worldbuilding y|n --with-host-speeches y|n --with-secrets y|n --with-items y|n');
+  console.log('    Optional flags: --cards-per-player N --clues-per-player N --puzzle-count N --profile-cards-per-character N --with-metadata y|n --with-worldbuilding y|n --with-host-speeches y|n --with-secrets y|n --with-items y|n --with-images y|n');
   console.log('  node src/cli.js start --from <runDir|result.json> [--step <stepName>]');
   console.log('  node src/cli.js start-fast "<userPrompt>" <playerCount> ["storyStyle"]');
   console.log('  node src/cli.js audit-steps "<userPrompt>" <playerCount> ["storyStyle"] [--json] [--full]');
@@ -222,7 +228,6 @@ function applyResumePruneForStep(next, resumedStep) {
     delete next.solvability_validation;
     delete next.mvp_quality_gate;
     delete next.card_surface;
-    delete next.host_ui_hints;
     delete next.worker_error;
     delete next.pipeline_failure;
     delete next.error;
@@ -242,138 +247,136 @@ function applyResumePruneForStep(next, resumedStep) {
   };
 
   switch (resumedStep) {
-    case 'story_blurb_agent':
-      next.cards = [];
-      delete next.storyBlurb;
-      delete next.storyEntities;
-      delete next.story_title;
-      delete next.story_description;
-      delete next.story_rating;
-      delete next.story_themes;
-      delete next.world;
-      delete next.worldEntities;
-      delete next.coreTruth;
-      delete next.case_state;
-      delete next.clue_targets;
-      clearBundleState();
-      clearGeneratedTailState();
-      break;
-    case 'story_metadata_agent':
-      removeCards((card) => card?.card_type === 'story_meta');
-      delete next.story_title;
-      delete next.story_description;
-      delete next.story_rating;
-      delete next.story_themes;
-      clearGeneratedTailState();
-      break;
-    case 'world_building_agent':
-      removeCards((card) => card?.card_type === 'world_person' || card?.card_type === 'world_location');
-      delete next.world;
-      delete next.worldEntities;
-      clearGeneratedTailState();
-      break;
-    case 'characters_builder_agent':
-      removeCards((card) => card?.card_type === 'character');
-      clearGeneratedTailState();
-      break;
-    case 'core_truth_agent':
-      delete next.coreTruth;
-      delete next.case_state;
-      delete next.clue_targets;
-      clearBundleState();
-      clearGeneratedTailState();
-      break;
-    case 'treasure_hunt_agent':
-      removeCards((card) => card?.card_type === 'clue' && String(card?.role || '').trim() === 'treasure' && !card?.meta?.treasure_stage);
-      clearGeneratedTailState();
-      break;
-    case 'case_state_builder_agent':
-      delete next.case_state;
-      clearGeneratedTailState();
-      break;
-    case 'character_secret_agent':
-      removeCards((card) => card?.card_type === 'secret');
-      clearGeneratedTailState();
-      break;
-    case 'item_agent':
-      removeCards((card) => card?.card_type === 'item' && !card?.bundle_id);
-      clearGeneratedTailState();
-      break;
-    case 'treasure_item_agent':
-      removeCards((card) =>
-        card?.card_type === 'treasure'
-        || (card?.card_type === 'clue' && String(card?.meta?.treasure_stage || '').trim() === 'clue')
-      );
-      clearGeneratedTailState();
-      break;
-    case 'story_acts_agent':
-      removeCards((card) => card?.card_type === 'story_act');
-      clearGeneratedTailState();
-      break;
-    case 'host_speech_agent':
-      removeCards((card) => card?.card_type === 'host_speech');
-      clearGeneratedTailState();
-      break;
-    case 'clue_agent':
-      removeCards((card) =>
-        card?.card_type === 'clue'
-        && !isTreasureTrailClue(card)
-        && !card?.bundle_id
-      );
-      delete next.clue_targets;
-      clearBundleState();
-      clearGeneratedTailState();
-      break;
-    case 'clue_target_agent':
-      delete next.clue_targets;
-      clearBundleState();
-      clearGeneratedTailState();
-      break;
-    case 'puzzle_agent':
-      delete next.puzzle_bundle_drafts;
-      delete next.puzzle_bundles;
-      delete next.truth_trail;
-      clearGeneratedTailState();
-      break;
-    case 'bundle_finalize_agent':
-      removeCards((card) => Boolean(card?.bundle_id));
-      delete next.puzzle_bundles;
-      delete next.truth_trail;
-      clearGeneratedTailState();
-      break;
-    case 'game_card_agent':
-      removeCards((card) => card?.card_type === 'game_card');
-      delete next.mvp_quality_gate;
-      delete next.card_surface;
-      delete next.host_ui_hints;
-      clearResumeOnlyState();
-      break;
-    case 'bundle_structure_validator_agent':
-    case 'post_final_invariants_agent':
-    case 'bundle_integrity_validator_agent':
-      clearResumeOnlyState();
-      break;
-    case 'truth_trail_validator_agent':
-      delete next.truth_trail;
-      clearGeneratedTailState();
-      break;
-    case 'structural_preflight_agent':
-      delete next.structural_preflight;
-      clearGeneratedTailState();
-      break;
-    case 'solvability_validator_agent':
-      delete next.solvability_validation;
-      clearGeneratedTailState();
-      break;
-    case 'mvp_quality_gate_agent':
-      delete next.mvp_quality_gate;
-      delete next.card_surface;
-      delete next.host_ui_hints;
-      clearResumeOnlyState();
-      break;
-    default:
-      clearResumeOnlyState();
-      break;
+  case 'story_blurb_agent':
+    next.cards = [];
+    delete next.storyBlurb;
+    delete next.storyEntities;
+    delete next.story_title;
+    delete next.story_description;
+    delete next.story_rating;
+    delete next.story_themes;
+    delete next.world;
+    delete next.worldEntities;
+    delete next.coreTruth;
+    delete next.case_state;
+    delete next.clue_targets;
+    clearBundleState();
+    clearGeneratedTailState();
+    break;
+  case 'story_metadata_agent':
+    removeCards((card) => card?.card_type === 'story_meta');
+    delete next.story_title;
+    delete next.story_description;
+    delete next.story_rating;
+    delete next.story_themes;
+    clearGeneratedTailState();
+    break;
+  case 'world_building_agent':
+    removeCards((card) => card?.card_type === 'world_person' || card?.card_type === 'world_location');
+    delete next.world;
+    delete next.worldEntities;
+    clearGeneratedTailState();
+    break;
+  case 'characters_builder_agent':
+    removeCards((card) => card?.card_type === 'character');
+    clearGeneratedTailState();
+    break;
+  case 'core_truth_agent':
+    delete next.coreTruth;
+    delete next.case_state;
+    delete next.clue_targets;
+    clearBundleState();
+    clearGeneratedTailState();
+    break;
+  case 'treasure_hunt_agent':
+    removeCards((card) => card?.card_type === 'clue' && String(card?.role || '').trim() === 'treasure' && !card?.meta?.treasure_stage);
+    clearGeneratedTailState();
+    break;
+  case 'case_state_builder_agent':
+    delete next.case_state;
+    clearGeneratedTailState();
+    break;
+  case 'character_secret_agent':
+    removeCards((card) => card?.card_type === 'secret');
+    clearGeneratedTailState();
+    break;
+  case 'item_agent':
+    removeCards((card) => card?.card_type === 'item' && !card?.bundle_id);
+    clearGeneratedTailState();
+    break;
+  case 'treasure_item_agent':
+    removeCards((card) =>
+      card?.card_type === 'treasure'
+      || (card?.card_type === 'clue' && String(card?.meta?.treasure_stage || '').trim() === 'clue')
+    );
+    clearGeneratedTailState();
+    break;
+  case 'story_acts_agent':
+    removeCards((card) => card?.card_type === 'story_act');
+    clearGeneratedTailState();
+    break;
+  case 'host_speech_agent':
+    removeCards((card) => card?.card_type === 'host_speech');
+    clearGeneratedTailState();
+    break;
+  case 'clue_agent':
+    removeCards((card) =>
+      card?.card_type === 'clue'
+      && !isTreasureTrailClue(card)
+      && !card?.bundle_id
+    );
+    delete next.clue_targets;
+    clearBundleState();
+    clearGeneratedTailState();
+    break;
+  case 'clue_target_agent':
+    delete next.clue_targets;
+    clearBundleState();
+    clearGeneratedTailState();
+    break;
+  case 'puzzle_agent':
+    delete next.puzzle_bundle_drafts;
+    delete next.puzzle_bundles;
+    delete next.truth_trail;
+    clearGeneratedTailState();
+    break;
+  case 'bundle_finalize_agent':
+    removeCards((card) => Boolean(card?.bundle_id));
+    delete next.puzzle_bundles;
+    delete next.truth_trail;
+    clearGeneratedTailState();
+    break;
+  case 'game_card_agent':
+    removeCards((card) => card?.card_type === 'game_card');
+    delete next.mvp_quality_gate;
+    delete next.card_surface;
+    clearResumeOnlyState();
+    break;
+  case 'bundle_structure_validator_agent':
+  case 'post_final_invariants_agent':
+  case 'bundle_integrity_validator_agent':
+    clearResumeOnlyState();
+    break;
+  case 'truth_trail_validator_agent':
+    delete next.truth_trail;
+    clearGeneratedTailState();
+    break;
+  case 'structural_preflight_agent':
+    delete next.structural_preflight;
+    clearGeneratedTailState();
+    break;
+  case 'solvability_validator_agent':
+    delete next.solvability_validation;
+    clearGeneratedTailState();
+    break;
+  case 'mvp_quality_gate_agent':
+    delete next.mvp_quality_gate;
+    delete next.card_surface;
+    clearResumeOnlyState();
+    break;
+  default:
+    clearResumeOnlyState();
+    break;
   }
 
   return next;
@@ -551,7 +554,7 @@ async function main() {
             console.log(`✓ ${stepName}`);
           },
           onStepError: ({ stepName, error }) => {
-            console.log(`✗ ${stepName}`);
+            console.error(`✗ ${stepName}`);
             console.log(String(error));
           }
         });
@@ -584,7 +587,8 @@ async function main() {
       includeWorldbuilding,
       includeHostSpeeches,
       includeSecrets,
-      includeItems
+      includeItems,
+      includeImages
     } = await getStartInputs(args);
 
     if (!process.env.OPENAI_API_KEY) {
@@ -608,6 +612,7 @@ async function main() {
       includeHostSpeeches,
       includeSecrets,
       includeItems,
+      includeImages,
       cards: []
     });
 
@@ -624,6 +629,7 @@ async function main() {
     console.log('Host speeches:', includeHostSpeeches ? 'yes' : 'no');
     console.log('Secrets:', includeSecrets ? 'yes' : 'no');
     console.log('Items:', includeItems ? 'yes' : 'no');
+    console.log('Images:', includeImages ? 'yes' : 'no');
     console.log('Prompt :', userPrompt);
     console.log('Style :', storyStyle);
     console.log('Output :', run.dir, '(folder renames after story title is generated)');
@@ -699,7 +705,8 @@ async function main() {
       includeWorldbuilding,
       includeHostSpeeches,
       includeSecrets,
-      includeItems
+      includeItems,
+      includeImages
     } = await getStartInputs(args);
 
     if (!process.env.OPENAI_API_KEY) {
@@ -724,6 +731,7 @@ async function main() {
       includeHostSpeeches,
       includeSecrets,
       includeItems,
+      includeImages,
       cards: []
     });
 
@@ -759,9 +767,7 @@ async function main() {
 
     const finalDir = job.context?.runDir || run.dir;
     const resultPath = path.join(finalDir, 'result.json');
-    const context = fs.existsSync(resultPath)
-      ? JSON.parse(fs.readFileSync(resultPath, 'utf8'))
-      : latestContext;
+    const context = fs.existsSync(resultPath) ? JSON.parse(fs.readFileSync(resultPath, 'utf8')) : (latestContext || {});
     printStructuralPreflight(context.structural_preflight || buildStructuralPreflight(context));
     printPlayabilityReport(buildPlayabilityReport(context, { partial: true, stepName: 'start-fast' }));
     return;
@@ -783,7 +789,8 @@ async function main() {
       includeWorldbuilding,
       includeHostSpeeches,
       includeSecrets,
-      includeItems
+      includeItems,
+      includeImages
     } = await getStartInputs(filteredArgs);
 
     if (!process.env.OPENAI_API_KEY) {
@@ -809,6 +816,7 @@ async function main() {
       includeHostSpeeches,
       includeSecrets,
       includeItems,
+      includeImages,
       cards: []
     });
 
@@ -839,7 +847,7 @@ async function main() {
         }
       });
     } catch {
-      // Keep the partial audit output; caller asked for iterative diagnostics.
+    // Keep the partial audit output; caller asked for iterative diagnostics.
     }
 
     const finalDir = job.context?.runDir || run.dir;

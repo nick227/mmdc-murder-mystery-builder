@@ -12,6 +12,7 @@ import { characterProfileAgent } from '../../agents/characterProfileAgent.js';
 import { characterSecretAgent } from '../../agents/characterSecretAgent.js';
 import { storyActsAgent } from '../../agents/storyActsAgent.js';
 import { imageGeneratorAgent } from '../../agents/imageGeneratorAgent.js';
+import { storyImageAgent } from '../../agents/storyImageAgent.js';
 import { hostSpeechAgent } from '../../agents/hostSpeechAgent.js';
 
 import { itemAgent } from '../../agents/itemAgent.js';
@@ -31,13 +32,17 @@ import { mvpQualityGateAgent } from '../../agents/mvpQualityGateAgent.js';
 export const steps = [
   { name: 'story_blurb_agent', run: storyBlurbAgent },
   { name: 'story_metadata_agent', run: storyMetadataAgent },
+  {
+    name: 'story_image_agent',
+    run: (context) => (context?.includeImages === false ? context : storyImageAgent(context))
+  },
 
   { name: 'world_building_agent', run: worldBuildingAgent },
 
   { name: 'characters_builder_agent', run: charactersBuilderAgent },
   {
     name: 'character_image_agent',
-    run: (context) => imageGeneratorAgent(context, { types: ['character'] })
+    run: (context) => (context?.includeImages === false ? context : imageGeneratorAgent(context, { types: ['character'] }))
   },
   { name: 'character_profile_agent', run: characterProfileAgent },
 
@@ -50,7 +55,7 @@ export const steps = [
   { name: 'story_acts_agent', run: storyActsAgent },
   {
     name: 'story_act_image_agent',
-    run: (context) => imageGeneratorAgent(context, { types: ['story_act'] })
+    run: (context) => (context?.includeImages === false ? context : imageGeneratorAgent(context, { types: ['story_act'] }))
   },
   { name: 'host_speech_agent', run: hostSpeechAgent },
   { name: 'clue_agent', run: clueAgent },

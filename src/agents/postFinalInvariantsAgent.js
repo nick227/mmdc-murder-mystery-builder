@@ -119,14 +119,35 @@ function collectDuplicateTitlesByType(cards) {
 
 function assertStructuredSecrets(context) {
   const secrets = getCardsByType(context.cards, 'secret');
-  const characterNames = new Set(
-    getCharacterCards(context.cards).map((card) => baseName(card.card_title)).filter(Boolean)
+  const characterCards = getCharacterCards(context.cards);
+  const characterNames = new Set(characterCards.map((card) => baseName(card.card_title)).filter(Boolean));
+  const characterNameById = new Map(
+    characterCards
+      .filter((c) => c?.card_id)
+      .map((c) => [String(c.card_id).trim(), baseName(c.card_title)])
+      .filter(([, name]) => Boolean(name))
   );
   const motiveByCharacter = new Map();
 
   for (const secret of secrets) {
     const secretType = String(secret?.secret_type || '').trim();
     assert(SECRET_TYPES.has(secretType), `post_final_invariants_agent: secret ${secret.card_id} missing valid secret_type`);
+
+    // Some upstream steps may attach linkage by id or by roster index rather than by name.
+    // Normalize to `linked_character` (base name) so downstream invariants can be stable.
+    if (!secret?.linked_character) {
+      const linkedById = String(secret?.linked_character_id || '').trim();
+      if (linkedById && characterNameById.has(linkedById)) {
+        secret.linked_character = characterNameById.get(linkedById);
+      } else if (Number.isInteger(secret?.linked_character_index)) {
+        const idx = secret.linked_character_index;
+        const byIndex = characterCards[idx] ? baseName(characterCards[idx].card_title) : '';
+        if (byIndex) {
+          secret.linked_character = byIndex;
+        }
+      }
+    }
+
     const linkedCharacter = String(secret?.linked_character || '').trim();
     assert(linkedCharacter && characterNames.has(linkedCharacter), `post_final_invariants_agent: secret ${secret.card_id} missing linked_character`);
 
@@ -167,11 +188,16 @@ function assertCharacterCoverage(context) {
       .map((card) => String(card?.linked_character || '').trim())
       .filter(Boolean)
   );
+  const cluesExpected = Number(context?.cluesPerPlayer ?? 0) > 0;
+  const secretsExpected = context?.includeSecrets !== false;
 
   for (const suspect of suspects) {
     const suspectId = String(suspect?.suspect_id || '').trim();
     const suspectName = String(suspect?.name || suspect?.title || '').trim();
     const base = baseName(suspectName);
+    if (!cluesExpected && !secretsExpected) {
+      continue;
+    }
     assert(
       clueCoverage.has(suspectId) || secretCoverage.has(base) || secretCoverage.has(suspectName),
       `post_final_invariants_agent: character ${suspectName} is not referenced by any clue or secret`
@@ -180,6 +206,10 @@ function assertCharacterCoverage(context) {
 }
 
 function checkClueCoverage(context) {
+  const cluesExpected = Number(context?.cluesPerPlayer ?? 0) > 0;
+  if (!cluesExpected) {
+    return;
+  }
   const suspects = Array.isArray(context?.case_state?.suspects) ? context.case_state.suspects : [];
   if (!suspects.length) {
     return;

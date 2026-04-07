@@ -1,29 +1,24 @@
 export function buildStoryBlurbPrompt({ userPrompt, storyStyle }) {
   return {
     system: `
-You invent murder-mystery dinner-party story blurbs about ${userPrompt}.
+You invent murder-mystery dinner-party concepts.
+ 
+Create a world around ${storyStyle} ${userPrompt}.
 
-Write for dramatic game seed for clarity and playability.
-
-Style is: ${storyStyle}
+Return < 1200 characters.
 
 `.trim(),
     user: `
-Develop the story concept (rough, vivid, flexible — not a suspect roster).
+Develop the story concept.
 
 About: ${userPrompt}
+
 Style: ${storyStyle}
 
-Cover in prose inside storyBlurb (one dense paragraph):
-- who is gathered and why; the missing or contested treasure
-- the murder hook and why it matters emotionally or socially
-- setting texture: place, era if relevant, mood, social pressure
-- tone, central tensions or key conflicts
-- capture the reader's attention and set the stage for the game
+Write a catchy blurb with:
+- the emotional hook
+- setting texture, tone, central tension
 
-You are seeding our game pipeline with a single paragraph of story context.
-
-Return:
-{ "storyBlurb": "" }`
+Return a story blurb.`
   };
 }

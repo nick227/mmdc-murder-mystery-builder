@@ -6,10 +6,10 @@ export function buildStoryActsPrompt({ storyBlurb, narratives, characters, locat
       'Acts should frame tension, shift focus, and introduce new questions.',
       'You do not know who the killer is. Work only from the competing narratives.',
       'Each act card must be tagged with its act number.',
-      "Acts should sound like newly discovered information.",
-      "Acts should create immediate conversation.",
-      "Acts should introduce ambiguity or contradiction.",
-      "Acts should reference people, motives, or movement.",
+      'Acts should sound like newly discovered information.',
+      'Acts should create immediate conversation.',
+      'Acts should introduce ambiguity or contradiction.',
+      'Acts should reference people, motives, or movement.',
       'Each act content is < 1200 characters.'
     ].join(' '),
     user: `

@@ -15,20 +15,15 @@ function getFallbackUrl({ runId, size = 1024 }) {
 }
 
 function buildStoryPrompt(context) {
-  const storyBlurb = getStoryBlurb(context);
   const title = String(context?.story_title || '').trim();
   const themes = String(context?.story_themes || '').trim();
-  const rating = String(context?.story_rating || '').trim();
-  const description = String(context?.story_description || '').trim();
 
   return [
-    'Cover illustration for a murder mystery party story.',
-    'No text, no letters, no watermarks, no logos.',
-    title ? `Title: ${title}` : '',
-    themes ? `Themes: ${themes}` : '',
-    rating ? `Rating: ${rating}` : '',
-    description ? `Description: ${description}` : '',
-    storyBlurb ? `Story blurb: ${storyBlurb}` : ''
+    'Highly-stylized, haunting, atmospheric, dramatic, and cinematic.',
+    title ? `${title}` : '',
+    themes ? `${themes}` : '',
+    'No text, no text, no letters, no watermarks, no logos.',
+    'ultra-realism, 8k high-resolution, dramatic lighting'
   ].filter(Boolean).join('\n');
 }
 

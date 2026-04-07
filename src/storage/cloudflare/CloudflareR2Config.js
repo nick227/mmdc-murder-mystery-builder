@@ -1,14 +1,18 @@
-function requiredEnv(name) {
-  const value = process.env[name];
-  if (!value || !String(value).trim()) {
-    throw new Error(`Missing required env var: ${name}`);
-  }
-  return String(value).trim();
-}
-
 function optionalEnv(name) {
   const value = process.env[name];
   return value == null ? '' : String(value).trim();
+}
+
+function envOrAlias(primary, alias) {
+  return optionalEnv(primary) || optionalEnv(alias);
+}
+
+function requiredEnvOrAlias(primary, alias) {
+  const value = envOrAlias(primary, alias);
+  if (!value) {
+    throw new Error(`Missing required env var: ${primary}`);
+  }
+  return value;
 }
 
 function normalizeBaseUrl(baseUrl) {
@@ -18,34 +22,36 @@ function normalizeBaseUrl(baseUrl) {
 export const cloudflareR2Config = {
   isConfigured() {
     return Boolean(
-      optionalEnv('CLOUDFLARE_R2_ENDPOINT') &&
-      optionalEnv('CLOUDFLARE_R2_ACCESS_KEY_ID') &&
-      optionalEnv('CLOUDFLARE_R2_SECRET_ACCESS_KEY') &&
-      optionalEnv('CLOUDFLARE_R2_BUCKET') &&
-      optionalEnv('CLOUDFLARE_R2_PUBLIC_BASE_URL')
+      envOrAlias('R2_S3_ENDPOINT', 'CLOUDFLARE_R2_ENDPOINT') &&
+      envOrAlias('R2_ACCESS_KEY_ID', 'CLOUDFLARE_R2_ACCESS_KEY_ID') &&
+      envOrAlias('R2_SECRET_ACCESS_KEY', 'CLOUDFLARE_R2_SECRET_ACCESS_KEY') &&
+      envOrAlias('R2_BUCKET', 'CLOUDFLARE_R2_BUCKET') &&
+      envOrAlias('R2_PUBLIC_BASE_URL', 'CLOUDFLARE_R2_PUBLIC_BASE_URL')
     );
   },
 
   getConfig() {
     return {
-      endpoint: requiredEnv('CLOUDFLARE_R2_ENDPOINT'),
-      accessKeyId: requiredEnv('CLOUDFLARE_R2_ACCESS_KEY_ID'),
-      secretAccessKey: requiredEnv('CLOUDFLARE_R2_SECRET_ACCESS_KEY'),
-      bucketName: requiredEnv('CLOUDFLARE_R2_BUCKET'),
-      publicBaseUrl: normalizeBaseUrl(requiredEnv('CLOUDFLARE_R2_PUBLIC_BASE_URL'))
+      endpoint: requiredEnvOrAlias('R2_S3_ENDPOINT', 'CLOUDFLARE_R2_ENDPOINT'),
+      accessKeyId: requiredEnvOrAlias('R2_ACCESS_KEY_ID', 'CLOUDFLARE_R2_ACCESS_KEY_ID'),
+      secretAccessKey: requiredEnvOrAlias('R2_SECRET_ACCESS_KEY', 'CLOUDFLARE_R2_SECRET_ACCESS_KEY'),
+      bucketName: requiredEnvOrAlias('R2_BUCKET', 'CLOUDFLARE_R2_BUCKET'),
+      publicBaseUrl: normalizeBaseUrl(requiredEnvOrAlias('R2_PUBLIC_BASE_URL', 'CLOUDFLARE_R2_PUBLIC_BASE_URL')),
+      region: envOrAlias('R2_REGION', 'CLOUDFLARE_R2_REGION') || 'auto',
+      forcePathStyle: (envOrAlias('R2_FORCE_PATH_STYLE', 'CLOUDFLARE_R2_FORCE_PATH_STYLE') || 'true').toLowerCase() !== 'false'
     };
   },
 
   getAwsConfig() {
     const config = this.getConfig();
     return {
-      region: 'auto',
+      region: config.region,
       endpoint: config.endpoint,
       credentials: {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey
       },
-      forcePathStyle: true
+      forcePathStyle: config.forcePathStyle
     };
   },
 

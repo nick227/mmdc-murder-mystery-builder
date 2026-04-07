@@ -40,6 +40,29 @@ function buildFinalSolutionCards(coreTruth) {
   return cards;
 }
 
+/** Ultimate truth card for the killer's eyes only. */
+function buildKillerSecretCard(coreTruth) {
+  const murder = coreTruth?.murder || {};
+  const killer = String(murder.killer || '').trim();
+  const victim = String(murder.victim || '').trim();
+  const location = String(murder.location || '').trim();
+  const solution = String(murder.murder_solution || '').trim();
+
+  if (!killer || !solution) {
+    return null;
+  }
+
+  return {
+    card_type: 'secret',
+    card_title: 'My Darkest Secret',
+    secret_type: 'motive',
+    card_contents: `The truth is, I am the one who killed ${victim} at ${location}. ${solution}`,
+    linked_character: killer.split(',')[0].trim(),
+    act: 3,
+    hidden_until_solved: true
+  };
+}
+
 export async function coreTruthAgent(context) {
   const reservedVictimName = String(context?.reservedVictim?.name || '').trim();
   const victimNote = reservedVictimName
@@ -79,6 +102,11 @@ export async function coreTruthAgent(context) {
         murder_canon: murderCanon
       }))
     );
+  }
+
+  const killerSecret = buildKillerSecretCard(context.coreTruth);
+  if (killerSecret) {
+    pushCards(context, 'secret', [killerSecret]);
   }
 
   return context;

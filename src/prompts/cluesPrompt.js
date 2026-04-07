@@ -41,7 +41,7 @@ Rules:
 - Vary item types and angles; avoid duplicates.
 - Do not identify the killer.
 - Do not state any clue as confirmed fact.
-- Each brief must stand alone.`
+- Clues are short and direct < 1000 characters.`
   };
 }
 
