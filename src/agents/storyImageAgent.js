@@ -36,22 +36,26 @@ export async function storyImageAgent(context) {
     return context;
   }
 
-  if (!runId || !String(runId).trim()) {
-    throw new Error('story_image_agent: context.runId is required');
-  }
-  if (!runDir || !String(runDir).trim()) {
-    throw new Error('story_image_agent: context.runDir is required');
+  if (!smoke) {
+    if (!runId || !String(runId).trim()) {
+      throw new Error('story_image_agent: context.runId is required');
+    }
+    if (!runDir || !String(runDir).trim()) {
+      throw new Error('story_image_agent: context.runDir is required');
+    }
   }
 
-  const localDir = path.join(runDir, 'images', 'story');
-  ensureDir(localDir);
-  const localPath = path.join(localDir, 'story.png');
-  const r2Key = `images/${runId}/story/story.png`;
+  const localDir = runDir ? path.join(runDir, 'images', 'story') : null;
+  if (localDir) {
+    ensureDir(localDir);
+  }
+  const localPath = localDir ? path.join(localDir, 'story.png') : null;
+  const r2Key = `images/${runId || 'smoke'}/story/story.png`;
 
   console.log('story_image_agent: generate');
 
   if (smoke) {
-    context.storyImage = `smoke://images/${runId}/story/story.png`;
+    context.storyImage = `smoke://images/${runId || 'smoke'}/story/story.png`;
     console.log(`story_image_agent: uploaded key=${r2Key} url=${context.storyImage}`);
     return context;
   }
@@ -66,7 +70,9 @@ export async function storyImageAgent(context) {
   try {
     const prompt = buildStoryPrompt(context);
     const buffer = await generateFluxPngBuffer(prompt);
-    fs.writeFileSync(localPath, buffer);
+    if (localPath) {
+      fs.writeFileSync(localPath, buffer);
+    }
     const url = await cloudflareR2Service.saveImage(buffer, r2Key, { contentType: 'image/png' });
     context.storyImage = url;
     console.log(`story_image_agent: uploaded key=${r2Key} url=${url}`);

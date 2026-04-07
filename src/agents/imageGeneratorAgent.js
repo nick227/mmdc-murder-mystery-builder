@@ -59,12 +59,8 @@ function assertConfigured({ runId, runDir }) {
 }
 
 export async function imageGeneratorAgent(context, options = {}) {
-  const types = Array.isArray(options.types) ? options.types.map(String) : [];
   const force = options.force === true;
-
-  if (!types.length) {
-    return context;
-  }
+  const explicitTypes = Array.isArray(options.types) ? options.types.map(String) : null;
 
   const runId = context?.runId;
   const runDir = context?.runDir;
@@ -77,13 +73,21 @@ export async function imageGeneratorAgent(context, options = {}) {
   }
 
   const cards = Array.isArray(context?.cards) ? context.cards : [];
-  const eligible = cards.filter((card) => types.includes(card?.card_type));
+  const eligible = explicitTypes
+    ? cards.filter((card) => explicitTypes.includes(card?.card_type))
+    : cards;
 
   for (const card of eligible) {
     const cardType = String(card?.card_type || '').trim();
     const cardId = String(card?.card_id || '').trim();
     if (!cardId) {
       throw new Error(`image_agent: card is missing card_id (type=${cardType})`);
+    }
+    const effectiveRunId = String(runId || 'smoke').trim() || 'smoke';
+
+    if (card?.disable_image === true) {
+      console.log(`image_agent: skip card_id=${cardId} type=${cardType} (disable_image)`);
+      continue;
     }
 
     if (shouldSkip(card, { force })) {
@@ -102,20 +106,21 @@ export async function imageGeneratorAgent(context, options = {}) {
         : `image_agent: ${action} card_id=${cardId} type=${cardType}`
     );
 
-    const prompt = buildPrompt(card, context);
-
-    const localDir = path.join(runDir, 'images', cardType);
-    ensureDir(localDir);
-
-    const localPath = getLocalImagePath({ runDir, cardType, cardId, suffix });
-    const r2Key = getR2Key({ runId, cardType, cardId, suffix });
-
     try {
       if (smoke) {
-        card.image_url = `smoke://images/${runId}/${cardType}/${cardId}${suffix}.png`;
+        const r2Key = getR2Key({ runId: effectiveRunId, cardType, cardId, suffix });
+        card.image_url = `smoke://images/${effectiveRunId}/${cardType}/${cardId}${suffix}.png`;
         console.log(`image_agent: uploaded key=${r2Key} url=${card.image_url}`);
         continue;
       }
+
+      const prompt = buildPrompt(card, context);
+
+      const localDir = path.join(runDir, 'images', cardType);
+      ensureDir(localDir);
+
+      const localPath = getLocalImagePath({ runDir, cardType, cardId, suffix });
+      const r2Key = getR2Key({ runId, cardType, cardId, suffix });
 
       if (!cloudflareR2Service.isInitialized()) {
         const fallbackUrl = getFallbackUrl({ runId, cardType, cardId, suffix });

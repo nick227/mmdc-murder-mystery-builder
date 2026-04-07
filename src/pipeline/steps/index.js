@@ -40,10 +40,6 @@ export const steps = [
   { name: 'world_building_agent', run: worldBuildingAgent },
 
   { name: 'characters_builder_agent', run: charactersBuilderAgent },
-  {
-    name: 'character_image_agent',
-    run: (context) => (context?.includeImages === false ? context : imageGeneratorAgent(context, { types: ['character'] }))
-  },
   { name: 'character_profile_agent', run: characterProfileAgent },
 
   { name: 'core_truth_agent', run: coreTruthAgent },
@@ -53,10 +49,6 @@ export const steps = [
   { name: 'character_secret_agent', run: characterSecretAgent },
   { name: 'item_agent', run: itemAgent },
   { name: 'story_acts_agent', run: storyActsAgent },
-  {
-    name: 'story_act_image_agent',
-    run: (context) => (context?.includeImages === false ? context : imageGeneratorAgent(context, { types: ['story_act'] }))
-  },
   { name: 'host_speech_agent', run: hostSpeechAgent },
   { name: 'clue_agent', run: clueAgent },
   { name: 'clue_roster_validator_agent', run: clueRosterValidatorAgent },
@@ -65,6 +57,10 @@ export const steps = [
   { name: 'solvability_validator_agent', run: solvabilityValidatorAgent },
 
   { name: 'game_card_agent', run: gameCardAgent },
+  {
+    name: 'image_agent',
+    run: (context) => (context?.includeImages === false ? context : imageGeneratorAgent(context))
+  },
 
   { name: 'post_final_invariants_agent', run: postFinalInvariantsAgent },
   { name: 'mvp_quality_gate_agent', run: mvpQualityGateAgent }
